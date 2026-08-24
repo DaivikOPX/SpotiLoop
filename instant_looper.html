@@ -11,16 +11,14 @@
     :root {
       --spotify-green: #1DB954;
       --spotify-green-hover: #1ed760;
-      --spotify-green-glow: rgba(29, 185, 84, 0.35);
+      --spotify-green-glow: rgba(29, 185, 84, 0.2);
       --point-a-color: #00E676;
-      --point-a-glow: rgba(0, 230, 118, 0.4);
       --point-b-color: #FF5252;
-      --point-b-glow: rgba(255, 82, 82, 0.4);
-      --bg-dark: #0b0c10;
-      --card-bg: #141620;
-      --card-border: rgba(255, 255, 255, 0.08);
-      --card-inner: #1a1d2b;
-      --text-muted: #8b92a5;
+      --bg-dark: #000000;
+      --card-bg: #0c0c0c;
+      --card-border: #1a1a1a;
+      --card-inner: #121212;
+      --text-muted: #757b8c;
     }
     
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
@@ -32,10 +30,8 @@
     }
 
     body {
-      background-color: var(--bg-dark);
-      background-image: 
-        radial-gradient(circle at 10% 10%, rgba(29, 185, 84, 0.07) 0%, transparent 45%),
-        radial-gradient(circle at 90% 90%, rgba(255, 82, 82, 0.05) 0%, transparent 45%);
+      background-color: #000000;
+      background: #000000;
       color: #fff;
       display: flex;
       justify-content: center;
@@ -761,7 +757,7 @@
     <!-- Bottom Controls Row (Transport + Latency) -->
     <div class="bottom-row">
       <!-- Playback Transport -->
-      <div class="card transport-bar">
+      <div class="card transport-bar" style="width:100%;">
         <button class="transport-btn" onclick="spotifyPrev()" title="Previous Track">
           <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
         </button>
@@ -773,15 +769,6 @@
         <button class="transport-btn" onclick="spotifyNext()" title="Next Track">
           <svg viewBox="0 0 24 24"><path d="m6 18 8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
         </button>
-      </div>
-
-      <!-- Latency Tuning -->
-      <div class="tuning-card">
-        <div class="tuning-header">
-          <span>Lead:</span>
-          <span id="latencyLabel" style="font-family:'JetBrains Mono',monospace; color:var(--spotify-green);">120ms</span>
-        </div>
-        <input id="latencySlider" class="slider-range" type="range" min="0" max="400" value="120" step="20" oninput="updateLatency(this.value)">
       </div>
     </div>
 
@@ -1462,9 +1449,6 @@
   }
 
   (async function init() {
-    document.getElementById('latencySlider').value = seekLeadOffsetMs;
-    document.getElementById('latencyLabel').textContent = `${seekLeadOffsetMs}ms`;
-    
     // Fetch server configuration (Client ID)
     try {
       const configRes = await fetch('/api/config');
