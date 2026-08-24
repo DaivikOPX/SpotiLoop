@@ -1,0 +1,19 @@
+{
+  "name": "spotiloop-pro",
+  "version": "1.0.0",
+  "description": "High-precision Spotify A-B Looper Studio",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/timing_precision.test.js"
+  },
+  "keywords": [
+    "spotify",
+    "ab-looper",
+    "audio-looper",
+    "precision-timing",
+    "music-practice"
+  ],
+  "author": "DaivikOPX",
+  "license": "MIT"
+}
