@@ -19,7 +19,7 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: 'temurin'
           java-version: '17'
 
       - name: Set up Flutter
@@ -28,6 +28,11 @@ jobs:
           flutter-version: '3.22.x'
           channel: 'stable'
           cache: true
+
+      - name: Configure Flutter SDK Path for Android Gradle
+        run: |
+          mkdir -p android
+          echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
 
       - name: Install Flutter Dependencies
         run: flutter pub get
