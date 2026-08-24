@@ -29,10 +29,32 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Configure Flutter Local Properties
+      - name: Generate Official Android Platform Files
         run: |
-          mkdir -p android
-          echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
+          rm -rf android
+          flutter create --platforms=android --org com.daivik --project-name spotiloop .
+
+      - name: Configure Deep Link Intent Filters
+        run: |
+          # Inject spotiloop://callback deep link intent filter into AndroidManifest.xml
+          python3 -c "
+          manifest_path = 'android/app/src/main/AndroidManifest.xml'
+          with open(manifest_path, 'r') as f:
+              content = f.read()
+          deep_link = '''
+              <!-- Spotify OAuth PKCE Deep Link Callback -->
+              <intent-filter>
+                  <action android:name=\"android.intent.action.VIEW\"/>
+                  <category android:name=\"android.intent.category.DEFAULT\"/>
+                  <category android:name=\"android.intent.category.BROWSABLE\"/>
+                  <data android:scheme=\"spotiloop\" android:host=\"callback\"/>
+              </intent-filter>
+          '''
+          if 'spotiloop' not in content:
+              content = content.replace('</activity>', deep_link + '\n        </activity>')
+              with open(manifest_path, 'w') as f:
+                  f.write(content)
+          "
 
       - name: Install Dependencies
         run: flutter pub get

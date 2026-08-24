@@ -30,7 +30,7 @@ function loadEnv() {
 loadEnv();
 
 const PORT = parseInt(process.env.PORT || '8888', 10);
-const HOST = process.env.HOST || '127.0.0.1';
+const HOST = process.env.HOST || '0.0.0.0';
 const HTML_FILE = path.join(__dirname, 'instant_looper.html');
 const SESSION_FILE = path.join(__dirname, '.spotify_session.json');
 
