@@ -1,7 +1,4 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:window_manager/window_manager.dart';
 
 import 'screens/home_screen.dart';
 import 'services/loop_engine.dart';
@@ -11,24 +8,6 @@ import 'services/storage_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Desktop window configuration
-  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
-    await windowManager.ensureInitialized();
-    const windowOptions = WindowOptions(
-      size: Size(480, 800),
-      minimumSize: Size(380, 600),
-      center: true,
-      backgroundColor: Colors.transparent,
-      skipTaskbar: false,
-      title: 'SpotiLoop - Spotify A-B Looper',
-      titleBarStyle: TitleBarStyle.normal,
-    );
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.focus();
-    });
-  }
 
   // Initialize persistent storage and services
   final storage = await StorageService.init();
