@@ -24,6 +24,8 @@ class LoopEngine extends ChangeNotifier {
   DateTime _lastSeekDispatched = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _seekLockoutUntil = DateTime.fromMillisecondsSinceEpoch(0);
 
+  int _volumePercent = 75;
+
   // Getters
   SpotifyTrack? get currentTrack => _currentTrack;
   int? get startMarkerMs => _startMarkerMs;
@@ -33,9 +35,16 @@ class LoopEngine extends ChangeNotifier {
   int get currentProgressMs => _currentProgressMs;
   bool get isPlaying => _isPlaying;
   int get durationMs => _currentTrack?.durationMs ?? 0;
+  int get volumePercent => _volumePercent;
 
   bool get isLoopValid => _startMarkerMs != null && _endMarkerMs != null && _startMarkerMs! < _endMarkerMs!;
   int get loopDurationMs => isLoopValid ? (_endMarkerMs! - _startMarkerMs!) : 0;
+
+  Future<void> setVolume(int percent) async {
+    _volumePercent = percent.clamp(0, 100);
+    notifyListeners();
+    await _apiService.setVolume(_volumePercent);
+  }
 
   LoopEngine(this._apiService, this._storage) {
     _startTimers();

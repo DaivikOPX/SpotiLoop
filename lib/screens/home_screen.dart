@@ -185,41 +185,107 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildPlaybackControls() {
     final isPlaying = engine.isPlaying;
+    final volume = engine.volumePercent;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white10),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      child: Column(
         children: [
-          IconButton(
-            icon: const Icon(Icons.skip_previous_rounded, size: 30, color: Colors.white),
-            tooltip: 'Previous Track',
-            onPressed: () => engine.previous(),
-          ),
-          Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: Icon(
-                isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                size: 32,
-                color: Colors.black,
+          // Transport Buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.skip_previous_rounded, size: 30, color: Colors.white),
+                tooltip: 'Previous Track',
+                onPressed: () => engine.previous(),
               ),
-              tooltip: isPlaying ? 'Pause Spotify' : 'Play Spotify',
-              onPressed: () => engine.togglePlayPause(),
-            ),
+              Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                    size: 32,
+                    color: Colors.black,
+                  ),
+                  tooltip: isPlaying ? 'Pause Spotify' : 'Play Spotify',
+                  onPressed: () => engine.togglePlayPause(),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.skip_next_rounded, size: 30, color: Colors.white),
+                tooltip: 'Next Track',
+                onPressed: () => engine.next(),
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.skip_next_rounded, size: 30, color: Colors.white),
-            tooltip: 'Next Track',
-            onPressed: () => engine.next(),
+
+          const SizedBox(height: 8),
+          const Divider(color: Colors.white10, height: 1),
+          const SizedBox(height: 6),
+
+          // Volume Control Row
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(
+                  volume == 0
+                      ? Icons.volume_off_rounded
+                      : volume < 50
+                          ? Icons.volume_down_rounded
+                          : Icons.volume_up_rounded,
+                  color: volume == 0 ? Colors.redAccent : Colors.white70,
+                  size: 22,
+                ),
+                tooltip: volume == 0 ? 'Unmute' : 'Mute',
+                onPressed: () {
+                  if (volume > 0) {
+                    engine.setVolume(0);
+                  } else {
+                    engine.setVolume(70);
+                  }
+                },
+              ),
+              Expanded(
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 4,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                    activeTrackColor: const Color(0xFF1DB954),
+                    inactiveTrackColor: Colors.white12,
+                    thumbColor: Colors.white,
+                  ),
+                  child: Slider(
+                    value: volume.toDouble(),
+                    min: 0,
+                    max: 100,
+                    onChanged: (val) => engine.setVolume(val.toInt()),
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 36,
+                child: Text(
+                  '$volume%',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white54,
+                    fontFamily: 'monospace',
+                  ),
+                  textAlign: TextAlign.right,
+                ),
+              ),
+            ],
           ),
         ],
       ),

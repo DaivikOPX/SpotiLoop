@@ -436,6 +436,27 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API Endpoint: Volume Control
+  if (req.url === '/api/volume' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body);
+        const percent = Math.max(0, Math.min(parseInt(payload.volumePercent, 10) || 0, 100));
+        if (sharedState.accessToken) {
+          await spotifyApiRequest('PUT', `/v1/me/player/volume?volume_percent=${percent}`, sharedState.accessToken);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, volumePercent: percent }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
   // API Endpoint: Disconnect & Clear Session
   if (req.url === '/api/logout' && req.method === 'POST') {
     sharedState.accessToken = null;
