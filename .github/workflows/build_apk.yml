@@ -44,6 +44,9 @@ jobs:
           # Replace app label with Spoti Loop
           content = content.replace('android:label=\"spotiloop\"', 'android:label=\"Spoti Loop\"')
           
+          # Ensure singleTask launch mode so existing app instance receives the deep link callback
+          content = content.replace('android:launchMode=\"singleTop\"', 'android:launchMode=\"singleTask\"')
+
           deep_link = '''
               <!-- Spotify OAuth PKCE Deep Link Callback -->
               <intent-filter>
