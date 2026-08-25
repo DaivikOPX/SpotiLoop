@@ -1,4 +1,4 @@
-# 🔁 SpotiLoop Pro — Precision Spotify A-B Looper
+# 🔁 SpotiLoop — Precision Spotify A-B Looper
 
 <div align="center">
   <img src="assets/logo.png" width="120" alt="SpotiLoop Logo" style="border-radius: 24px; box-shadow: 0 8px 32px rgba(29, 185, 84, 0.3);" />
@@ -57,23 +57,6 @@ Get the standalone APK directly for your Android device:
 
 ---
 
-## ⚙️ Spotify Developer Setup (Optional Custom App)
-
-SpotiLoop works out-of-the-box, but if you want to use your own Spotify Developer Client ID:
-
-1. Open the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
-2. Click **Create App** and configure:
-   * **App Name**: `SpotiLoop`
-   * **Redirect URIs**:
-     * `https://daivikopx.github.io/SpotiLoop/`
-     * `https://daivikopx.github.io/SpotiLoop`
-     * `spotiloop://callback`
-     * `http://127.0.0.1:8888/callback`
-   * **APIs used**: Select **Web API**.
-3. Copy your **Client ID** and connect!
-
----
-
 ## 📜 Open Source & License
 
-SpotiLoop is 100% free and open source under the **MIT License**. Contributions and feedback are welcome!
+SpotiLoop is 100% free and open source under the **MIT License**.
