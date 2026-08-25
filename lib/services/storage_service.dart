@@ -20,14 +20,13 @@ class StorageService {
     return StorageService(prefs);
   }
 
-  // Encrypted Client ID Resolver
+  // Encrypted Client ID Resolver (Protected & Hidden)
   static String _resolveDefaultClientId() {
     const k = [106,60,106,56,104,60,106,110,104,111,110,105,110,109,104,105,99,105,110,111,108,99,109,60,105,99,109,111,107,107,98,99];
     return String.fromCharCodes(k.map((c) => c ^ 0x5a));
   }
 
-  String getClientId() => _prefs.getString(_keyClientId) ?? _resolveDefaultClientId();
-  Future<void> setClientId(String clientId) => _prefs.setString(_keyClientId, clientId.trim());
+  String getClientId() => _resolveDefaultClientId();
 
   // PKCE Code Verifier
   String? getCodeVerifier() => _prefs.getString(_keyCodeVerifier);
