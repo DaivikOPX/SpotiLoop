@@ -37,7 +37,7 @@ class SpotiLoopApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'SpotiLoop',
+      title: 'Spoti Loop',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
