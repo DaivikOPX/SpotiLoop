@@ -36,7 +36,7 @@ jobs:
           flutter create --platforms=android --org com.daivik --project-name spotiloop .
           cp /tmp/pubspec.yaml.bak pubspec.yaml
 
-      - name: Configure App Name and Deep Link Filters
+      - name: Configure App Name and Deep Link Intent Filters
         run: |
           python3 -c "
           manifest_path = 'android/app/src/main/AndroidManifest.xml'
@@ -72,8 +72,32 @@ jobs:
 
       - name: Generate Custom Brand Launcher Icons
         run: |
-          flutter pub get
-          dart run flutter_launcher_icons
+          python3 -c "
+          import os
+          from PIL import Image
+          
+          logo_path = 'assets/logo.png'
+          if os.path.exists(logo_path):
+              img = Image.open(logo_path).convert('RGBA')
+              sizes = {
+                  'mipmap-mdpi': 48,
+                  'mipmap-hdpi': 72,
+                  'mipmap-xhdpi': 96,
+                  'mipmap-xxhdpi': 144,
+                  'mipmap-xxxhdpi': 192,
+              }
+              for folder, size in sizes.items():
+                  target_dir = os.path.join('android/app/src/main/res', folder)
+                  os.makedirs(target_dir, exist_ok=True)
+                  resized = img.resize((size, size), Image.Resampling.LANCZOS)
+                  resized.save(os.path.join(target_dir, 'ic_launcher.png'), 'PNG')
+                  print(f'Generated {folder}/ic_launcher.png ({size}x{size})')
+          else:
+              print('Warning: assets/logo.png not found!')
+          "
+
+      - name: Install Dependencies
+        run: flutter pub get
 
       - name: Build Android APK (Release)
         run: flutter build apk --release --no-tree-shake-icons
@@ -90,7 +114,7 @@ jobs:
         with:
           tag_name: v1.0.0
           name: "Spoti Loop v1.0.0 (Android APK)"
-          body: "Official Android APK release for Spoti Loop with custom brand icon. Download `app-release.apk` below and install on your phone!"
+          body: "Official Android APK release for Spoti Loop with custom brand icon and Spotify OAuth PKCE deep linking. Download `app-release.apk` below and install on your phone!"
           files: build/app/outputs/flutter-apk/app-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
