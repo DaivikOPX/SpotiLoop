@@ -100,7 +100,7 @@ class HomeScreen extends StatelessWidget {
                         const SizedBox(height: 16),
 
                         // Spotify Playback Transport Controls
-                        _buildPlaybackControls(),
+                        _buildPlaybackControls(context),
                       ],
                     ),
                   ),
@@ -183,7 +183,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaybackControls() {
+  Widget _buildPlaybackControls(BuildContext context) {
     final isPlaying = engine.isPlaying;
     final volume = engine.volumePercent;
 
