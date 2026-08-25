@@ -45,20 +45,11 @@
     .ambient-glow-1 {
       position: fixed;
       top: -160px;
-      left: 20%;
-      width: 700px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 750px;
       height: 600px;
       background: radial-gradient(circle, rgba(29, 185, 84, 0.18) 0%, rgba(7, 7, 9, 0) 70%);
-      pointer-events: none;
-      z-index: 0;
-    }
-    .ambient-glow-2 {
-      position: fixed;
-      bottom: -160px;
-      right: 15%;
-      width: 650px;
-      height: 550px;
-      background: radial-gradient(circle, rgba(0, 230, 118, 0.12) 0%, rgba(7, 7, 9, 0) 70%);
       pointer-events: none;
       z-index: 0;
     }
@@ -204,7 +195,7 @@
       max-width: 1240px;
       width: 100%;
       margin: 0 auto;
-      padding: 40px 24px;
+      padding: 48px 24px;
       position: relative;
       z-index: 1;
       display: flex;
@@ -213,28 +204,19 @@
     }
 
     /* =========================================================
-       1. EXPANSIVE FULL-SCREEN LANDING PAGE
+       1. EXPANSIVE FULL-SCREEN LANDING PAGE (Clean Centered View)
        ========================================================= */
     .landing-hero {
-      display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 40px;
-      align-items: center;
-    }
-    @media (max-width: 960px) {
-      .landing-hero {
-        grid-template-columns: 1fr;
-        gap: 32px;
-      }
-    }
-
-    .hero-content {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      align-items: center;
+      text-align: center;
+      max-width: 840px;
+      margin: 0 auto;
+      gap: 22px;
     }
+
     .hero-pill {
-      align-self: flex-start;
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -243,7 +225,7 @@
       color: var(--spotify-green);
       font-size: 13px;
       font-weight: 800;
-      padding: 6px 16px;
+      padding: 6px 18px;
       border-radius: 30px;
       box-shadow: 0 0 16px rgba(29, 185, 84, 0.15);
     }
@@ -265,16 +247,17 @@
       -webkit-text-fill-color: transparent;
     }
     .hero-description {
-      font-size: 16px;
+      font-size: 16.5px;
       color: var(--text-muted);
       line-height: 1.6;
-      max-width: 580px;
+      max-width: 620px;
     }
 
     /* Action Buttons */
     .hero-actions {
       display: flex;
       flex-wrap: wrap;
+      justify-content: center;
       gap: 12px;
       margin-top: 4px;
     }
@@ -283,7 +266,7 @@
       color: #000;
       font-size: 16px;
       font-weight: 900;
-      padding: 16px 28px;
+      padding: 16px 32px;
       border-radius: 30px;
       border: none;
       cursor: pointer;
@@ -324,9 +307,11 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 14px;
-      margin-top: 10px;
+      width: 100%;
+      margin-top: 14px;
+      text-align: left;
     }
-    @media (max-width: 540px) {
+    @media (max-width: 600px) {
       .bento-grid {
         grid-template-columns: 1fr;
       }
@@ -335,7 +320,7 @@
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 18px;
-      padding: 18px;
+      padding: 20px;
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       transition: all 0.25s ease;
@@ -351,92 +336,15 @@
       display: inline-block;
     }
     .bento-title {
-      font-size: 15px;
+      font-size: 15.5px;
       font-weight: 800;
       color: #fff;
     }
     .bento-desc {
-      font-size: 12.5px;
+      font-size: 13px;
       color: var(--text-muted);
       margin-top: 4px;
       line-height: 1.45;
-    }
-
-    /* Hero Right Preview Frame */
-    .hero-preview-frame {
-      background: var(--card-bg);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid var(--card-border);
-      border-radius: 28px;
-      padding: 24px;
-      box-shadow: 0 24px 60px rgba(0,0,0,0.7), 0 0 40px rgba(29, 185, 84, 0.1);
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      position: relative;
-    }
-    .preview-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-bottom: 4px;
-    }
-    .preview-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--spotify-green);
-      background: rgba(29, 185, 84, 0.1);
-      padding: 4px 10px;
-      border-radius: 12px;
-    }
-    .preview-track {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      background: var(--card-inner);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 14px;
-    }
-    .preview-art {
-      width: 52px;
-      height: 52px;
-      border-radius: 10px;
-      background: #222;
-      object-fit: cover;
-    }
-    .preview-track-title {
-      font-size: 15px;
-      font-weight: 800;
-      color: #fff;
-    }
-    .preview-track-artist {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-
-    /* Waveform demo graphic */
-    .preview-waveform {
-      height: 40px;
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      padding: 0 4px;
-    }
-    .waveform-bar {
-      flex: 1;
-      background: rgba(255,255,255,0.15);
-      border-radius: 3px;
-      min-height: 8px;
-    }
-    .waveform-bar.active {
-      background: var(--spotify-green);
-      box-shadow: 0 0 8px var(--spotify-green-glow);
     }
 
     /* =========================================================
@@ -933,7 +841,6 @@
 <body>
 
 <div class="ambient-glow-1"></div>
-<div class="ambient-glow-2"></div>
 <div id="toast">Toast Message</div>
 
 <!-- GLOBAL FULL-WIDTH NAVBAR -->
@@ -971,105 +878,60 @@
        ========================================================= -->
   <section id="landingHeroSection" class="landing-hero">
     
-    <!-- Left Hero Column -->
-    <div class="hero-content">
-      <div class="hero-pill">
-        <span>✦</span> Precision Spotify Audio Looper
-      </div>
-
-      <h1 class="hero-title">
-        Loop Every Riff, Beat & Solo with <span>Millisecond Precision</span>
-      </h1>
-
-      <p class="hero-description">
-        Seamlessly set custom A-B repeat zones with sub-second accuracy, zero drift, and instant Spotify Connect sync. Perfect for guitarists, dancers, transcribers, and music practice.
-      </p>
-
-      <div class="hero-actions">
-        <button id="mainLaunchHeroBtn" class="btn-primary-launch" onclick="handleMainLaunchClick()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-          </svg>
-          <span id="heroLaunchBtnText">Launch Web Studio</span>
-        </button>
-
-        <a href="https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/app-release.apk" class="btn-hero-secondary">
-          <span>📱 Download Android APK</span>
-        </a>
-
-        <a href="https://github.com/DaivikOPX/SpotiLoop" target="_blank" rel="noopener" class="btn-hero-secondary">
-          <span>⭐ Star on GitHub</span>
-        </a>
-      </div>
-
-      <!-- 4 Bento Feature Cards -->
-      <div class="bento-grid">
-        <div class="bento-card">
-          <span class="bento-icon">🎯</span>
-          <div class="bento-title">Sub-Second Nudges</div>
-          <div class="bento-desc">±50ms and ±100ms micro-step buttons to anchor exact transients and beats.</div>
-        </div>
-
-        <div class="bento-card">
-          <span class="bento-icon">⚡</span>
-          <div class="bento-title">Zero Cumulative Drift</div>
-          <div class="bento-desc">Absolute timeline anchoring prevents timing drift over hours of looping.</div>
-        </div>
-
-        <div class="bento-card">
-          <span class="bento-icon">🎛️</span>
-          <div class="bento-title">Live Scrub & Volume</div>
-          <div class="bento-desc">Smooth dragging along the timeline, quick seeks, and master track volume.</div>
-        </div>
-
-        <div class="bento-card">
-          <span class="bento-icon">📱</span>
-          <div class="bento-title">Native Android APK</div>
-          <div class="bento-desc">High-performance Flutter mobile app with Spotify Connect integration.</div>
-        </div>
-      </div>
+    <div class="hero-pill">
+      <span>✦</span> Precision Spotify Audio Looper
     </div>
 
-    <!-- Right Hero Column (Interactive Preview Showcase) -->
-    <div class="hero-preview-frame">
-      <div class="preview-header">
-        <div class="preview-badge">
-          <span>●</span> LIVE STUDIO SHOWCASE
-        </div>
-        <span style="font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">A-B Looper</span>
-      </div>
+    <h1 class="hero-title">
+      Loop Every Riff, Beat & Solo with <span>Millisecond Precision</span>
+    </h1>
 
-      <div class="preview-track">
-        <img id="previewHeroArt" class="preview-art" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='52' fill='%23222'%3E%3Crect width='52' height='52'/%3E%3C/svg%3E" alt="Art">
-        <div style="flex:1; min-width:0;">
-          <div id="previewHeroTitle" class="preview-track-title">Waiting for playback...</div>
-          <div id="previewHeroArtist" class="preview-track-artist">Play any track in Spotify</div>
-        </div>
-      </div>
+    <p class="hero-description">
+      Seamlessly set custom A-B repeat zones with sub-second accuracy, zero drift, and instant Spotify Connect sync. Perfect for guitarists, dancers, transcribers, and music practice.
+    </p>
 
-      <!-- Waveform Simulation Graphic -->
-      <div class="preview-waveform">
-        <div class="waveform-bar" style="height: 14px;"></div>
-        <div class="waveform-bar" style="height: 24px;"></div>
-        <div class="waveform-bar active" style="height: 38px;"></div>
-        <div class="waveform-bar active" style="height: 28px;"></div>
-        <div class="waveform-bar active" style="height: 34px;"></div>
-        <div class="waveform-bar active" style="height: 20px;"></div>
-        <div class="waveform-bar active" style="height: 36px;"></div>
-        <div class="waveform-bar active" style="height: 30px;"></div>
-        <div class="waveform-bar" style="height: 18px;"></div>
-        <div class="waveform-bar" style="height: 26px;"></div>
-        <div class="waveform-bar" style="height: 12px;"></div>
-      </div>
-
-      <div style="display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-muted);">
-        <span style="color: var(--point-a-color); font-weight:800;">🚩 Point A: 00:14.2</span>
-        <span style="color: var(--point-b-color); font-weight:800;">🏁 Point B: 00:28.5</span>
-      </div>
-
-      <button class="btn-primary-launch" style="width: 100%; justify-content: center;" onclick="handleMainLaunchClick()">
-        <span>Open Full Studio Experience ➔</span>
+    <div class="hero-actions">
+      <button id="mainLaunchHeroBtn" class="btn-primary-launch" onclick="handleMainLaunchClick()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+        </svg>
+        <span id="heroLaunchBtnText">Launch Web Studio</span>
       </button>
+
+      <a href="https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/app-release.apk" class="btn-hero-secondary">
+        <span>📱 Download Android APK</span>
+      </a>
+
+      <a href="https://github.com/DaivikOPX/SpotiLoop" target="_blank" rel="noopener" class="btn-hero-secondary">
+        <span>⭐ Star on GitHub</span>
+      </a>
+    </div>
+
+    <!-- 4 Bento Feature Cards -->
+    <div class="bento-grid">
+      <div class="bento-card">
+        <span class="bento-icon">🎯</span>
+        <div class="bento-title">Sub-Second Nudges</div>
+        <div class="bento-desc">±50ms and ±100ms micro-step buttons to anchor exact transients and beats.</div>
+      </div>
+
+      <div class="bento-card">
+        <span class="bento-icon">⚡</span>
+        <div class="bento-title">Zero Cumulative Drift</div>
+        <div class="bento-desc">Absolute timeline anchoring prevents timing drift over hours of looping.</div>
+      </div>
+
+      <div class="bento-card">
+        <span class="bento-icon">🎛️</span>
+        <div class="bento-title">Live Scrub & Volume</div>
+        <div class="bento-desc">Smooth dragging along the timeline, quick seeks, and master track volume.</div>
+      </div>
+
+      <div class="bento-card">
+        <span class="bento-icon">📱</span>
+        <div class="bento-title">Native Android APK</div>
+        <div class="bento-desc">High-performance Flutter mobile app with Spotify Connect integration.</div>
+      </div>
     </div>
 
   </section>
@@ -1281,7 +1143,7 @@
   }
 
   function showLandingView() {
-    document.getElementById('landingHeroSection').style.display = 'grid';
+    document.getElementById('landingHeroSection').style.display = 'flex';
     document.getElementById('studioConsoleSection').style.display = 'none';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -1537,13 +1399,10 @@
 
           document.getElementById('trackTitle').textContent = data.item.name;
           document.getElementById('trackArtist').textContent = data.item.artists.map(a => a.name).join(', ');
-          document.getElementById('previewHeroTitle').textContent = data.item.name;
-          document.getElementById('previewHeroArtist').textContent = data.item.artists.map(a => a.name).join(', ');
 
           if (data.item.album && data.item.album.images.length) {
             const url = data.item.album.images[0].url;
             document.getElementById('albumArt').src = url;
-            document.getElementById('previewHeroArt').src = url;
           }
           if (data.device) {
             document.getElementById('deviceName').textContent = `🟢 ${data.device.name}`;
@@ -1699,7 +1558,7 @@
   function updateVolumeIcon(vol) {
     const icon = document.getElementById('volumeIcon');
     if (vol === 0) {
-      icon.innerHTML = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
+      icon.innerHTML = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
     } else if (vol < 50) {
       icon.innerHTML = '<path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z"/>';
     } else {
@@ -1860,7 +1719,7 @@
   window.addEventListener('DOMContentLoaded', async () => {
     await handleOAuthCallback();
     
-    // Always start by default on the expansive Landing Page
+    // Always start by default on the clean Landing Page
     showLandingView();
 
     if (accessToken) {
