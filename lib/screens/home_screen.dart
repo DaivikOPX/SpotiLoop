@@ -227,33 +227,103 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildConnectPrompt(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1DB954).withOpacity(0.15),
-                shape: BoxShape.circle,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1DB954).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFF1DB954).withOpacity(0.35)),
+            ),
+            child: const Text(
+              '✦ SUB-SECOND A-B LOOPER',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1DB954),
+                letterSpacing: 0.8,
               ),
-              child: const Icon(Icons.all_inclusive_rounded, size: 72, color: Color(0xFF1DB954)),
             ),
-            const SizedBox(height: 28),
-            const Text(
-              'SpotiLoop',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5),
+          ),
+          const SizedBox(height: 20),
+
+          // Logo & Hero Icon
+          Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1DB954).withOpacity(0.15),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1DB954).withOpacity(0.25),
+                  blurRadius: 30,
+                  spreadRadius: 2,
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            const Text(
-              'Precision A-B Looping for Spotify',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, color: Colors.white70),
+            child: const Icon(Icons.all_inclusive_rounded, size: 64, color: Color(0xFF1DB954)),
+          ),
+          const SizedBox(height: 24),
+
+          // Title & Subtitle
+          const Text(
+            'Master Any Song With Precision Looping',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              letterSpacing: -0.5,
+              height: 1.25,
             ),
-            const SizedBox(height: 36),
-            ElevatedButton.icon(
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Loop guitar riffs, solos, choreography, or vocal phrases directly inside your Spotify app with millisecond accuracy.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13.5,
+              color: Colors.white70,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 28),
+
+          // Feature Highlights Grid
+          _buildFeatureCard(
+            icon: Icons.track_changes_rounded,
+            title: 'Sub-Second Precision',
+            description: 'Set millisecond A & B markers with ±50ms and ±100ms instant nudges.',
+          ),
+          const SizedBox(height: 10),
+          _buildFeatureCard(
+            icon: Icons.sync_lock_rounded,
+            title: 'Zero Cumulative Drift',
+            description: 'Absolute timeline anchoring stays locked on time over hours of practice.',
+          ),
+          const SizedBox(height: 10),
+          _buildFeatureCard(
+            icon: Icons.headphones_rounded,
+            title: 'Official Spotify Sync',
+            description: 'Controls native Spotify playback seamlessly on your Phone, PC, or Mac.',
+          ),
+          const SizedBox(height: 10),
+          _buildFeatureCard(
+            icon: Icons.bookmark_added_rounded,
+            title: 'Preset Vault',
+            description: 'Save, name, and auto-load loops for any song in your repertoire.',
+          ),
+          const SizedBox(height: 32),
+
+          // Primary Call To Action Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
               onPressed: authService.isAuthenticating
                   ? null
                   : () async {
@@ -267,24 +337,84 @@ class HomeScreen extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1DB954),
                 foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+                padding: const EdgeInsets.symmetric(vertical: 18),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                elevation: 4,
+                elevation: 6,
+                shadowColor: const Color(0xFF1DB954).withOpacity(0.5),
               ),
               icon: authService.isAuthenticating
                   ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black),
                     )
-                  : const Icon(Icons.play_circle_fill_rounded, size: 22),
+                  : const Icon(Icons.play_circle_fill_rounded, size: 24),
               label: Text(
                 authService.isAuthenticating ? 'Connecting...' : 'Login with Spotify',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            '100% Free & Open Source • Zero Setup Required',
+            style: TextStyle(fontSize: 11.5, color: Colors.white38),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureCard({
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0C0C0C),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1DB954).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: const Color(0xFF1DB954), size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withOpacity(0.6),
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
