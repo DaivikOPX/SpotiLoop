@@ -567,27 +567,108 @@
       transform: translateY(0);
     }
 
-    /* Connect View */
-    .connect-view {
-      text-align: center;
-      padding: 30px 16px;
+    /* Connect / Landing View */
+    .landing-view {
+      padding: 24px 16px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 14px;
+      text-align: center;
+      gap: 16px;
+      background: #000000;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+    }
+    .landing-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: rgba(29, 185, 84, 0.12);
+      border: 1px solid rgba(29, 185, 84, 0.3);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--spotify-green);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .landing-title {
+      font-size: 22px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: -0.5px;
+      line-height: 1.25;
+      margin: 0;
+    }
+    .landing-subtitle {
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.5;
+      max-width: 360px;
+      margin: 0;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      width: 100%;
+      text-align: left;
+      margin-top: 4px;
+    }
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      background: #0c0c0c;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+    }
+    .feature-icon {
+      font-size: 20px;
+      line-height: 1;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .feature-text-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+    .feature-text-desc {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      line-height: 1.4;
     }
     .btn-connect-spotify {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
       background: var(--spotify-green);
       color: #000;
-      font-size: 14px;
-      font-weight: 800;
-      padding: 12px 28px;
-      border-radius: 24px;
-      box-shadow: 0 4px 16px var(--spotify-green-glow);
+      font-size: 15px;
+      font-weight: 900;
+      padding: 14px 24px;
+      border-radius: 28px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 18px var(--spotify-green-glow);
+      transition: all 0.2s ease;
+      margin-top: 6px;
     }
     .btn-connect-spotify:hover {
       background: var(--spotify-green-hover);
-      transform: scale(1.03);
+      transform: scale(1.02);
+      box-shadow: 0 6px 22px rgba(29, 185, 84, 0.4);
+    }
+    .landing-trust {
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+      margin: 0;
     }
   </style>
 </head>
@@ -608,14 +689,48 @@
     </div>
   </div>
 
-  <!-- Connect View -->
-  <div id="connectView" class="card connect-view" style="display:none;">
-    <img src="/assets/logo.jpg" alt="SpotiLoop" style="width:68px; height:68px; border-radius:16px; object-fit:cover; box-shadow:0 0 20px var(--spotify-green-glow); border:1px solid rgba(255,255,255,0.15);">
-    <h2 style="font-size:18px; font-weight:800;">Connect Spotify</h2>
-    <p style="color:var(--text-muted); font-size:13px; line-height:1.5; max-width:320px;">
-      Loop any song section seamlessly inside your official Spotify app with sub-second precision.
+  <!-- Connect / Landing View -->
+  <div id="connectView" class="landing-view" style="display:none;">
+    <div class="landing-badge">✦ Sub-Second A-B Looper</div>
+    <img src="/assets/logo.jpg" alt="SpotiLoop" style="width:68px; height:68px; border-radius:18px; object-fit:cover; box-shadow:0 0 24px var(--spotify-green-glow); border:1px solid rgba(255,255,255,0.15);">
+    <h1 class="landing-title">Master Any Song With Precision Looping</h1>
+    <p class="landing-subtitle">
+      Loop guitar riffs, solos, choreography, or vocal phrases directly inside your Spotify app with millisecond accuracy.
     </p>
-    <button class="btn-connect-spotify" onclick="startSpotifyLogin()">Login with Spotify</button>
+
+    <!-- Highlights -->
+    <div class="features-grid">
+      <div class="feature-item">
+        <div class="feature-icon">🎯</div>
+        <div>
+          <div class="feature-text-title">Sub-Second Precision</div>
+          <div class="feature-text-desc">Set millisecond A & B markers with ±50ms and ±100ms instant nudges.</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🔄</div>
+        <div>
+          <div class="feature-text-title">Zero Cumulative Drift</div>
+          <div class="feature-text-desc">Absolute timeline anchoring stays on-beat forever during endless practice sessions.</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🎧</div>
+        <div>
+          <div class="feature-text-title">Official Spotify Connect Sync</div>
+          <div class="feature-text-desc">Controls native Spotify playback seamlessly on your Phone, PC, or Mac.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <button class="btn-connect-spotify" onclick="startSpotifyLogin()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+      </svg>
+      Login with Spotify
+    </button>
+    <p class="landing-trust">100% Free & Open Source • No login credentials stored</p>
   </div>
 
   <!-- Main Player Studio -->
