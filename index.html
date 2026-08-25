@@ -2,160 +2,397 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SpotiLoop Pro - A-B Loop Studio</title>
-  <link rel="icon" type="image/jpeg" href="/assets/logo.jpg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpotiLoop Pro — Master Any Song With Precision Looping</title>
+  <meta name="description" content="Seamless A-B audio looper for Spotify with millisecond precision, zero cumulative drift, and real-time Connect sync for musicians, dancers, and listeners.">
+  <link rel="icon" type="image/png" href="./assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
       --spotify-green: #1DB954;
       --spotify-green-hover: #1ed760;
-      --spotify-green-glow: rgba(29, 185, 84, 0.2);
+      --spotify-green-glow: rgba(29, 185, 84, 0.28);
       --point-a-color: #00E676;
       --point-b-color: #FF5252;
-      --bg-dark: #000000;
-      --card-bg: #0c0c0c;
-      --card-border: #1a1a1a;
-      --card-inner: #121212;
-      --text-muted: #757b8c;
+      --bg-dark: #070709;
+      --bg-surface: #0e0e12;
+      --bg-card: rgba(18, 18, 24, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-border-hover: rgba(29, 185, 84, 0.35);
+      --text-main: #FFFFFF;
+      --text-muted: #8E8EA0;
+      --text-dim: #565666;
+      --glow-emerald: radial-gradient(circle at 50% 0%, rgba(29, 185, 84, 0.15) 0%, rgba(7, 7, 9, 0) 70%);
+      --glow-cyan: radial-gradient(circle at 100% 50%, rgba(0, 230, 118, 0.08) 0%, rgba(7, 7, 9, 0) 60%);
     }
-    
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
-    
-    html, body {
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
     }
 
     body {
-      background-color: #000000;
-      background: #000000;
-      color: #fff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 10px;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 480px;
-      height: 100%;
-      max-height: 96vh;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      overflow-x: hidden;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      gap: 8px;
+      position: relative;
     }
-    
-    /* Top Bar */
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 4px;
-      flex-shrink: 0;
+
+    /* Ambient Background Glows */
+    .ambient-glow-top {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 1200px;
+      height: 600px;
+      background: radial-gradient(ellipse at 50% 0%, rgba(29, 185, 84, 0.18) 0%, rgba(7, 7, 9, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
     }
-    .brand {
+
+    .ambient-glow-side {
+      position: absolute;
+      top: 900px;
+      right: 0;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(0, 230, 118, 0.06) 0%, rgba(7, 7, 9, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(18, 18, 24, 0.95);
+      border: 1px solid rgba(29, 185, 84, 0.4);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 700;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6), 0 0 20px var(--spotify-green-glow);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 9999;
+      pointer-events: none;
+    }
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Navigation Bar */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(7, 7, 9, 0.8);
+      border-bottom: 1px solid var(--card-border);
+      padding: 16px 24px;
+    }
+    .navbar-container {
+      max-width: 1200px;
+      margin: 0 auto;
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-weight: 800;
-      font-size: 18px;
+      justify-content: space-between;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #fff;
+      font-weight: 900;
+      font-size: 20px;
       letter-spacing: -0.5px;
     }
-    .brand svg {
-      fill: var(--spotify-green);
-      width: 24px;
-      height: 24px;
-      filter: drop-shadow(0 0 8px var(--spotify-green-glow));
+    .brand-logo-wrapper {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: #000;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: 0 0 16px var(--spotify-green-glow);
+    }
+    .brand-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      transition: color 0.2s ease;
+    }
+    .nav-links a:hover {
+      color: #fff;
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
     }
     .status-badge {
       display: flex;
       align-items: center;
-      gap: 5px;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 3px 10px;
-      border-radius: 16px;
-      background: rgba(255,255,255,0.05);
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--card-border);
       cursor: pointer;
+      transition: all 0.2s;
+    }
+    .status-badge:hover {
+      border-color: rgba(255, 255, 255, 0.2);
     }
     .status-dot {
-      width: 6px;
-      height: 6px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
-      background: #777;
+      background: #666;
     }
     .status-dot.active {
       background: var(--spotify-green);
-      box-shadow: 0 0 6px var(--spotify-green);
+      box-shadow: 0 0 8px var(--spotify-green);
+    }
+    .btn-nav-action {
+      background: var(--spotify-green);
+      color: #000;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 8px 18px;
+      border-radius: 20px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      box-shadow: 0 2px 12px var(--spotify-green-glow);
+      transition: all 0.2s ease;
+    }
+    .btn-nav-action:hover {
+      background: var(--spotify-green-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 18px rgba(29, 185, 84, 0.4);
     }
 
-    /* Cards */
-    .card {
-      background: var(--card-bg);
-      border-radius: 14px;
-      border: 1px solid var(--card-border);
-      padding: 10px 12px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.35);
-      flex-shrink: 0;
+    /* Hero Section */
+    .hero-section {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 60px 24px 40px;
+      text-align: center;
     }
-    
+    .pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(29, 185, 84, 0.1);
+      border: 1px solid rgba(29, 185, 84, 0.3);
+      padding: 6px 16px;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--spotify-green);
+      margin-bottom: 24px;
+      box-shadow: 0 0 20px rgba(29, 185, 84, 0.15);
+    }
+    .hero-title {
+      font-size: clamp(36px, 5.5vw, 64px);
+      font-weight: 900;
+      letter-spacing: -1.5px;
+      line-height: 1.08;
+      max-width: 900px;
+      margin: 0 auto 20px;
+      background: linear-gradient(180deg, #FFFFFF 40%, rgba(255, 255, 255, 0.7) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-title span {
+      background: linear-gradient(135deg, #1DB954 0%, #00E676 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-subtitle {
+      font-size: clamp(16px, 2vw, 19px);
+      color: var(--text-muted);
+      max-width: 680px;
+      margin: 0 auto 36px;
+      line-height: 1.6;
+    }
+    .hero-cta-group {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 50px;
+    }
+    .btn-hero-primary {
+      background: var(--spotify-green);
+      color: #000;
+      font-size: 16px;
+      font-weight: 900;
+      padding: 16px 36px;
+      border-radius: 32px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      box-shadow: 0 6px 24px var(--spotify-green-glow);
+      transition: all 0.25s ease;
+    }
+    .btn-hero-primary:hover {
+      background: var(--spotify-green-hover);
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 10px 32px rgba(29, 185, 84, 0.45);
+    }
+    .btn-hero-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 16px 28px;
+      border-radius: 32px;
+      border: 1px solid var(--card-border);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      backdrop-filter: blur(12px);
+      transition: all 0.25s ease;
+    }
+    .btn-hero-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-2px);
+    }
+
+    /* Live Studio Showcase Card in Hero */
+    .studio-showcase-wrapper {
+      max-width: 540px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+    }
+    .studio-glass-frame {
+      background: rgba(14, 14, 18, 0.75);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 28px;
+      padding: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(29, 185, 84, 0.12);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .studio-glass-frame:hover {
+      border-color: rgba(29, 185, 84, 0.3);
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.8), 0 0 50px rgba(29, 185, 84, 0.2);
+    }
+
+    /* Looper Studio Components inside Card */
+    .card {
+      background: #0f0f13;
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 14px;
+      position: relative;
+      margin-bottom: 10px;
+    }
+
     /* Track Info Card */
     .track-info {
       display: flex;
-      gap: 12px;
       align-items: center;
+      gap: 14px;
+      text-align: left;
     }
     .album-art {
-      width: 52px;
-      height: 52px;
+      width: 56px;
+      height: 56px;
       border-radius: 10px;
-      background: #222;
       object-fit: cover;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-      border: 1px solid rgba(255,255,255,0.1);
+      background: #222;
       flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.5);
     }
     .track-details {
       flex: 1;
       min-width: 0;
     }
     .track-title {
-      font-size: 14.5px;
+      font-size: 15px;
       font-weight: 800;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      letter-spacing: -0.3px;
+      color: #fff;
     }
     .track-artist {
       font-size: 12px;
+      font-weight: 500;
       color: var(--text-muted);
-      margin-top: 1px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      font-weight: 500;
+      margin-top: 2px;
     }
     .device-indicator {
       display: inline-flex;
       align-items: center;
       gap: 5px;
       font-size: 10px;
-      margin-top: 4px;
+      font-weight: 700;
       color: var(--spotify-green);
-      font-weight: 600;
       background: rgba(29, 185, 84, 0.1);
       padding: 2px 8px;
-      border-radius: 6px;
+      border-radius: 12px;
+      margin-top: 5px;
     }
 
-    /* Timeline */
+    /* Timeline Scrubber */
     .timeline-wrapper {
       display: flex;
       flex-direction: column;
@@ -163,7 +400,7 @@
     }
     .timeline-track-area {
       position: relative;
-      height: 34px;
+      height: 38px;
       display: flex;
       align-items: center;
       cursor: pointer;
@@ -172,839 +409,998 @@
     }
     .timeline-bg {
       position: absolute;
-      width: 100%;
-      height: 6px;
-      background: #222636;
-      border-radius: 3px;
+      left: 0;
+      right: 0;
+      height: 8px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
       overflow: hidden;
     }
     .timeline-progress-fill {
-      position: absolute;
-      left: 0;
       height: 100%;
-      background: rgba(255, 255, 255, 0.18);
-      border-radius: 3px;
+      background: linear-gradient(90deg, #1DB954, #00E676);
+      width: 0%;
+      border-radius: 4px;
       pointer-events: none;
     }
     .loop-highlight-zone {
       position: absolute;
-      height: 6px;
-      background: rgba(29, 185, 84, 0.35);
-      border-radius: 3px;
+      height: 10px;
+      background: rgba(29, 185, 84, 0.25);
+      border-top: 1px solid var(--point-a-color);
+      border-bottom: 1px solid var(--point-b-color);
+      border-radius: 4px;
       pointer-events: none;
-      transition: background 0.2s;
+      z-index: 2;
     }
-    .loop-highlight-zone.active {
-      background: rgba(29, 185, 84, 0.75);
-      box-shadow: 0 0 12px rgba(29, 185, 84, 0.5);
-    }
-    
-    /* Draggable Handles */
     .drag-handle {
       position: absolute;
       top: 50%;
       transform: translate(-50%, -50%);
       width: 22px;
-      height: 30px;
-      border-radius: 6px;
+      height: 22px;
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: grab;
-      touch-action: none;
-      z-index: 10;
-      user-select: none;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.6);
-      transition: transform 0.1s;
-    }
-    .drag-handle:active {
-      cursor: grabbing;
-      transform: translate(-50%, -50%) scale(1.1);
-    }
-    .drag-handle span {
       font-size: 10px;
       font-weight: 900;
       color: #000;
-      line-height: 1;
+      cursor: ew-resize;
+      z-index: 5;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+      transition: transform 0.1s;
+    }
+    .drag-handle:active {
+      transform: translate(-50%, -50%) scale(1.2);
     }
     .handle-a {
       background: var(--point-a-color);
-      box-shadow: 0 0 10px var(--point-a-glow);
+      box-shadow: 0 0 10px rgba(0, 230, 118, 0.6);
     }
     .handle-b {
       background: var(--point-b-color);
-      box-shadow: 0 0 10px var(--point-b-glow);
+      box-shadow: 0 0 10px rgba(255, 82, 82, 0.6);
     }
-
-    /* Timeline Floating Tooltip */
-    .timeline-tooltip {
-      position: absolute;
-      bottom: calc(100% + 8px);
-      transform: translateX(-50%);
-      background: #181a20;
-      color: #fff;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      font-weight: 800;
-      padding: 3px 8px;
-      border-radius: 6px;
-      border: 1px solid rgba(255,255,255,0.15);
-      pointer-events: none;
-      white-space: nowrap;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-      display: none;
-      z-index: 30;
-    }
-    .timeline-tooltip::after {
-      content: '';
-      position: absolute;
-      top: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      border-width: 4px;
-      border-style: solid;
-      border-color: #181a20 transparent transparent transparent;
-    }
-
     .playhead-needle {
       position: absolute;
       top: 50%;
       transform: translate(-50%, -50%);
       width: 14px;
       height: 14px;
+      background: #FFFFFF;
       border-radius: 50%;
-      background: #ffffff;
-      box-shadow: 0 0 8px rgba(255,255,255,0.95), 0 2px 5px rgba(0,0,0,0.8);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.9);
       pointer-events: none;
-      z-index: 5;
-      transition: transform 0.1s ease;
+      z-index: 4;
     }
-
-    .timeline-track-area:hover .playhead-needle,
-    .timeline-track-area.scrubbing .playhead-needle {
-      transform: translate(-50%, -50%) scale(1.25);
-    }
-
     .time-readouts {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 11.5px;
-      font-weight: 700;
       font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
       color: var(--text-muted);
-      margin-top: 6px;
     }
-    .time-current { color: #fff; }
+    .time-current {
+      color: #fff;
+    }
 
     /* Quick Seek Micro-Bar */
     .quick-seek-row {
       display: flex;
-      justify-content: center;
-      align-items: center;
       gap: 6px;
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px solid rgba(255,255,255,0.05);
+      margin-top: 6px;
     }
     .quick-seek-btn {
-      background: #14161f;
-      border: 1px solid rgba(255,255,255,0.08);
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--card-border);
       color: var(--text-muted);
-      font-size: 10.5px;
+      font-size: 11px;
       font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 6px;
       font-family: 'JetBrains Mono', monospace;
+      padding: 5px 0;
+      border-radius: 8px;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: all 0.15s;
     }
     .quick-seek-btn:hover {
-      background: #202433;
+      background: rgba(255,255,255,0.1);
       color: #fff;
       border-color: rgba(255,255,255,0.2);
     }
 
-    /* Dual Marker Cards */
+    /* Dual Marker Boxes */
     .marker-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      flex-shrink: 0;
+      margin-bottom: 10px;
     }
     .marker-box {
-      background: var(--card-inner);
-      border-radius: 12px;
-      padding: 10px;
-      border: 1px solid rgba(255,255,255,0.05);
+      background: #0f0f13;
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 12px;
       display: flex;
       flex-direction: column;
       gap: 8px;
+      text-align: left;
     }
     .marker-box-header {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      font-size: 11.5px;
-      font-weight: 700;
-    }
-    .header-a { color: var(--point-a-color); }
-    .header-b { color: var(--point-b-color); }
-
-    /* Direct Time Input Box */
-    .time-input-container {
-      display: flex;
       align-items: center;
-      background: #101218;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px;
-      padding: 4px 6px;
     }
-    .time-input-container:focus-within {
-      border-color: #fff;
-      box-shadow: 0 0 0 2px rgba(255,255,255,0.1);
+    .header-a {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--point-a-color);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .header-b {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--point-b-color);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .btn-jump {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--card-border);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-jump:hover {
+      background: rgba(255,255,255,0.12);
     }
     .time-input-box {
-      background: transparent;
-      border: none;
-      outline: none;
+      width: 100%;
+      background: #000;
+      border: 1px solid var(--card-border);
       color: #fff;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 800;
-      width: 100%;
       text-align: center;
+      padding: 8px 4px;
+      border-radius: 8px;
     }
-    .input-a { color: var(--point-a-color); }
-    .input-b { color: var(--point-b-color); }
-
-    /* Buttons */
-    button {
-      background: #25293a;
-      color: #fff;
-      border: none;
-      border-radius: 7px;
-      padding: 6px 8px;
-      font-size: 11.5px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      user-select: none;
+    .time-input-box:focus {
+      outline: none;
+      border-color: var(--spotify-green);
     }
-    button:hover { background: #32374e; }
-    button:active { transform: scale(0.97); }
-
+    .input-a:focus { border-color: var(--point-a-color); }
+    .input-b:focus { border-color: var(--point-b-color); }
     .btn-capture-a {
-      background: rgba(0, 230, 118, 0.18);
+      background: rgba(0, 230, 118, 0.12);
+      border: 1px solid rgba(0, 230, 118, 0.3);
       color: var(--point-a-color);
-      border: 1px solid rgba(0, 230, 118, 0.35);
-      padding: 6px 4px;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 7px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
     }
-    .btn-capture-a:hover { background: rgba(0, 230, 118, 0.28); }
-
+    .btn-capture-a:hover {
+      background: var(--point-a-color);
+      color: #000;
+    }
     .btn-capture-b {
-      background: rgba(255, 82, 82, 0.18);
+      background: rgba(255, 82, 82, 0.12);
+      border: 1px solid rgba(255, 82, 82, 0.3);
       color: var(--point-b-color);
-      border: 1px solid rgba(255, 82, 82, 0.35);
-      padding: 6px 4px;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 7px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
     }
-    .btn-capture-b:hover { background: rgba(255, 82, 82, 0.28); }
-
+    .btn-capture-b:hover {
+      background: var(--point-b-color);
+      color: #000;
+    }
     .nudge-row {
       display: flex;
-      gap: 2px;
+      gap: 4px;
     }
     .nudge-btn {
       flex: 1;
-      padding: 4px 1px;
-      font-size: 10px;
-      font-family: 'JetBrains Mono', monospace;
-      font-weight: 600;
-      background: #191c28;
-      border-radius: 5px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--card-border);
       color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 4px 0;
+      border-radius: 6px;
+      cursor: pointer;
     }
     .nudge-btn:hover {
-      background: #2a3045;
+      background: rgba(255,255,255,0.1);
       color: #fff;
     }
 
-    .btn-jump {
-      font-size: 10px;
-      padding: 2px 6px;
-      background: transparent;
-      color: var(--text-muted);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 5px;
-    }
-    .btn-jump:hover {
-      color: #fff;
-      border-color: rgba(255,255,255,0.25);
-    }
-
-    /* Master Loop Switch */
+    /* Master Loop Toggle Bar */
     .loop-toggle-card {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      padding: 10px 14px;
-      border-radius: 14px;
+      align-items: center;
+      padding: 12px 16px;
+      background: #0f0f13;
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
       cursor: pointer;
-      border: 1.5px solid rgba(255,255,255,0.1);
-      background: #141721;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      user-select: none;
-      flex-shrink: 0;
+      transition: all 0.25s ease;
+      margin-bottom: 10px;
     }
     .loop-toggle-card.active {
-      background: rgba(29, 185, 84, 0.12);
-      border-color: var(--spotify-green);
-      box-shadow: 0 0 16px rgba(29, 185, 84, 0.25);
+      background: rgba(29, 185, 84, 0.08);
+      border-color: rgba(29, 185, 84, 0.4);
+      box-shadow: 0 0 20px rgba(29, 185, 84, 0.2);
     }
-    
-    .loop-badge-icon {
-      width: 34px;
-      height: 34px;
-      border-radius: 8px;
-      background: #222636;
+    .loop-toggle-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-align: left;
+    }
+    .loop-icon-box {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.05);
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s;
+      color: #fff;
     }
-    .loop-toggle-card.active .loop-badge-icon {
+    .loop-toggle-card.active .loop-icon-box {
       background: var(--spotify-green);
-      box-shadow: 0 0 12px var(--spotify-green-glow);
+      color: #000;
     }
-    .loop-badge-icon svg {
-      width: 18px;
-      height: 18px;
-      fill: #8b92a5;
+    .loop-title-text {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
     }
-    .loop-toggle-card.active .loop-badge-icon svg {
-      fill: #000;
+    .loop-subtext {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-top: 1px;
     }
-
     .switch-pill {
       width: 44px;
       height: 24px;
-      border-radius: 12px;
-      background: #282c3f;
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
       position: relative;
-      transition: all 0.25s ease;
-      flex-shrink: 0;
+      transition: background 0.2s;
     }
     .switch-circle {
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       background: #fff;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     .loop-toggle-card.active .switch-pill {
       background: var(--spotify-green);
     }
     .loop-toggle-card.active .switch-circle {
-      left: 22px;
+      transform: translateX(20px);
     }
 
-    /* Bottom Controls Row */
+    /* Bottom Transport & Volume Controls */
     .bottom-row {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
       gap: 10px;
-      flex-shrink: 0;
     }
-
     .transport-bar {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 12px;
-      padding: 8px 14px;
       flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-evenly;
+      padding: 8px 12px;
+      margin-bottom: 0;
     }
     .transport-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: #1f2333;
+      background: none;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0;
     }
-    .transport-btn svg { width: 18px; height: 18px; fill: #fff; }
-    .transport-btn:hover { background: #2c3249; }
-    
+    .transport-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
     .play-master-btn {
-      width: 44px;
-      height: 44px;
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
-      background: #ffffff;
+      background: #fff;
+      color: #000;
+      border: none;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0;
-      box-shadow: 0 3px 12px rgba(255,255,255,0.25);
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+      transition: transform 0.15s;
     }
-    .play-master-btn svg { width: 22px; height: 22px; fill: #000; }
-    .play-master-btn:hover { background: #f0f0f0; transform: scale(1.05); }
-
-    /* Volume Controls */
+    .play-master-btn:hover {
+      transform: scale(1.08);
+      background: var(--spotify-green);
+    }
+    .play-master-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
     .volume-card {
+      flex: 1.15;
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 10px 14px;
-      background: var(--card-bg);
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.06);
+      padding: 8px 12px;
+      margin-bottom: 0;
     }
     .volume-btn {
-      background: transparent;
+      background: none;
       border: none;
       color: var(--text-muted);
       cursor: pointer;
-      padding: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: color 0.15s ease;
     }
-    .volume-btn:hover {
-      color: #fff;
-    }
+    .volume-btn:hover { color: #fff; }
     .volume-slider-range {
+      flex: 1;
       -webkit-appearance: none;
-      width: 100%;
+      appearance: none;
       height: 4px;
       border-radius: 2px;
-      background: #282c3f;
+      background: rgba(255,255,255,0.15);
       outline: none;
       cursor: pointer;
     }
     .volume-slider-range::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 13px;
-      height: 13px;
+      appearance: none;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
       background: #fff;
       cursor: pointer;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.5);
-      transition: transform 0.1s ease, background 0.1s ease;
-    }
-    .volume-slider-range:hover::-webkit-slider-thumb {
-      transform: scale(1.2);
-      background: var(--spotify-green);
     }
     .volume-label {
+      font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
       font-weight: 700;
-      font-family: 'JetBrains Mono', monospace;
       color: var(--text-muted);
       min-width: 32px;
       text-align: right;
     }
 
-    /* Shortcuts Footer */
-    .shortcuts-hint {
-      text-align: center;
-      font-size: 10px;
-      color: var(--text-muted);
-      flex-shrink: 0;
-    }
-    .kbd {
-      background: #1c202d;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 3px;
-      padding: 1px 4px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 9px;
-      color: #fff;
-    }
-
-    /* Toast Notification */
-    #toast {
-      position: fixed;
-      top: 16px;
-      background: rgba(29, 185, 84, 0.95);
-      color: #000;
-      font-weight: 800;
-      font-size: 12px;
-      padding: 6px 14px;
-      border-radius: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-      opacity: 0;
-      transform: translateY(-20px);
-      transition: all 0.25s ease;
-      pointer-events: none;
-      z-index: 1000;
-    }
-    #toast.show {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    /* Connect / Landing View */
-    .landing-view {
+    /* Logged Out Connect Banner inside Studio Card */
+    .logged-out-hero-banner {
       padding: 24px 16px;
+      text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
-      text-align: center;
-      gap: 16px;
-      background: #000000;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 16px;
+      gap: 14px;
     }
-    .landing-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 12px;
-      background: rgba(29, 185, 84, 0.12);
-      border: 1px solid rgba(29, 185, 84, 0.3);
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--spotify-green);
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-    }
-    .landing-title {
-      font-size: 22px;
-      font-weight: 900;
-      color: #fff;
-      letter-spacing: -0.5px;
-      line-height: 1.25;
-      margin: 0;
-    }
-    .landing-subtitle {
-      color: var(--text-muted);
-      font-size: 13px;
-      line-height: 1.5;
-      max-width: 360px;
-      margin: 0;
-    }
-    .features-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-      width: 100%;
-      text-align: left;
-      margin-top: 4px;
-    }
-    .feature-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      padding: 12px 14px;
-      background: #0c0c0c;
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 12px;
-    }
-    .feature-icon {
-      font-size: 20px;
-      line-height: 1;
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-    .feature-text-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 2px;
-    }
-    .feature-text-desc {
-      font-size: 11.5px;
-      color: var(--text-muted);
-      line-height: 1.4;
-    }
-    .btn-connect-spotify {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      width: 100%;
+    .btn-connect-spotify-big {
       background: var(--spotify-green);
       color: #000;
       font-size: 15px;
       font-weight: 900;
-      padding: 14px 24px;
+      padding: 14px 28px;
       border-radius: 28px;
       border: none;
       cursor: pointer;
-      box-shadow: 0 4px 18px var(--spotify-green-glow);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 6px 20px var(--spotify-green-glow);
       transition: all 0.2s ease;
-      margin-top: 6px;
     }
-    .btn-connect-spotify:hover {
+    .btn-connect-spotify-big:hover {
       background: var(--spotify-green-hover);
-      transform: scale(1.02);
-      box-shadow: 0 6px 22px rgba(29, 185, 84, 0.4);
+      transform: scale(1.03);
+      box-shadow: 0 8px 26px rgba(29, 185, 84, 0.45);
     }
-    .landing-trust {
-      font-size: 11px;
-      color: rgba(255,255,255,0.35);
-      margin: 0;
+
+    /* Feature Bento Grid */
+    .section-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 80px 24px;
+    }
+    .section-header {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+    .section-tag {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--spotify-green);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 900;
+      letter-spacing: -1px;
+      margin-bottom: 14px;
+    }
+    .section-desc {
+      font-size: 16px;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+    .bento-card {
+      background: rgba(18, 18, 24, 0.5);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 28px;
+      text-align: left;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .bento-card:hover {
+      border-color: var(--card-border-hover);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), 0 0 30px rgba(29, 185, 84, 0.08);
+    }
+    .bento-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(29, 185, 84, 0.1);
+      border: 1px solid rgba(29, 185, 84, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 18px;
+    }
+    .bento-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+      letter-spacing: -0.3px;
+    }
+    .bento-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Workflow 3-Step Section */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      position: relative;
+    }
+    .step-card {
+      background: rgba(18, 18, 24, 0.4);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 32px 24px;
+      text-align: center;
+      position: relative;
+    }
+    .step-number {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--spotify-green);
+      color: #000;
+      font-size: 15px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 18px;
+      box-shadow: 0 0 16px var(--spotify-green-glow);
+    }
+    .step-title {
+      font-size: 17px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .step-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Android APK CTA Banner */
+    .apk-banner-card {
+      background: linear-gradient(135deg, rgba(29, 185, 84, 0.12) 0%, rgba(18, 18, 24, 0.8) 100%);
+      border: 1px solid rgba(29, 185, 84, 0.35);
+      border-radius: 28px;
+      padding: 44px 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 28px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(29, 185, 84, 0.12);
+      text-align: left;
+    }
+    .apk-banner-text {
+      max-width: 600px;
+    }
+    .apk-banner-title {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.8px;
+      margin-bottom: 10px;
+    }
+    .apk-banner-desc {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    .footer {
+      border-top: 1px solid var(--card-border);
+      background: #040406;
+      padding: 40px 24px;
+      margin-top: auto;
+    }
+    .footer-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 16px;
+    }
+    .footer-copy {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    .footer-links {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      list-style: none;
+    }
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: #fff; }
+
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .apk-banner-card { text-align: center; justify-content: center; }
+      .footer-container { flex-direction: column; text-align: center; }
     }
   </style>
 </head>
 <body>
 
-<div id="toast">Toast</div>
+<div class="ambient-glow-top"></div>
+<div class="ambient-glow-side"></div>
+<div id="toast">Toast Message</div>
 
-<div class="container">
-  <!-- Top Bar -->
-  <div class="top-bar">
-    <div class="brand">
-      <img src="/assets/logo.jpg" alt="SpotiLoop" style="width:28px; height:28px; border-radius:7px; object-fit:cover; box-shadow:0 0 10px var(--spotify-green-glow); border:1px solid rgba(255,255,255,0.15);">
+<!-- Sticky Navbar -->
+<nav class="navbar">
+  <div class="navbar-container">
+    <a href="#" class="nav-brand">
+      <div class="brand-logo-wrapper">
+        <img src="./assets/logo.png" onerror="this.onerror=null; this.src='assets/logo.png';" alt="SpotiLoop Logo" class="brand-logo-img">
+      </div>
       SpotiLoop Pro
-    </div>
-    <div id="authStatusBadge" class="status-badge" onclick="confirmDisconnect()">
-      <span class="status-dot"></span>
-      <span id="authStatusText">Connecting...</span>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="#studio">Web Studio</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#download">Android App</a></li>
+      <li><a href="https://github.com/DaivikOPX/SpotiLoop" target="_blank" rel="noopener">GitHub</a></li>
+    </ul>
+
+    <div class="nav-actions">
+      <div id="authStatusBadge" class="status-badge" onclick="confirmDisconnect()">
+        <span class="status-dot"></span>
+        <span id="authStatusText">Checking Spotify...</span>
+      </div>
+      <a href="#studio" class="btn-nav-action" onclick="focusStudio()">
+        <span>⚡ Launch Studio</span>
+      </a>
     </div>
   </div>
+</nav>
 
-  <!-- Connect / Landing View -->
-  <div id="connectView" class="landing-view" style="display:none;">
-    <div class="landing-badge">✦ Sub-Second A-B Looper</div>
-    <img src="/assets/logo.jpg" alt="SpotiLoop" style="width:68px; height:68px; border-radius:18px; object-fit:cover; box-shadow:0 0 24px var(--spotify-green-glow); border:1px solid rgba(255,255,255,0.15);">
-    <h1 class="landing-title">Master Any Song With Precision Looping</h1>
-    <p class="landing-subtitle">
-      Loop guitar riffs, solos, choreography, or vocal phrases directly inside your Spotify app with millisecond accuracy.
-    </p>
+<!-- Hero Section -->
+<header class="hero-section">
+  <div class="pill-badge">
+    <span>✦ Sub-Second A-B Audio Looper</span>
+    <span style="opacity: 0.4;">•</span>
+    <span>100% Free & Open Source</span>
+  </div>
 
-    <!-- Highlights -->
-    <div class="features-grid">
-      <div class="feature-item">
-        <div class="feature-icon">🎯</div>
-        <div>
-          <div class="feature-text-title">Sub-Second Precision</div>
-          <div class="feature-text-desc">Set millisecond A & B markers with ±50ms and ±100ms instant nudges.</div>
-        </div>
-      </div>
-      <div class="feature-item">
-        <div class="feature-icon">🔄</div>
-        <div>
-          <div class="feature-text-title">Zero Cumulative Drift</div>
-          <div class="feature-text-desc">Absolute timeline anchoring stays on-beat forever during endless practice sessions.</div>
-        </div>
-      </div>
-      <div class="feature-item">
-        <div class="feature-icon">🎧</div>
-        <div>
-          <div class="feature-text-title">Official Spotify Connect Sync</div>
-          <div class="feature-text-desc">Controls native Spotify playback seamlessly on your Phone, PC, or Mac.</div>
-        </div>
-      </div>
-    </div>
+  <h1 class="hero-title">
+    Master Every Solo, Riff & Beat With <span>Precision Looping</span>.
+  </h1>
 
-    <!-- CTA -->
-    <button class="btn-connect-spotify" onclick="startSpotifyLogin()">
+  <p class="hero-subtitle">
+    Control native Spotify playback directly from your browser. Set exact A & B repeat zones with sub-second accuracy, zero drift, and instant nudges for musicians, dancers, and listeners.
+  </p>
+
+  <div class="hero-cta-group">
+    <button id="heroPrimaryBtn" class="btn-hero-primary" onclick="startSpotifyLogin()">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
       </svg>
-      Login with Spotify
+      Authorize & Open Web Studio
     </button>
-    <p class="landing-trust">100% Free & Open Source • No login credentials stored</p>
+    <a href="https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/app-release.apk" class="btn-hero-secondary">
+      <span>📱 Download Android APK</span>
+    </a>
+    <a href="https://github.com/DaivikOPX/SpotiLoop" target="_blank" rel="noopener" class="btn-hero-secondary">
+      <span>⭐ GitHub</span>
+    </a>
   </div>
 
-  <!-- Main Player Studio -->
-  <div id="playerView" style="display:flex; flex-direction:column; justify-content:space-between; height:100%; gap:8px;">
-    
-    <!-- Now Playing Card -->
-    <div class="card">
-      <div class="track-info">
-        <img id="albumArt" class="album-art" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='52' fill='%23333'%3E%3Crect width='52' height='52'/%3E%3C/svg%3E" alt="Art">
-        <div class="track-details">
-          <div id="trackTitle" class="track-title">Waiting for playback...</div>
-          <div id="trackArtist" class="track-artist">Play any song in Spotify</div>
-          <div id="deviceBadge" class="device-indicator">
-            <span style="font-size:8px;">🟢</span>
-            <span id="deviceName">Spotify Ready</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Timeline Scrubber -->
-    <div class="card">
-      <div class="timeline-wrapper">
-        <div class="timeline-track-area" id="timelineTrack">
-          <div id="timelineTooltip" class="timeline-tooltip">00:00.0</div>
-          <div class="timeline-bg">
-            <div id="progressFill" class="timeline-progress-fill"></div>
-          </div>
-          <div id="loopZone" class="loop-highlight-zone" style="display:none;"></div>
-          
-          <!-- Draggable Handle A -->
-          <div id="handleA" class="drag-handle handle-a" style="display:none;" title="Drag to adjust Start Point A">
-            <span>A</span>
-          </div>
-
-          <!-- Draggable Handle B -->
-          <div id="handleB" class="drag-handle handle-b" style="display:none;" title="Drag to adjust End Point B">
-            <span>B</span>
-          </div>
-
-          <!-- Playhead Needle -->
-          <div id="playheadNeedle" class="playhead-needle" style="left:0%;"></div>
-        </div>
-
-        <div class="time-readouts">
-          <span id="currTimeReadout" class="time-current">00:00.0</span>
-          <span id="loopSpanBadge" style="color:var(--spotify-green); font-size:11px; font-weight:700;"></span>
-          <span id="totalTimeReadout">00:00.0</span>
-        </div>
-
-        <!-- Quick Precision Seek Micro-Bar -->
-        <div class="quick-seek-row">
-          <button class="quick-seek-btn" onclick="quickSeek(-5000)" title="Rewind 5 seconds">⏮ -5s</button>
-          <button class="quick-seek-btn" onclick="quickSeek(-1000)" title="Rewind 1 second">◀ -1s</button>
-          <button class="quick-seek-btn" onclick="quickSeek(1000)" title="Forward 1 second">+1s ▶</button>
-          <button class="quick-seek-btn" onclick="quickSeek(5000)" title="Forward 5 seconds">+5s ⏭</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Dual Marker Controls with Direct Input -->
-    <div class="marker-grid">
+  <!-- Live Studio Showcase Interface Card -->
+  <div id="studio" class="studio-showcase-wrapper">
+    <div class="studio-glass-frame">
       
-      <!-- Point A Box -->
-      <div class="marker-box">
-        <div class="marker-box-header">
-          <span class="header-a">🚩 Point A (Start)</span>
-          <button class="btn-jump" onclick="jumpToA()">Jump ➔</button>
-        </div>
-
-        <!-- Direct Time Input -->
-        <div class="time-input-container">
-          <input 
-            id="inputA" 
-            type="text" 
-            class="time-input-box input-a" 
-            placeholder="00:00.0" 
-            onfocus="this.select()"
-            onchange="handleManualTimeInput('A', this.value)"
-            onkeydown="if(event.key==='Enter') this.blur()"
-          />
-        </div>
-
-        <button class="btn-capture-a" onclick="setPointAToCurrent()">
-          ⚡ Set Current Time
-        </button>
-
-        <div class="nudge-row">
-          <button class="nudge-btn" onclick="nudgeA(-1000)">-1s</button>
-          <button class="nudge-btn" onclick="nudgeA(-100)">-0.1s</button>
-          <button class="nudge-btn" onclick="nudgeA(100)">+0.1s</button>
-          <button class="nudge-btn" onclick="nudgeA(1000)">+1s</button>
-        </div>
-      </div>
-
-      <!-- Point B Box -->
-      <div class="marker-box">
-        <div class="marker-box-header">
-          <span class="header-b">🏁 Point B (End)</span>
-          <button class="btn-jump" onclick="jumpToB()">Jump ➔</button>
-        </div>
-
-        <!-- Direct Time Input -->
-        <div class="time-input-container">
-          <input 
-            id="inputB" 
-            type="text" 
-            class="time-input-box input-b" 
-            placeholder="00:00.0" 
-            onfocus="this.select()"
-            onchange="handleManualTimeInput('B', this.value)"
-            onkeydown="if(event.key==='Enter') this.blur()"
-          />
-        </div>
-
-        <button class="btn-capture-b" onclick="setPointBToCurrent()">
-          ⚡ Set Current Time
-        </button>
-
-        <div class="nudge-row">
-          <button class="nudge-btn" onclick="nudgeB(-1000)">-1s</button>
-          <button class="nudge-btn" onclick="nudgeB(-100)">-0.1s</button>
-          <button class="nudge-btn" onclick="nudgeB(100)">+0.1s</button>
-          <button class="nudge-btn" onclick="nudgeB(1000)">+1s</button>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Master Loop Toggle -->
-    <div id="masterLoopCard" class="card loop-toggle-card" onclick="toggleLoop()">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <div class="loop-badge-icon">
-          <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+      <!-- Studio Logged-Out Preview Prompt -->
+      <div id="connectView" class="logged-out-hero-banner">
+        <div class="brand-logo-wrapper" style="width: 52px; height: 52px; border-radius: 14px;">
+          <img src="./assets/logo.png" onerror="this.onerror=null; this.src='assets/logo.png';" alt="SpotiLoop Logo" class="brand-logo-img">
         </div>
         <div>
-          <div id="masterLoopTitle" style="font-weight:800; font-size:14.5px;">A-B Looping Off</div>
-          <div id="masterLoopSub" style="font-size:11.5px; color:var(--text-muted); margin-top:1px;">
-            Click to start looping between Point A & B
+          <h3 style="font-size: 19px; font-weight: 800; margin-bottom: 4px;">SpotiLoop Web Studio Ready</h3>
+          <p style="font-size: 13px; color: var(--text-muted);">Connect your Spotify account with 1-click to control playback & A-B looping.</p>
+        </div>
+        <button class="btn-connect-spotify-big" onclick="startSpotifyLogin()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+          </svg>
+          Authorize Spotify
+        </button>
+      </div>
+
+      <!-- Studio Live Player View (Active when authenticated) -->
+      <div id="playerView" style="display:none;">
+        
+        <!-- Track Info Card -->
+        <div class="card">
+          <div class="track-info">
+            <img id="albumArt" class="album-art" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' fill='%23222'%3E%3Crect width='56' height='56'/%3E%3C/svg%3E" alt="Art">
+            <div class="track-details">
+              <div id="trackTitle" class="track-title">Waiting for playback...</div>
+              <div id="trackArtist" class="track-artist">Play any song inside your Spotify app</div>
+              <div id="deviceBadge" class="device-indicator">
+                <span style="font-size:8px;">🟢</span>
+                <span id="deviceName">Spotify Ready</span>
+              </div>
+            </div>
           </div>
         </div>
+
+        <!-- Timeline Scrubber -->
+        <div class="card">
+          <div class="timeline-wrapper">
+            <div class="timeline-track-area" id="timelineTrack">
+              <div id="timelineTooltip" class="timeline-tooltip">00:00.0</div>
+              <div class="timeline-bg">
+                <div id="progressFill" class="timeline-progress-fill"></div>
+              </div>
+              <div id="loopZone" class="loop-highlight-zone" style="display:none;"></div>
+              
+              <!-- Draggable Handle A -->
+              <div id="handleA" class="drag-handle handle-a" style="display:none;" title="Drag Start Point A">
+                <span>A</span>
+              </div>
+
+              <!-- Draggable Handle B -->
+              <div id="handleB" class="drag-handle handle-b" style="display:none;" title="Drag End Point B">
+                <span>B</span>
+              </div>
+
+              <!-- Playhead Needle -->
+              <div id="playheadNeedle" class="playhead-needle" style="left:0%;"></div>
+            </div>
+
+            <div class="time-readouts">
+              <span id="currTimeReadout" class="time-current">00:00.0</span>
+              <span id="loopSpanBadge" style="color:var(--spotify-green); font-size:11px; font-weight:700;"></span>
+              <span id="totalTimeReadout">00:00.0</span>
+            </div>
+
+            <!-- Quick Precision Seek Micro-Bar -->
+            <div class="quick-seek-row">
+              <button class="quick-seek-btn" onclick="quickSeek(-5000)" title="Rewind 5s">⏮ -5s</button>
+              <button class="quick-seek-btn" onclick="quickSeek(-1000)" title="Rewind 1s">◀ -1s</button>
+              <button class="quick-seek-btn" onclick="quickSeek(1000)" title="Forward 1s">+1s ▶</button>
+              <button class="quick-seek-btn" onclick="quickSeek(5000)" title="Forward 5s">+5s ⏭</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dual Marker Controls -->
+        <div class="marker-grid">
+          <!-- Point A Box -->
+          <div class="marker-box">
+            <div class="marker-box-header">
+              <span class="header-a">🚩 Point A (Start)</span>
+              <button class="btn-jump" onclick="jumpToA()">Jump ➔</button>
+            </div>
+            <input 
+              id="inputA" 
+              type="text" 
+              class="time-input-box input-a" 
+              placeholder="00:00.0" 
+              onfocus="this.select()"
+              onchange="handleManualTimeInput('A', this.value)"
+              onkeydown="if(event.key==='Enter') this.blur()"
+            />
+            <button class="btn-capture-a" onclick="setPointAToCurrent()">⚡ Set Current Time</button>
+            <div class="nudge-row">
+              <button class="nudge-btn" onclick="nudgeA(-1000)">-1s</button>
+              <button class="nudge-btn" onclick="nudgeA(-100)">-0.1s</button>
+              <button class="nudge-btn" onclick="nudgeA(100)">+0.1s</button>
+              <button class="nudge-btn" onclick="nudgeA(1000)">+1s</button>
+            </div>
+          </div>
+
+          <!-- Point B Box -->
+          <div class="marker-box">
+            <div class="marker-box-header">
+              <span class="header-b">🏁 Point B (End)</span>
+              <button class="btn-jump" onclick="jumpToB()">Jump ➔</button>
+            </div>
+            <input 
+              id="inputB" 
+              type="text" 
+              class="time-input-box input-b" 
+              placeholder="00:00.0" 
+              onfocus="this.select()"
+              onchange="handleManualTimeInput('B', this.value)"
+              onkeydown="if(event.key==='Enter') this.blur()"
+            />
+            <button class="btn-capture-b" onclick="setPointBToCurrent()">⚡ Set Current Time</button>
+            <div class="nudge-row">
+              <button class="nudge-btn" onclick="nudgeB(-1000)">-1s</button>
+              <button class="nudge-btn" onclick="nudgeB(-100)">-0.1s</button>
+              <button class="nudge-btn" onclick="nudgeB(100)">+0.1s</button>
+              <button class="nudge-btn" onclick="nudgeB(1000)">+1s</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Master Loop Toggle Switch -->
+        <div id="loopToggleCard" class="loop-toggle-card" onclick="toggleLoop()">
+          <div class="loop-toggle-left">
+            <div class="loop-icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="17 1 21 5 17 9"></polyline>
+                <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                <polyline points="7 23 3 19 7 15"></polyline>
+                <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="loop-title-text">A-B Looper Active</div>
+              <div id="loopSubtext" class="loop-subtext">Click to start looping between Point A & B</div>
+            </div>
+          </div>
+          <div class="switch-pill">
+            <div class="switch-circle"></div>
+          </div>
+        </div>
+
+        <!-- Bottom Controls Row (Transport + Volume) -->
+        <div class="bottom-row">
+          <!-- Playback Transport -->
+          <div class="card transport-bar">
+            <button class="transport-btn" onclick="spotifyPrev()" title="Previous Track">
+              <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+            </button>
+            
+            <button class="play-master-btn" onclick="spotifyTogglePlay()" title="Play / Pause">
+              <svg id="playMasterIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+
+            <button class="transport-btn" onclick="spotifyNext()" title="Next Track">
+              <svg viewBox="0 0 24 24"><path d="m6 18 8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+            </button>
+          </div>
+
+          <!-- Volume Controls -->
+          <div class="card volume-card">
+            <button id="volumeMuteBtn" class="volume-btn" onclick="toggleVolumeMute()" title="Mute / Unmute">
+              <svg id="volumeIcon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+              </svg>
+            </button>
+            <input 
+              id="volumeSlider" 
+              type="range" 
+              class="volume-slider-range" 
+              min="0" 
+              max="100" 
+              value="75" 
+              oninput="handleVolumeInput(this.value)"
+            />
+            <span id="volumeValueLabel" class="volume-label">75%</span>
+          </div>
+        </div>
+
       </div>
-      <div class="switch-pill">
-        <div class="switch-circle"></div>
-      </div>
+
     </div>
-
-    <!-- Bottom Controls Row (Transport + Volume) -->
-    <div class="bottom-row">
-      <!-- Playback Transport -->
-      <div class="card transport-bar" style="flex:1;">
-        <button class="transport-btn" onclick="spotifyPrev()" title="Previous Track">
-          <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
-        </button>
-        
-        <button class="play-master-btn" onclick="spotifyTogglePlay()" title="Play / Pause">
-          <svg id="playMasterIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-        </button>
-
-        <button class="transport-btn" onclick="spotifyNext()" title="Next Track">
-          <svg viewBox="0 0 24 24"><path d="m6 18 8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
-        </button>
-      </div>
-
-      <!-- Volume Controls -->
-      <div class="card volume-card" style="flex:1.15;">
-        <button id="volumeMuteBtn" class="volume-btn" onclick="toggleVolumeMute()" title="Mute / Unmute">
-          <svg id="volumeIcon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-          </svg>
-        </button>
-        <input 
-          id="volumeSlider" 
-          type="range" 
-          class="volume-slider-range" 
-          min="0" 
-          max="100" 
-          value="75" 
-          oninput="handleVolumeInput(this.value)"
-        />
-        <span id="volumeValueLabel" class="volume-label">75%</span>
-      </div>
-    </div>
-
   </div>
-</div>
+</header>
+
+<!-- Features Bento Section -->
+<section id="features" class="section-container">
+  <div class="section-header">
+    <div class="section-tag">ENGINEERED FOR MUSICIANS & DANCERS</div>
+    <h2 class="section-title">Precision Tools Built For Real Practice</h2>
+    <p class="section-desc">Designed from the ground up to eliminate playback latency, drift, and clunky timeline controls.</p>
+  </div>
+
+  <div class="bento-grid">
+    <div class="bento-card">
+      <div class="bento-icon">🎯</div>
+      <h3 class="bento-title">Sub-Second Precision Nudges</h3>
+      <p class="bento-desc">Dial in microscopic starting and ending frames with instant ±50ms and ±100ms micro-step buttons.</p>
+    </div>
+
+    <div class="bento-card">
+      <div class="bento-icon">⚡</div>
+      <h3 class="bento-title">Zero Cumulative Drift</h3>
+      <p class="bento-desc">Absolute timestamp anchoring keeps your loop locked on-beat even through 1,000+ continuous practice repetitions.</p>
+    </div>
+
+    <div class="bento-card">
+      <div class="bento-icon">🎛️</div>
+      <h3 class="bento-title">Continuous Scrubbing</h3>
+      <p class="bento-desc">Drag anywhere on the interactive timeline with live millisecond tooltips and rapid ±1s and ±5s jumps.</p>
+    </div>
+
+    <div class="bento-card">
+      <div class="bento-icon">🔊</div>
+      <h3 class="bento-title">Full Song Volume Control</h3>
+      <p class="bento-desc">Adjust track gain on the fly without leaving the interface, with instant single-click mute/unmute toggle.</p>
+    </div>
+
+    <div class="bento-card">
+      <div class="bento-icon">📱</div>
+      <h3 class="bento-title">Native Android APK</h3>
+      <p class="bento-desc">Take your loops into the dance studio or guitar room with the standalone Android application.</p>
+    </div>
+
+    <div class="bento-card">
+      <div class="bento-icon">🔒</div>
+      <h3 class="bento-title">100% Privacy & Open Source</h3>
+      <p class="bento-desc">Direct client-side PKCE authentication with Spotify. No logins, passwords, or track telemetry stored on third-party servers.</p>
+    </div>
+  </div>
+</section>
+
+<!-- How It Works Section -->
+<section id="how-it-works" class="section-container" style="background: rgba(18, 18, 24, 0.2); border-radius: 36px;">
+  <div class="section-header">
+    <div class="section-tag">THREE EASY STEPS</div>
+    <h2 class="section-title">How To Start Looping In 10 Seconds</h2>
+  </div>
+
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-number">1</div>
+      <h3 class="step-title">Connect Your Spotify</h3>
+      <p class="step-desc">Click Authorize with 1-click PKCE OAuth. No passwords or API keys needed.</p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-number">2</div>
+      <h3 class="step-title">Set Point A & Point B</h3>
+      <p class="step-desc">Play your track and hit "Set Current Time" or drag the handles to frame the solo or choreography section.</p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-number">3</div>
+      <h3 class="step-title">Loop & Master</h3>
+      <p class="step-desc">Flip the master loop switch. SpotiLoop seamlessly snaps playback back to Point A the millisecond it hits Point B.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Android App Download Banner -->
+<section id="download" class="section-container">
+  <div class="apk-banner-card">
+    <div class="apk-banner-text">
+      <div class="pill-badge" style="margin-bottom: 12px;">📱 ANDROID RELEASE AVAILABLE</div>
+      <h2 class="apk-banner-title">Practice On The Go With SpotiLoop Android</h2>
+      <p class="apk-banner-desc">Download the standalone Flutter APK release directly to your mobile phone. Includes background playback listeners and Spotify Connect synchronization.</p>
+    </div>
+    <div>
+      <a href="https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/app-release.apk" class="btn-hero-primary" style="padding: 16px 32px;">
+        <span>📥 Download app-release.apk (v1.0.0)</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-container">
+    <div class="footer-brand">
+      <div class="brand-logo-wrapper" style="width: 24px; height: 24px;">
+        <img src="./assets/logo.png" onerror="this.onerror=null; this.src='assets/logo.png';" alt="SpotiLoop Logo" class="brand-logo-img">
+      </div>
+      SpotiLoop Pro
+    </div>
+
+    <div class="footer-copy">
+      Built with millisecond precision • Open source under MIT • Not affiliated with Spotify AB
+    </div>
+
+    <ul class="footer-links">
+      <li><a href="https://github.com/DaivikOPX/SpotiLoop" target="_blank" rel="noopener">GitHub Repo</a></li>
+      <li><a href="https://github.com/DaivikOPX/SpotiLoop/releases" target="_blank" rel="noopener">Releases</a></li>
+      <li><a href="https://developer.spotify.com/" target="_blank" rel="noopener">Spotify Web API</a></li>
+    </ul>
+  </div>
+</footer>
 
 <script>
   function _resolveClientId() {
@@ -1041,6 +1437,10 @@
     t.textContent = msg;
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  function focusStudio() {
+    document.getElementById('studio').scrollIntoView({ behavior: 'smooth' });
   }
 
   // PKCE Helpers
@@ -1099,30 +1499,36 @@
       }
 
       const verifier = sessionStorage.getItem('code_verifier');
-      const body = new URLSearchParams({
-        client_id: clientId,
-        grant_type: 'authorization_code',
-        code: code,
-        redirect_uri: REDIRECT_URI,
-        code_verifier: verifier
-      });
+      if (!verifier) return;
 
       try {
-        const response = await fetch('https://accounts.spotify.com/api/token', {
+        const body = new URLSearchParams({
+          client_id: clientId,
+          grant_type: 'authorization_code',
+          code: code,
+          redirect_uri: REDIRECT_URI,
+          code_verifier: verifier
+        });
+
+        const res = await fetch('https://accounts.spotify.com/api/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: body
+          body: body.toString()
         });
-        const data = await response.json();
-        if (data.access_token) {
+
+        if (res.ok) {
+          const data = await res.json();
           accessToken = data.access_token;
-          localStorage.setItem('spotify_access_token', data.access_token);
-          if (data.refresh_token) {
-            refreshToken = data.refresh_token;
-            localStorage.setItem('spotify_refresh_token', data.refresh_token);
-          }
-          window.history.replaceState({}, document.title, '/');
-          showToast('Connected to Spotify!');
+          refreshToken = data.refresh_token || refreshToken;
+          localStorage.setItem('spotify_access_token', accessToken);
+          if (data.refresh_token) localStorage.setItem('spotify_refresh_token', data.refresh_token);
+
+          // Clean URL query
+          window.history.replaceState({}, document.title, window.location.pathname);
+          showToast('🟢 Spotify Connected Successfully!');
+          updateUIState(true);
+        } else {
+          showToast('OAuth exchange failed');
         }
       } catch (err) {
         console.error('Token exchange error:', err);
@@ -1131,743 +1537,482 @@
   }
 
   async function refreshAccessToken() {
-    if (!refreshToken || !clientId) return null;
-    const body = new URLSearchParams({
-      client_id: clientId,
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken
-    });
-
+    if (!refreshToken || !clientId) return false;
     try {
-      const response = await fetch('https://accounts.spotify.com/api/token', {
+      const body = new URLSearchParams({
+        client_id: clientId,
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken
+      });
+
+      const res = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body
+        body: body.toString()
       });
-      const data = await response.json();
-      if (data.access_token) {
+
+      if (res.ok) {
+        const data = await res.json();
         accessToken = data.access_token;
-        localStorage.setItem('spotify_access_token', data.access_token);
+        localStorage.setItem('spotify_access_token', accessToken);
         if (data.refresh_token) {
           refreshToken = data.refresh_token;
-          localStorage.setItem('spotify_refresh_token', data.refresh_token);
+          localStorage.setItem('spotify_refresh_token', refreshToken);
         }
-        syncWithBackend();
-        return accessToken;
+        return true;
       }
     } catch (e) {
-      console.error('Token refresh error:', e);
+      console.error('Refresh token failed:', e);
     }
-    return null;
+    return false;
+  }
+
+  async function spotifyFetch(endpoint, options = {}) {
+    if (!accessToken) return null;
+    options.headers = {
+      ...(options.headers || {}),
+      'Authorization': `Bearer ${accessToken}`
+    };
+
+    let res = await fetch(`https://api.spotify.com/v1/${endpoint}`, options);
+    if (res.status === 401) {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        options.headers['Authorization'] = `Bearer ${accessToken}`;
+        res = await fetch(`https://api.spotify.com/v1/${endpoint}`, options);
+      } else {
+        updateUIState(false);
+        return null;
+      }
+    }
+    return res;
+  }
+
+  function updateUIState(authenticated) {
+    const connectView = document.getElementById('connectView');
+    const playerView = document.getElementById('playerView');
+    const heroBtn = document.getElementById('heroPrimaryBtn');
+    const statusText = document.getElementById('authStatusText');
+    const statusDot = document.querySelector('.status-dot');
+
+    if (authenticated) {
+      connectView.style.display = 'none';
+      playerView.style.display = 'block';
+      statusText.textContent = 'Spotify Active';
+      statusDot.classList.add('active');
+      if (heroBtn) {
+        heroBtn.innerHTML = '<span>⚡ Go To Active Studio</span>';
+        heroBtn.onclick = focusStudio;
+      }
+    } else {
+      connectView.style.display = 'flex';
+      playerView.style.display = 'none';
+      statusText.textContent = 'Disconnected';
+      statusDot.classList.remove('active');
+      if (heroBtn) {
+        heroBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg> Authorize & Open Web Studio';
+        heroBtn.onclick = startSpotifyLogin;
+      }
+    }
+  }
+
+  function confirmDisconnect() {
+    if (!accessToken) {
+      startSpotifyLogin();
+      return;
+    }
+    if (confirm('Disconnect from Spotify?')) {
+      accessToken = null;
+      refreshToken = null;
+      localStorage.removeItem('spotify_access_token');
+      localStorage.removeItem('spotify_refresh_token');
+      updateUIState(false);
+      showToast('Logged out of Spotify');
+    }
   }
 
   function formatTime(ms) {
-    if (ms === null || isNaN(ms) || ms < 0) return '00:00.0';
-    const totalSec = Math.floor(ms / 1000);
-    const min = Math.floor(totalSec / 60);
-    const sec = totalSec % 60;
+    if (isNaN(ms) || ms < 0) ms = 0;
+    const totalSeconds = Math.floor(ms / 1000);
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
     const tenths = Math.floor((ms % 1000) / 100);
-    return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}.${tenths}`;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${tenths}`;
   }
 
-  function parseTimeToMs(text) {
-    if (!text || typeof text !== 'string') return null;
-    const cleaned = text.trim().replace(/\s+/g, '');
-    if (!cleaned) return null;
-
-    // 1. Colon format: "1:14", "01:14.5", "1:14:05"
-    if (cleaned.includes(':')) {
-      const parts = cleaned.split(':');
-      if (parts.length === 2) {
-        const mins = parseFloat(parts[0]);
-        const secs = parseFloat(parts[1]);
-        if (!isNaN(mins) && !isNaN(secs)) {
-          return Math.round((mins * 60 + secs) * 1000);
-        }
-      } else if (parts.length === 3) {
-        const hrs = parseFloat(parts[0]);
-        const mins = parseFloat(parts[1]);
-        const secs = parseFloat(parts[2]);
-        if (!isNaN(hrs) && !isNaN(mins) && !isNaN(secs)) {
-          return Math.round((hrs * 3600 + mins * 60 + secs) * 1000);
-        }
+  function parseTimeToMs(str) {
+    const parts = str.trim().split(':');
+    if (parts.length === 2) {
+      const min = parseInt(parts[0], 10);
+      const secParts = parts[1].split('.');
+      const sec = parseInt(secParts[0], 10);
+      const tenths = secParts.length > 1 ? parseInt(secParts[1], 10) : 0;
+      if (!isNaN(min) && !isNaN(sec)) {
+        return (min * 60 * 1000) + (sec * 1000) + (tenths * 100);
       }
-    }
-
-    // 2. Dot notation: "1.14.5" (min.sec.tenths) or "1.14" (min.sec) or "74.5" (seconds)
-    if (cleaned.includes('.')) {
-      const dotParts = cleaned.split('.');
-      if (dotParts.length === 3) {
-        // e.g. "1.14.5" -> 1 min, 14.5 sec
-        const mins = parseFloat(dotParts[0]);
-        const secs = parseFloat(dotParts[1]);
-        const tenths = parseFloat('0.' + dotParts[2]);
-        if (!isNaN(mins) && !isNaN(secs) && !isNaN(tenths)) {
-          return Math.round((mins * 60 + secs + tenths) * 1000);
-        }
-      } else if (dotParts.length === 2) {
-        const part0 = parseFloat(dotParts[0]);
-        const part1 = parseFloat(dotParts[1]);
-        
-        // If 2-digit seconds like "1.14", "01.30", "2.05" -> minute.second format
-        if (dotParts[1].length === 2 && part1 < 60 && part0 < 60) {
-          return Math.round((part0 * 60 + part1) * 1000);
-        } else {
-          // Decimal seconds like "74.5" or "45.2"
-          const totalSec = parseFloat(cleaned);
-          if (!isNaN(totalSec)) return Math.round(totalSec * 1000);
-        }
-      }
-    }
-
-    // 3. Plain seconds: "45", "120"
-    const secs = parseFloat(cleaned);
-    if (!isNaN(secs)) {
-      return Math.round(secs * 1000);
     }
     return null;
-  }
-
-  function handleManualTimeInput(marker, value) {
-    const ms = parseTimeToMs(value);
-    if (ms === null) {
-      updateInputBoxes();
-      return;
-    }
-
-    const clampedMs = Math.max(0, Math.min(ms, durationMs || 3600000));
-    if (marker === 'A') {
-      pointA = clampedMs;
-      if (pointB !== null && pointA >= pointB) {
-        pointB = Math.min(pointA + 1000, durationMs || pointA + 1000);
-      }
-    } else {
-      pointB = clampedMs;
-      if (pointA !== null && pointB <= pointA) {
-        pointA = Math.max(0, pointB - 1000);
-      }
-    }
-    renderMarkers();
-    showToast(`Set Point ${marker}: ${formatTime(clampedMs)}`);
   }
 
   function getEstimatedProgress() {
     if (!isPlaying) return lastProgressMs;
     const elapsed = Date.now() - lastSyncTime;
-    return Math.min(lastProgressMs + elapsed, durationMs || 0);
+    return Math.min(durationMs, lastProgressMs + elapsed);
   }
 
-  async function fetchSpotifyPlayback() {
+  async function syncPlaybackState() {
     if (!accessToken) return;
     try {
-      const res = await fetch('https://api.spotify.com/v1/me/player', {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (res.status === 200) {
+      const res = await spotifyFetch('me/player');
+      if (res && res.status === 200) {
         const data = await res.json();
         if (data && data.item) {
-          const isTrackChanged = currentTrack && currentTrack.id !== data.item.id;
-          const isExternalPause = isPlaying && !data.is_playing;
-          const now = Date.now();
-          const isManualExternalSeek = isPlaying && data.is_playing && (now > seekLockoutUntil) && (
-            (pointA !== null && data.progress_ms < pointA - 2500) ||
-            (pointB !== null && data.progress_ms > pointB + 2500)
-          );
+          currentTrack = data.item;
+          durationMs = data.item.duration_ms || 0;
+          isPlaying = data.is_playing;
+          activeDeviceId = data.device ? data.device.id : null;
 
-          // If user makes any change in Spotify app: pause looping but PRESERVE Point A & Point B!
-          if ((isTrackChanged || isExternalPause || isManualExternalSeek) && isLoopActive) {
-            isLoopActive = false;
-            renderMarkers();
-            if (isTrackChanged) showToast('⏸️ Song changed — Loop paused (A/B saved)');
-            else if (isExternalPause) showToast('⏸️ Paused in Spotify — Loop paused (A/B saved)');
-            else if (isManualExternalSeek) showToast('⏸️ Manual seek in Spotify — Loop paused (A/B saved)');
+          if (Date.now() > seekLockoutUntil) {
+            lastProgressMs = data.progress_ms || 0;
+            lastSyncTime = Date.now();
           }
 
-          currentTrack = data.item;
-          isPlaying = data.is_playing;
-          durationMs = data.item.duration_ms;
-
+          // Track metadata
+          document.getElementById('trackTitle').textContent = data.item.name;
+          document.getElementById('trackArtist').textContent = data.item.artists.map(a => a.name).join(', ');
+          if (data.item.album && data.item.album.images.length) {
+            document.getElementById('albumArt').src = data.item.album.images[0].url;
+          }
           if (data.device) {
-            activeDeviceId = data.device.id;
             document.getElementById('deviceName').textContent = data.device.name;
-            if (data.device.volume_percent !== undefined && !isVolumeDragging) {
-              currentVolume = data.device.volume_percent;
-              updateVolumeUI(currentVolume);
+            // Sync volume
+            if (typeof data.device.volume_percent === 'number') {
+              syncVolumeUI(data.device.volume_percent);
             }
           }
 
-          // Anti-Stutter Protection: Ignore stale position immediately after a seek
-          if (now > seekLockoutUntil) {
-            lastProgressMs = data.progress_ms;
-            lastSyncTime = now;
-          }
-
-          document.getElementById('trackTitle').textContent = data.item.name;
-          document.getElementById('trackArtist').textContent = data.item.artists.map(a => a.name).join(', ');
-          if (data.item.album.images && data.item.album.images.length > 0) {
-            document.getElementById('albumArt').src = data.item.album.images[0].url;
-          }
           document.getElementById('totalTimeReadout').textContent = formatTime(durationMs);
-          document.getElementById('playMasterIcon').innerHTML = isPlaying
-            ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
-            : '<path d="M8 5v14l11-7z"/>';
-
-          syncWithBackend();
-        }
-      } else if (res.status === 204) {
-        // Clean 204 Spotify Idle State Handling
-        if (isLoopActive) {
-          isLoopActive = false;
-          renderMarkers();
-        }
-        isPlaying = false;
-        document.getElementById('trackTitle').textContent = 'Spotify Idle';
-        document.getElementById('trackArtist').textContent = 'Open Spotify & start playback';
-        document.getElementById('deviceName').textContent = 'Waiting for Spotify';
-        document.getElementById('albumArt').src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='52' fill='%23222'%3E%3Crect width='52' height='52'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='20' fill='%23555'%3E♫%3C/text%3E%3C/svg%3E";
-        document.getElementById('playMasterIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
-        syncWithBackend();
-      } else if (res.status === 401) {
-        const newToken = await refreshAccessToken();
-        if (!newToken) {
-          localStorage.removeItem('spotify_access_token');
-          accessToken = null;
-          updateView();
+          updatePlayIcon(isPlaying);
         }
       }
     } catch (e) {
-      console.error('Fetch playback error:', e);
+      console.error('Playback sync error:', e);
     }
   }
 
-  // Send Seek command through backend proxy (ensuring single seek dispatcher)
-  async function triggerSeek(ms) {
-    const target = Math.max(0, Math.round(ms));
-    const now = Date.now();
-    lastProgressMs = target;
-    lastSyncTime = now;
-    seekLockoutUntil = now + 1200;
+  function updatePlayIcon(playing) {
+    const icon = document.getElementById('playMasterIcon');
+    if (playing) {
+      icon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+    } else {
+      icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+    }
+  }
 
-    fetch('/api/seek', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ positionMs: target })
-    }).catch(() => {
-      fetch(`https://api.spotify.com/v1/me/player/seek?position_ms=${target}`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-    });
+  // Loop Monitoring Tick (Every 50ms)
+  async function loopMonitorTick() {
+    const pos = getEstimatedProgress();
+
+    // Update UI playhead
+    if (durationMs > 0) {
+      const pct = (pos / durationMs) * 100;
+      document.getElementById('progressFill').style.width = `${pct}%`;
+      document.getElementById('playheadNeedle').style.left = `${pct}%`;
+      document.getElementById('currTimeReadout').textContent = formatTime(pos);
+    }
+
+    // A-B Loop Trigger
+    if (isLoopActive && pointA !== null && pointB !== null && pointB > pointA) {
+      if (pos >= (pointB - seekLeadOffsetMs)) {
+        const now = Date.now();
+        if (now - lastSeekDispatchedTime > 400) {
+          lastSeekDispatchedTime = now;
+          loopCount++;
+          document.getElementById('loopSubtext').textContent = `Looping: ${formatTime(pointA)} ➔ ${formatTime(pointB)} (${loopCount}x)`;
+          await spotifySeek(pointA);
+        }
+      }
+    }
+  }
+
+  async function spotifySeek(positionMs) {
+    if (!accessToken) return;
+    seekLockoutUntil = Date.now() + 1200;
+    lastProgressMs = positionMs;
+    lastSyncTime = Date.now();
+
+    try {
+      await spotifyFetch(`me/player/seek?position_ms=${Math.floor(positionMs)}`, { method: 'PUT' });
+    } catch (e) {
+      console.error('Seek error:', e);
+    }
+  }
+
+  async function quickSeek(deltaMs) {
+    const current = getEstimatedProgress();
+    const target = Math.max(0, Math.min(durationMs, current + deltaMs));
+    await spotifySeek(target);
   }
 
   async function spotifyTogglePlay() {
     if (!accessToken) return;
-    ensureAudioContextActive();
-
-    if (!isPlaying) {
-      // Re-engaging playback from AB Looper
-      if (pointA !== null && pointB !== null) {
-        isLoopActive = true;
-        const currentPos = getEstimatedProgress();
-        // If outside the A-B range, snap to Point A
-        if (currentPos < pointA || currentPos >= pointB) {
-          triggerSeek(pointA);
-        }
-        renderMarkers();
-        showToast('▶️ Resumed & Looping Active (A ➔ B)');
+    try {
+      if (isPlaying) {
+        await spotifyFetch('me/player/pause', { method: 'PUT' });
+        isPlaying = false;
+      } else {
+        await spotifyFetch('me/player/play', { method: 'PUT' });
+        isPlaying = true;
       }
-      await fetch('https://api.spotify.com/v1/me/player/play', {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      isPlaying = true;
-    } else {
-      await fetch('https://api.spotify.com/v1/me/player/pause', {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      isPlaying = false;
+      updatePlayIcon(isPlaying);
+    } catch (e) {
+      console.error('Toggle play error:', e);
     }
-    fetchSpotifyPlayback();
   }
 
   async function spotifyNext() {
-    await fetch('https://api.spotify.com/v1/me/player/next', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${accessToken}` }
-    });
-    setTimeout(fetchSpotifyPlayback, 400);
+    if (!accessToken) return;
+    await spotifyFetch('me/player/next', { method: 'POST' });
+    setTimeout(syncPlaybackState, 300);
   }
 
   async function spotifyPrev() {
-    await fetch('https://api.spotify.com/v1/me/player/previous', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${accessToken}` }
-    });
-    setTimeout(fetchSpotifyPlayback, 400);
-  }
-
-  function syncWithBackend() {
     if (!accessToken) return;
-    fetch('/api/sync-state', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        accessToken,
-        refreshToken,
-        pointA,
-        pointB,
-        durationMs,
-        isLoopActive,
-        seekLeadOffsetMs,
-        isPlaying,
-        lastProgressMs,
-        activeDeviceId
-      })
-    }).then(res => res.json()).then(data => {
-      if (data.loopCount) {
-        document.getElementById('masterLoopSub').textContent = `🔥 Looped ${data.loopCount} continuous times (A ➔ B)`;
-      }
-    }).catch(() => {});
+    await spotifyFetch('me/player/previous', { method: 'POST' });
+    setTimeout(syncPlaybackState, 300);
   }
 
-  let audioCtx = null;
-  function ensureAudioContextActive() {
-    try {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const gain = audioCtx.createGain();
-        gain.gain.value = 0.000001; // Silent inaudible keep-alive
-        const osc = audioCtx.createOscillator();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-      }
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-    } catch (_) {}
-  }
-
-  function quickSeek(deltaMs) {
-    ensureAudioContextActive();
-    const current = getEstimatedProgress();
-    const target = Math.max(0, Math.min(current + deltaMs, durationMs || 3600000));
-    triggerSeek(target);
-    showToast(`${deltaMs > 0 ? '+' : ''}${deltaMs / 1000}s`);
-  }
-
-  // Volume Controls Handling
+  // Volume Handlers
   let currentVolume = 75;
-  let previousVolume = 75;
-  let isVolumeDragging = false;
+  let isMuted = false;
+  let preMuteVolume = 75;
   let volumeDebounceTimer = null;
 
-  function updateVolumeUI(percent) {
-    const slider = document.getElementById('volumeSlider');
-    const label = document.getElementById('volumeValueLabel');
+  function syncVolumeUI(vol) {
+    if (vol !== undefined && !isMuted) {
+      currentVolume = vol;
+      document.getElementById('volumeSlider').value = vol;
+      document.getElementById('volumeValueLabel').textContent = `${vol}%`;
+      updateVolumeIcon(vol);
+    }
+  }
+
+  function handleVolumeInput(val) {
+    const vol = parseInt(val, 10);
+    currentVolume = vol;
+    isMuted = (vol === 0);
+    document.getElementById('volumeValueLabel').textContent = `${vol}%`;
+    updateVolumeIcon(vol);
+
+    clearTimeout(volumeDebounceTimer);
+    volumeDebounceTimer = setTimeout(() => {
+      sendVolumeToSpotify(vol);
+    }, 150);
+  }
+
+  async function sendVolumeToSpotify(volPercent) {
+    if (!accessToken) return;
+    try {
+      await spotifyFetch(`me/player/volume?volume_percent=${volPercent}`, { method: 'PUT' });
+    } catch (e) {
+      console.error('Volume change error:', e);
+    }
+  }
+
+  function toggleVolumeMute() {
+    if (!isMuted) {
+      preMuteVolume = currentVolume > 0 ? currentVolume : 75;
+      currentVolume = 0;
+      isMuted = true;
+      document.getElementById('volumeSlider').value = 0;
+      document.getElementById('volumeValueLabel').textContent = '0%';
+      updateVolumeIcon(0);
+      sendVolumeToSpotify(0);
+    } else {
+      currentVolume = preMuteVolume;
+      isMuted = false;
+      document.getElementById('volumeSlider').value = currentVolume;
+      document.getElementById('volumeValueLabel').textContent = `${currentVolume}%`;
+      updateVolumeIcon(currentVolume);
+      sendVolumeToSpotify(currentVolume);
+    }
+  }
+
+  function updateVolumeIcon(vol) {
     const icon = document.getElementById('volumeIcon');
-    if (!slider || !label || !icon) return;
-
-    slider.value = percent;
-    label.textContent = `${percent}%`;
-
-    if (percent === 0) {
+    if (vol === 0) {
       icon.innerHTML = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
-    } else if (percent < 50) {
-      icon.innerHTML = '<path d="M7 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>';
+    } else if (vol < 50) {
+      icon.innerHTML = '<path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z"/>';
     } else {
       icon.innerHTML = '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>';
     }
   }
 
-  function handleVolumeInput(val) {
-    const percent = Math.max(0, Math.min(parseInt(val, 10), 100));
-    currentVolume = percent;
-    isVolumeDragging = true;
-    updateVolumeUI(percent);
-
-    clearTimeout(volumeDebounceTimer);
-    volumeDebounceTimer = setTimeout(() => {
-      isVolumeDragging = false;
-      setSpotifyVolume(percent);
-    }, 150);
-  }
-
-  function toggleVolumeMute() {
-    ensureAudioContextActive();
-    if (currentVolume > 0) {
-      previousVolume = currentVolume;
-      handleVolumeInput(0);
-      showToast('🔇 Muted');
-    } else {
-      const restored = previousVolume > 0 ? previousVolume : 70;
-      handleVolumeInput(restored);
-      showToast(`🔊 Volume: ${restored}%`);
-    }
-  }
-
-  function setSpotifyVolume(percent) {
-    if (!accessToken) return;
-    fetch('/api/volume', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ volumePercent: percent })
-    }).catch(() => {
-      fetch(`https://api.spotify.com/v1/me/player/volume?volume_percent=${percent}`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-    });
-  }
-
-  // Animation Loop for 60fps Scrubber
-  let isScrubbing = false;
-  let scrubProgressMs = 0;
-
-  function renderUiTick() {
-    let pos = isScrubbing ? scrubProgressMs : getEstimatedProgress();
-
-    // Visual instant loop turnaround if looping
-    if (isLoopActive && isPlaying && pointB !== null && pointA !== null && pos >= pointB) {
-      pos = pointA;
-    }
-
-    document.getElementById('currTimeReadout').textContent = formatTime(pos);
-
-    if (durationMs > 0) {
-      const frac = Math.min(Math.max(pos / durationMs, 0), 1);
-      document.getElementById('playheadNeedle').style.left = `${frac * 100}%`;
-      document.getElementById('progressFill').style.width = `${frac * 100}%`;
-    }
-    requestAnimationFrame(renderUiTick);
-  }
-
+  // A-B Loop Markers & Controls
   function setPointAToCurrent() {
-    ensureAudioContextActive();
     pointA = getEstimatedProgress();
-    if (pointB !== null && pointA >= pointB) {
-      pointB = Math.min(pointA + 1000, durationMs || pointA + 1000);
-    }
-    renderMarkers();
-    showToast(`Set Point A: ${formatTime(pointA)}`);
+    document.getElementById('inputA').value = formatTime(pointA);
+    updateTimelineLoopZone();
+    showToast(`🚩 Point A set to ${formatTime(pointA)}`);
   }
 
   function setPointBToCurrent() {
-    ensureAudioContextActive();
     pointB = getEstimatedProgress();
-    if (pointA !== null && pointB <= pointA) {
-      pointA = Math.max(0, pointB - 1000);
-    }
-    renderMarkers();
-    showToast(`Set Point B: ${formatTime(pointB)}`);
+    document.getElementById('inputB').value = formatTime(pointB);
+    updateTimelineLoopZone();
+    showToast(`🏁 Point B set to ${formatTime(pointB)}`);
   }
 
-  function nudgeA(delta) {
-    ensureAudioContextActive();
+  function nudgeA(deltaMs) {
     if (pointA === null) pointA = getEstimatedProgress();
-    pointA = Math.max(0, Math.min(pointA + delta, (pointB !== null ? pointB - 100 : durationMs || 3600000)));
-    renderMarkers();
+    pointA = Math.max(0, pointA + deltaMs);
+    document.getElementById('inputA').value = formatTime(pointA);
+    updateTimelineLoopZone();
   }
 
-  function nudgeB(delta) {
-    ensureAudioContextActive();
-    if (pointB === null) pointB = durationMs || getEstimatedProgress();
-    pointB = Math.min(durationMs || 3600000, Math.max(pointB + delta, (pointA !== null ? pointA + 100 : 0)));
-    renderMarkers();
+  function nudgeB(deltaMs) {
+    if (pointB === null) pointB = getEstimatedProgress();
+    pointB = Math.max(0, pointB + deltaMs);
+    document.getElementById('inputB').value = formatTime(pointB);
+    updateTimelineLoopZone();
   }
 
   function jumpToA() {
-    ensureAudioContextActive();
-    if (pointA !== null) {
-      triggerSeek(pointA);
-      showToast('⚡ Jumped to Point A');
-    }
+    if (pointA !== null) spotifySeek(pointA);
   }
 
   function jumpToB() {
-    ensureAudioContextActive();
-    if (pointB !== null) {
-      triggerSeek(pointB);
-      showToast('⚡ Jumped to Point B');
+    if (pointB !== null) spotifySeek(pointB);
+  }
+
+  function handleManualTimeInput(type, val) {
+    const ms = parseTimeToMs(val);
+    if (ms !== null) {
+      if (type === 'A') pointA = ms;
+      if (type === 'B') pointB = ms;
+      updateTimelineLoopZone();
     }
   }
 
   function toggleLoop() {
-    ensureAudioContextActive();
-    if (pointA === null) pointA = 0;
-    if (pointB === null) pointB = durationMs || 30000;
+    if (pointA === null || pointB === null) {
+      showToast('⚠️ Set Point A & Point B first!');
+      return;
+    }
+    if (pointA >= pointB) {
+      showToast('⚠️ Point A must be before Point B');
+      return;
+    }
+
     isLoopActive = !isLoopActive;
-    renderMarkers();
-    showToast(isLoopActive ? '🔁 A-B Looping Started' : '⏸️ Looping Paused');
+    const card = document.getElementById('loopToggleCard');
+    if (isLoopActive) {
+      card.classList.add('active');
+      loopCount = 0;
+      document.getElementById('loopSubtext').textContent = `Looping: ${formatTime(pointA)} ➔ ${formatTime(pointB)}`;
+      showToast('🔁 A-B Looping Engaged!');
+      spotifySeek(pointA);
+    } else {
+      card.classList.remove('active');
+      document.getElementById('loopSubtext').textContent = 'Click to start looping between Point A & B';
+      showToast('Loop Stopped');
+    }
   }
 
-  function updateInputBoxes() {
-    const inputA = document.getElementById('inputA');
-    const inputB = document.getElementById('inputB');
-    if (document.activeElement !== inputA) {
-      inputA.value = pointA !== null ? formatTime(pointA) : '';
-    }
-    if (document.activeElement !== inputB) {
-      inputB.value = pointB !== null ? formatTime(pointB) : '';
-    }
-  }
-
-  function renderMarkers() {
-    const masterCard = document.getElementById('masterLoopCard');
+  function updateTimelineLoopZone() {
     const zone = document.getElementById('loopZone');
     const handleA = document.getElementById('handleA');
     const handleB = document.getElementById('handleB');
-    const spanBadge = document.getElementById('loopSpanBadge');
-
-    updateInputBoxes();
+    const badge = document.getElementById('loopSpanBadge');
 
     if (durationMs > 0) {
       if (pointA !== null) {
+        const pctA = Math.min(100, Math.max(0, (pointA / durationMs) * 100));
         handleA.style.display = 'flex';
-        handleA.style.left = `${(pointA / durationMs) * 100}%`;
-      } else handleA.style.display = 'none';
-
+        handleA.style.left = `${pctA}%`;
+      }
       if (pointB !== null) {
+        const pctB = Math.min(100, Math.max(0, (pointB / durationMs) * 100));
         handleB.style.display = 'flex';
-        handleB.style.left = `${(pointB / durationMs) * 100}%`;
-      } else handleB.style.display = 'none';
-
-      if (pointA !== null && pointB !== null) {
+        handleB.style.left = `${pctB}%`;
+      }
+      if (pointA !== null && pointB !== null && pointB > pointA) {
+        const pctA = (pointA / durationMs) * 100;
+        const pctB = (pointB / durationMs) * 100;
         zone.style.display = 'block';
-        zone.style.left = `${(pointA / durationMs) * 100}%`;
-        zone.style.width = `${((pointB - pointA) / durationMs) * 100}%`;
-        const spanSec = ((pointB - pointA) / 1000).toFixed(1);
-        spanBadge.textContent = `Loop: ${spanSec}s`;
-      } else {
-        zone.style.display = 'none';
-        spanBadge.textContent = '';
+        zone.style.left = `${pctA}%`;
+        zone.style.width = `${pctB - pctA}%`;
+        badge.textContent = `Loop: ${formatTime(pointB - pointA)}`;
       }
-    }
-
-    if (isLoopActive) {
-      masterCard.classList.add('active');
-      zone.classList.add('active');
-      document.getElementById('masterLoopTitle').textContent = '🔁 A-B Looping Active';
-      document.getElementById('masterLoopTitle').style.color = 'var(--spotify-green)';
-    } else {
-      masterCard.classList.remove('active');
-      zone.classList.remove('active');
-      document.getElementById('masterLoopTitle').textContent = 'A-B Looping Paused';
-      document.getElementById('masterLoopTitle').style.color = '#fff';
-      document.getElementById('masterLoopSub').textContent = 'Click to start looping between Point A & B';
-    }
-
-    syncWithBackend();
-  }
-
-  function updateLatency(val) {
-    seekLeadOffsetMs = parseInt(val, 10);
-    localStorage.setItem('seek_lead_offset', seekLeadOffsetMs);
-    document.getElementById('latencyLabel').textContent = `${seekLeadOffsetMs}ms`;
-    syncWithBackend();
-  }
-
-  function confirmDisconnect() {
-    if (confirm('Disconnect from Spotify?')) {
-      fetch('/api/logout', { method: 'POST' }).catch(() => {});
-      localStorage.removeItem('spotify_access_token');
-      localStorage.removeItem('spotify_refresh_token');
-      accessToken = null;
-      refreshToken = null;
-      updateView();
-      showToast('Logged out');
     }
   }
 
-  // Refined Interactive Scrubbing & Pointer Drag Handling
-  function setupDragHandlers() {
-    const track = document.getElementById('timelineTrack');
-    const handleA = document.getElementById('handleA');
-    const handleB = document.getElementById('handleB');
-    const tooltip = document.getElementById('timelineTooltip');
+  // Interactive Timeline Scrubbing
+  const timelineTrack = document.getElementById('timelineTrack');
+  let isScrubbing = false;
 
-    function getPositionAndFracFromEvent(e) {
-      const rect = track.getBoundingClientRect();
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const frac = Math.max(0, Math.min((clientX - rect.left) / rect.width, 1));
-      const targetMs = Math.round(frac * (durationMs || 1000));
-      return { targetMs, frac, clientX, left: clientX - rect.left };
-    }
+  timelineTrack.addEventListener('pointerdown', (e) => {
+    isScrubbing = true;
+    timelineTrack.setPointerCapture(e.pointerId);
+    handleTimelineScrub(e);
+  });
 
-    // Hover Tooltip
-    track.addEventListener('pointermove', (e) => {
-      if (!durationMs || activeDrag) return;
-      const { targetMs, frac } = getPositionAndFracFromEvent(e);
-      tooltip.style.display = 'block';
-      tooltip.style.left = `${frac * 100}%`;
-      tooltip.textContent = formatTime(targetMs);
-    });
-
-    track.addEventListener('pointerleave', () => {
-      if (!isScrubbing && !activeDrag) {
-        tooltip.style.display = 'none';
-      }
-    });
-
-    // Continuous Scrubbing on Track
-    track.addEventListener('pointerdown', (e) => {
-      if (e.target === handleA || e.target === handleB) return;
-      if (!durationMs) return;
-
-      e.preventDefault();
-      ensureAudioContextActive();
-      isScrubbing = true;
-      track.classList.add('scrubbing');
-
-      const { targetMs, frac } = getPositionAndFracFromEvent(e);
-      scrubProgressMs = targetMs;
-      tooltip.style.display = 'block';
-      tooltip.style.left = `${frac * 100}%`;
-      tooltip.textContent = formatTime(targetMs);
-
-      function onScrubMove(moveEvent) {
-        if (!isScrubbing) return;
-        const info = getPositionAndFracFromEvent(moveEvent);
-        scrubProgressMs = info.targetMs;
-        tooltip.style.left = `${info.frac * 100}%`;
-        tooltip.textContent = formatTime(info.targetMs);
-      }
-
-      function onScrubUp() {
-        if (!isScrubbing) return;
-        isScrubbing = false;
-        track.classList.remove('scrubbing');
-        tooltip.style.display = 'none';
-        window.removeEventListener('pointermove', onScrubMove);
-        window.removeEventListener('pointerup', onScrubUp);
-        triggerSeek(scrubProgressMs);
-      }
-
-      window.addEventListener('pointermove', onScrubMove);
-      window.addEventListener('pointerup', onScrubUp);
-    });
-
-    // Handle A and B Dragging
-    let activeDrag = null;
-
-    function onHandlePointerDown(target, e) {
-      e.stopPropagation();
-      e.preventDefault();
-      ensureAudioContextActive();
-      activeDrag = target;
-
-      const { targetMs, frac } = getPositionAndFracFromEvent(e);
-      tooltip.style.display = 'block';
-      tooltip.style.left = `${frac * 100}%`;
-      tooltip.textContent = `${target === 'A' ? 'Point A: ' : 'Point B: '}${formatTime(targetMs)}`;
-
-      function onHandleMove(moveEvent) {
-        if (!activeDrag || !durationMs) return;
-        let { targetMs, frac } = getPositionAndFracFromEvent(moveEvent);
-
-        // Magnetic snap to playhead within 250ms
-        const playhead = getEstimatedProgress();
-        if (Math.abs(targetMs - playhead) < 250) {
-          targetMs = playhead;
-          frac = playhead / durationMs;
-        }
-
-        if (activeDrag === 'A') {
-          pointA = Math.min(targetMs, pointB !== null ? pointB - 100 : durationMs);
-          tooltip.textContent = `🚩 Point A: ${formatTime(pointA)}`;
-          tooltip.style.left = `${(pointA / durationMs) * 100}%`;
-        } else if (activeDrag === 'B') {
-          pointB = Math.max(targetMs, pointA !== null ? pointA + 100 : 0);
-          tooltip.textContent = `🏁 Point B: ${formatTime(pointB)}`;
-          tooltip.style.left = `${(pointB / durationMs) * 100}%`;
-        }
-        renderMarkers();
-      }
-
-      function onHandleUp() {
-        activeDrag = null;
-        tooltip.style.display = 'none';
-        window.removeEventListener('pointermove', onHandleMove);
-        window.removeEventListener('pointerup', onHandleUp);
-      }
-
-      window.addEventListener('pointermove', onHandleMove);
-      window.addEventListener('pointerup', onHandleUp);
-    }
-
-    handleA.addEventListener('pointerdown', (e) => onHandlePointerDown('A', e));
-    handleB.addEventListener('pointerdown', (e) => onHandlePointerDown('B', e));
-  }
-
-  // Global Keyboard Shortcuts
-  window.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT') return;
-
-    if (e.key === '[' || e.key === '{') {
-      setPointAToCurrent();
-    } else if (e.key === ']' || e.key === '}') {
-      setPointBToCurrent();
-    } else if (e.key === 'l' || e.key === 'L') {
-      toggleLoop();
-    } else if (e.code === 'Space') {
-      e.preventDefault();
-      spotifyTogglePlay();
+  timelineTrack.addEventListener('pointermove', (e) => {
+    if (isScrubbing) {
+      handleTimelineScrub(e);
     }
   });
 
-  function updateView() {
-    const badge = document.getElementById('authStatusBadge');
-    const badgeText = document.getElementById('authStatusText');
-    const dot = badge.querySelector('.status-dot');
-
-    if (accessToken) {
-      document.getElementById('connectView').style.display = 'none';
-      document.getElementById('playerView').style.display = 'flex';
-      badgeText.textContent = 'Connected';
-      badge.style.color = 'var(--spotify-green)';
-      dot.classList.add('active');
-      fetchSpotifyPlayback();
-      setInterval(fetchSpotifyPlayback, 2500);
-    } else {
-      document.getElementById('connectView').style.display = 'flex';
-      document.getElementById('playerView').style.display = 'none';
-      badgeText.textContent = 'Disconnected';
-      badge.style.color = '#fff';
-      dot.classList.remove('active');
+  timelineTrack.addEventListener('pointerup', (e) => {
+    if (isScrubbing) {
+      isScrubbing = false;
+      timelineTrack.releasePointerCapture(e.pointerId);
     }
+  });
+
+  function handleTimelineScrub(e) {
+    if (durationMs <= 0) return;
+    const rect = timelineTrack.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const targetMs = ratio * durationMs;
+    spotifySeek(targetMs);
   }
 
-  (async function init() {
-    // Fetch server configuration (Client ID)
-    try {
-      const configRes = await fetch('/api/config');
-      const configData = await configRes.json();
-      if (configData && configData.clientId) {
-        clientId = configData.clientId;
-        localStorage.setItem('spotify_client_id', clientId);
-      }
-    } catch (_) {}
+  // Keyboard Shortcuts
+  window.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.code === 'Space') {
+      e.preventDefault();
+      spotifyTogglePlay();
+    } else if (e.key === '[' || e.key === 'a' || e.key === 'A') {
+      setPointAToCurrent();
+    } else if (e.key === ']' || e.key === 'b' || e.key === 'B') {
+      setPointBToCurrent();
+    } else if (e.key === 'l' || e.key === 'L') {
+      toggleLoop();
+    } else if (e.key === 'ArrowLeft') {
+      quickSeek(e.shiftKey ? -5000 : -1000);
+    } else if (e.key === 'ArrowRight') {
+      quickSeek(e.shiftKey ? 5000 : 1000);
+    }
+  });
 
-    // Check for server-side persistent session (.spotify_session.json)
-    try {
-      const sessionRes = await fetch('/api/session');
-      const sessionData = await sessionRes.json();
-      if (sessionData && sessionData.accessToken) {
-        accessToken = sessionData.accessToken;
-        localStorage.setItem('spotify_access_token', sessionData.accessToken);
-        if (sessionData.refreshToken) {
-          refreshToken = sessionData.refreshToken;
-          localStorage.setItem('spotify_refresh_token', sessionData.refreshToken);
-        }
-      }
-    } catch (_) {}
-
+  // Initialization
+  window.addEventListener('DOMContentLoaded', async () => {
     await handleOAuthCallback();
-    updateView();
-    setupDragHandlers();
-    requestAnimationFrame(renderUiTick);
-  })();
+    if (accessToken) {
+      updateUIState(true);
+      await syncPlaybackState();
+    } else {
+      updateUIState(false);
+    }
+
+    // Polling Intervals
+    setInterval(syncPlaybackState, 1500);
+    setInterval(loopMonitorTick, 50);
+  });
 </script>
+
 </body>
 </html>
