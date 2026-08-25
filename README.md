@@ -1,87 +1,79 @@
-# 🔁 SpotiLoop Pro — Spotify A-B Looper Studio
+# 🔁 SpotiLoop Pro — Precision Spotify A-B Looper
 
 <div align="center">
-  <img src="assets/logo.png" width="140" alt="SpotiLoop Logo" style="border-radius: 28px;" />
-  <h3>Seamless A-to-B section looping inside the official Spotify player with sub-second precision.</h3>
+  <img src="assets/logo.png" width="120" alt="SpotiLoop Logo" style="border-radius: 24px; box-shadow: 0 8px 32px rgba(29, 185, 84, 0.3);" />
+  <br><br>
+  <h1>Master Any Song with Sub-Second Looping</h1>
+  <p><b>Seamless A-to-B section looper for Spotify with millisecond accuracy, zero cumulative drift, and real-time Spotify Connect sync.</b></p>
+
+  <p>
+    <a href="https://daivikopx.github.io/SpotiLoop/"><img src="https://img.shields.io/badge/Live%20Web%20Studio-daivikopx.github.io%2FSpotiLoop-1DB954?style=for-the-badge&logo=spotify&logoColor=white" alt="Live Web App" /></a>
+    <a href="https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/app-release.apk"><img src="https://img.shields.io/badge/Download-Android%20APK%20(v1.0.0)-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android APK" /></a>
+    <a href="https://github.com/DaivikOPX/SpotiLoop/stargazers"><img src="https://img.shields.io/github/stars/DaivikOPX/SpotiLoop?style=for-the-badge&color=yellow" alt="GitHub Stars" /></a>
+  </p>
 </div>
 
 ---
 
-## ✨ Features
+## 🌐 Experience SpotiLoop Live
 
-- **🎧 Native Spotify Playback**: Audio plays directly inside your official Spotify app (Desktop, Mobile, Web, Smart Speakers) via Spotify Connect.
-- **⚡ Flexible Time Inputs**: Type timestamps using dot notation (`1.14`, `1.14.5`), colons (`1:14`), or pure seconds (`74.5`).
-- **🛡️ Background Playback Immune to Tab Sleeping**: Dual-engine background loop architecture (unthrottled Native OS ticker + Web Audio keep-alive).
-- **💾 0-Click Auto-Login**: Secure local session persistence (`.spotify_session.json`) with auto-token refresh.
-- **🎯 Smart App Sync**: Changing tracks or pausing in the Spotify app pauses the loop without wiping Point A / Point B timestamps.
-- **📱 Multi-Platform**: Run locally on Windows/Mac/Linux via Node.js web studio or install the native Android Flutter app.
+### 👉 **[https://daivikopx.github.io/SpotiLoop/](https://daivikopx.github.io/SpotiLoop/)**
+
+No installations or terminal commands required! Simply open the web studio, authorize with Spotify, and loop any song playing on your Spotify Desktop, Mobile, or Smart Speaker app in real-time.
 
 ---
 
-## 🚀 Quick Start (Web / Desktop)
+## ✨ Features & Highlights
 
-### 1. Prerequisites
-- **Node.js** (v16 or higher)
-- **Spotify Premium** account
-
-### 2. Spotify App Setup (1 Minute)
-1. Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
-2. Click **Create App** and set:
-   - **App Name**: `SpotiLoop`
-   - **Redirect URIs**:
-     - `http://127.0.0.1:8888/callback` (for Web/Desktop)
-     - `spotiloop://callback` (for Android App)
-   - **Which API/SDK are you planning to use?**: Select **Web API**.
-3. Save and copy your **Client ID**.
-
-### 3. Run SpotiLoop
-```bash
-# Clone the repository
-git clone https://github.com/your-username/SpotiLoop.git
-cd SpotiLoop
-
-# Copy environment template (Optional)
-cp .env.example .env
-# Add your SPOTIFY_CLIENT_ID to .env, or paste it directly in the web UI!
-
-# Start the server
-node server.js
-```
-Open **[http://127.0.0.1:8888/](http://127.0.0.1:8888/)** in your browser and connect with Spotify!
+| Feature | Description |
+| :--- | :--- |
+| 🎯 **Sub-Second Precision** | Fine-tune your loops with **±50ms**, **±100ms**, and **±1.0s** micro-step buttons to catch exact transients, guitar riffs, or choreography cues. |
+| ⚡ **Zero Cumulative Drift** | Absolute millisecond timeline locking prevents audio drift, keeping your repeat loop locked on tempo indefinitely. |
+| 🎛️ **Live Scrubbing & Seeks** | Drag anywhere across the waveform timeline with real-time seeking, along with instant **-5s**, **-1s**, **+1s**, and **+5s** quick-jump buttons. |
+| 🎧 **Universal Spotify Connect** | Controls any active Spotify device seamlessly (Windows, Mac, iOS, Android, Linux, PlayStation, Smart TVs). |
+| 🔊 **In-App Volume & Mute** | Dedicated master playback volume slider with 1-click instant mute/unmute toggle. |
+| 📱 **Native Android Mobile App** | Lightweight, high-performance Flutter mobile application built for practicing anywhere. |
+| 🔒 **100% Private & Secure** | Standard Spotify OAuth 2.0 PKCE flow. No passwords, client secrets, or private data are ever stored or sent to third-party servers. |
 
 ---
 
-## 📱 How to Use on Android
+## 📱 Download Android App
 
-### Method 1: Instant Wi-Fi Web Controller (No install required)
-1. Ensure your phone and PC are connected to the same Wi-Fi network.
-2. Find your PC's local IP address (e.g. `192.168.1.15`).
-3. Open `http://<YOUR_PC_IP>:8888/` in Chrome/Safari on your phone.
-4. Tap **Add to Home Screen** to install it as a lightweight PWA!
+Get the standalone APK directly for your Android device:
 
-### Method 2: Automatic GitHub APK Build
-1. Push this repository to your GitHub account.
-2. The included GitHub Actions workflow (`.github/workflows/build_apk.yml`) will **automatically build the release APK for free**.
-3. Go to the **Actions** tab on your GitHub repository, click the latest workflow run, and download `spotiloop-release-apk`.
-4. Install the `.apk` on your Android phone!
-
-### Method 3: Local Flutter Build
-If you have Flutter installed:
-```bash
-flutter pub get
-flutter build apk --release
-```
-The APK will be generated in `build/app/outputs/flutter-apk/app-release.apk`.
+* 📥 **[Download SpotiLoop v1.0.0 Release APK](https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/app-release.apk)**
 
 ---
 
-## 🔒 Security & Privacy
+## 🎹 Keyboard Shortcuts (Web Studio)
 
-- **Zero Server Tracking**: SpotiLoop runs 100% locally on your machine.
-- **PKCE OAuth 2.0 Flow**: No client secret is ever stored or required.
-- **Strict Git Ignore**: Secrets (`.env`, `.spotify_session.json`) are strictly excluded from git tracking.
+| Key | Action |
+| :--- | :--- |
+| <kbd>Space</kbd> | Play / Pause playback |
+| <kbd>[</kbd> or <kbd>A</kbd> | Set **Point A** (Loop Start) to current position |
+| <kbd>]</kbd> or <kbd>B</kbd> | Set **Point B** (Loop End) to current position |
+| <kbd>L</kbd> | Toggle A-B Looper on / off |
+| <kbd>←</kbd> / <kbd>→</kbd> | Quick seek backward / forward by 1s (Hold <kbd>Shift</kbd> for 5s) |
 
 ---
 
-## 📜 License
-MIT License. Free and open source for everyone!
+## ⚙️ Spotify Developer Setup (Optional Custom App)
+
+SpotiLoop works out-of-the-box, but if you want to use your own Spotify Developer Client ID:
+
+1. Open the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
+2. Click **Create App** and configure:
+   * **App Name**: `SpotiLoop`
+   * **Redirect URIs**:
+     * `https://daivikopx.github.io/SpotiLoop/`
+     * `https://daivikopx.github.io/SpotiLoop`
+     * `spotiloop://callback`
+     * `http://127.0.0.1:8888/callback`
+   * **APIs used**: Select **Web API**.
+3. Copy your **Client ID** and connect!
+
+---
+
+## 📜 Open Source & License
+
+SpotiLoop is 100% free and open source under the **MIT License**. Contributions and feedback are welcome!
