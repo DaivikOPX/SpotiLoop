@@ -661,20 +661,19 @@
     .loop-toggle-bar.active .switch-pill { background: var(--spotify-green); }
     .loop-toggle-bar.active .switch-circle { transform: translateX(22px); }
 
-    /* Transport & Volume Console */
-    .transport-grid {
-      display: grid;
-      grid-template-columns: 1fr 1.2fr;
-      gap: 14px;
-    }
+    /* Clean Centered Transport Console */
     .transport-bar {
       background: var(--card-inner);
       border: 1px solid var(--card-border);
-      border-radius: 16px;
+      border-radius: 20px;
       display: flex;
       align-items: center;
-      justify-content: space-evenly;
-      padding: 10px 14px;
+      justify-content: center;
+      gap: 36px;
+      padding: 14px 24px;
+      max-width: 380px;
+      margin: 4px auto 0 auto;
+      width: 100%;
     }
     .transport-btn {
       background: none;
@@ -686,11 +685,11 @@
       justify-content: center;
       transition: all 0.2s;
     }
-    .transport-btn:hover { transform: scale(1.15); color: var(--spotify-green); }
-    .transport-btn svg { width: 22px; height: 22px; fill: currentColor; }
+    .transport-btn:hover { transform: scale(1.18); color: var(--spotify-green); }
+    .transport-btn svg { width: 24px; height: 24px; fill: currentColor; }
     .play-btn {
-      width: 46px;
-      height: 46px;
+      width: 52px;
+      height: 52px;
       border-radius: 50%;
       background: #fff;
       color: #000;
@@ -699,78 +698,11 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.6);
       transition: all 0.2s;
     }
     .play-btn:hover { background: var(--spotify-green); transform: scale(1.08); }
-    .play-btn svg { width: 22px; height: 22px; fill: currentColor; }
-
-    .volume-bar {
-      background: var(--card-inner);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 18px;
-    }
-    .volume-btn {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-    }
-    .volume-slider {
-      flex: 1;
-      -webkit-appearance: none;
-      appearance: none;
-      height: 5px;
-      border-radius: 3px;
-      background: rgba(255,255,255,0.15);
-      outline: none;
-      cursor: pointer;
-    }
-    .volume-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: #fff;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-    }
-    .volume-readout {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--text-muted);
-      min-width: 36px;
-      text-align: right;
-    }
-
-    /* Shortcuts Footer Bar */
-    .shortcuts-bar {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 16px;
-      font-size: 12px;
-      color: var(--text-muted);
-      flex-wrap: wrap;
-      padding: 4px 0;
-    }
-    .kbd-tag {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--card-border);
-      padding: 2px 6px;
-      border-radius: 6px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      color: #fff;
-    }
+    .play-btn svg { width: 24px; height: 24px; fill: currentColor; }
 
     /* =========================================================
        GLOBAL FOOTER
@@ -808,7 +740,6 @@
 
     /* =========================================================
        📱 MOBILE OPTIMIZATION (< 768px)
-       (Laptop view remains expansive and uncompressed!)
        ========================================================= */
     @media (max-width: 768px) {
       .nav-container {
@@ -941,13 +872,10 @@
         font-size: 17px;
         padding: 8px 4px;
       }
-      .transport-grid {
-        grid-template-columns: 1fr;
-        gap: 10px;
-      }
-      .shortcuts-bar {
-        font-size: 10.5px;
-        gap: 8px;
+      .transport-bar {
+        max-width: 100%;
+        gap: 28px;
+        padding: 10px 16px;
       }
 
       /* Footer Mobile */
@@ -1027,7 +955,7 @@
       </div>
     </div>
 
-    <!-- 4 Bento Feature Cards (2x2 Compact Grid on Mobile) -->
+    <!-- 4 Bento Feature Cards -->
     <div class="bento-grid">
       <div class="bento-card">
         <span class="bento-icon">🎯</span>
@@ -1044,7 +972,7 @@
       <div class="bento-card">
         <span class="bento-icon">🎛️</span>
         <div class="bento-title">Live Scrubbing</div>
-        <div class="bento-desc">Smooth dragging, quick seeks & master volume.</div>
+        <div class="bento-desc">Smooth dragging along the timeline & quick seeks.</div>
       </div>
 
       <div class="bento-card">
@@ -1171,40 +1099,11 @@
         </div>
       </div>
 
-      <!-- Transport & Volume Console -->
-      <div class="transport-grid">
-        <div class="transport-bar">
-          <button class="transport-btn" onclick="spotifyPrev()" title="Previous Track"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button>
-          <button class="play-btn" onclick="spotifyTogglePlay()" title="Play/Pause"><svg id="playMasterIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
-          <button class="transport-btn" onclick="spotifyNext()" title="Next Track"><svg viewBox="0 0 24 24"><path d="m6 18 8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
-        </div>
-
-        <div class="volume-bar">
-          <button id="volumeMuteBtn" class="volume-btn" onclick="toggleVolumeMute()" title="Mute/Unmute">
-            <svg id="volumeIcon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-            </svg>
-          </button>
-          <input 
-            id="volumeSlider" 
-            type="range" 
-            class="volume-slider" 
-            min="0" 
-            max="100" 
-            value="75" 
-            oninput="handleVolumeInput(this.value)"
-          />
-          <span id="volumeValueLabel" class="volume-readout">75%</span>
-        </div>
-      </div>
-
-      <!-- Shortcuts Bar -->
-      <div class="shortcuts-bar">
-        <span><span class="kbd-tag">Space</span> Play/Pause</span>
-        <span><span class="kbd-tag">[</span> or <span class="kbd-tag">A</span> Set Point A</span>
-        <span><span class="kbd-tag">]</span> or <span class="kbd-tag">B</span> Set Point B</span>
-        <span><span class="kbd-tag">L</span> Toggle Loop</span>
-        <span><span class="kbd-tag">←</span>/<span class="kbd-tag">→</span> Seek ±1s</span>
+      <!-- Clean Centered Transport Console (No volume / shortcuts bloat) -->
+      <div class="transport-bar">
+        <button class="transport-btn" onclick="spotifyPrev()" title="Previous Track"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button>
+        <button class="play-btn" onclick="spotifyTogglePlay()" title="Play/Pause"><svg id="playMasterIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        <button class="transport-btn" onclick="spotifyNext()" title="Next Track"><svg viewBox="0 0 24 24"><path d="m6 18 8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
       </div>
 
     </div>
@@ -1525,9 +1424,6 @@
           }
           if (data.device) {
             document.getElementById('deviceName').textContent = `🟢 ${data.device.name}`;
-            if (typeof data.device.volume_percent === 'number') {
-              syncVolumeUI(data.device.volume_percent);
-            }
           }
 
           document.getElementById('totalTimeReadout').textContent = formatTime(durationMs);
@@ -1616,73 +1512,6 @@
     if (!accessToken) return;
     await spotifyFetch('me/player/previous', { method: 'POST' });
     setTimeout(syncPlaybackState, 300);
-  }
-
-  // Volume
-  let currentVolume = 75;
-  let isMuted = false;
-  let preMuteVolume = 75;
-  let volumeDebounceTimer = null;
-
-  function syncVolumeUI(vol) {
-    if (vol !== undefined && !isMuted) {
-      currentVolume = vol;
-      document.getElementById('volumeSlider').value = vol;
-      document.getElementById('volumeValueLabel').textContent = `${vol}%`;
-      updateVolumeIcon(vol);
-    }
-  }
-
-  function handleVolumeInput(val) {
-    const vol = parseInt(val, 10);
-    currentVolume = vol;
-    isMuted = (vol === 0);
-    document.getElementById('volumeValueLabel').textContent = `${vol}%`;
-    updateVolumeIcon(vol);
-
-    clearTimeout(volumeDebounceTimer);
-    volumeDebounceTimer = setTimeout(() => {
-      sendVolumeToSpotify(vol);
-    }, 150);
-  }
-
-  async function sendVolumeToSpotify(volPercent) {
-    if (!accessToken) return;
-    try {
-      await spotifyFetch(`me/player/volume?volume_percent=${volPercent}`, { method: 'PUT' });
-    } catch (e) {
-      console.error('Volume change error:', e);
-    }
-  }
-
-  function toggleVolumeMute() {
-    if (!isMuted) {
-      preMuteVolume = currentVolume > 0 ? currentVolume : 75;
-      currentVolume = 0;
-      isMuted = true;
-      document.getElementById('volumeSlider').value = 0;
-      document.getElementById('volumeValueLabel').textContent = '0%';
-      updateVolumeIcon(0);
-      sendVolumeToSpotify(0);
-    } else {
-      currentVolume = preMuteVolume;
-      isMuted = false;
-      document.getElementById('volumeSlider').value = currentVolume;
-      document.getElementById('volumeValueLabel').textContent = `${currentVolume}%`;
-      updateVolumeIcon(currentVolume);
-      sendVolumeToSpotify(currentVolume);
-    }
-  }
-
-  function updateVolumeIcon(vol) {
-    const icon = document.getElementById('volumeIcon');
-    if (vol === 0) {
-      icon.innerHTML = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
-    } else if (vol < 50) {
-      icon.innerHTML = '<path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z"/>';
-    } else {
-      icon.innerHTML = '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>';
-    }
   }
 
   // Markers
@@ -1814,25 +1643,6 @@
     const targetMs = ratio * durationMs;
     spotifySeek(targetMs);
   }
-
-  // Keyboard Shortcuts
-  window.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT') return;
-    if (e.code === 'Space') {
-      e.preventDefault();
-      spotifyTogglePlay();
-    } else if (e.key === '[' || e.key === 'a' || e.key === 'A') {
-      setPointAToCurrent();
-    } else if (e.key === ']' || e.key === 'b' || e.key === 'B') {
-      setPointBToCurrent();
-    } else if (e.key === 'l' || e.key === 'L') {
-      toggleLoop();
-    } else if (e.key === 'ArrowLeft') {
-      quickSeek(e.shiftKey ? -5000 : -1000);
-    } else if (e.key === 'ArrowRight') {
-      quickSeek(e.shiftKey ? 5000 : 1000);
-    }
-  });
 
   // Initialization
   window.addEventListener('DOMContentLoaded', async () => {
