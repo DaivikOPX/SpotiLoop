@@ -1013,9 +1013,10 @@
   }
 
   let clientId = localStorage.getItem('spotify_client_id') || _resolveClientId();
+  const _basePath = window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
   const REDIRECT_URI = (window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost'))
     ? 'http://127.0.0.1:8888/callback'
-    : `${window.location.origin}/callback`;
+    : `${window.location.origin}${_basePath}/`;
 
   let accessToken = localStorage.getItem('spotify_access_token');
   let refreshToken = localStorage.getItem('spotify_refresh_token');
