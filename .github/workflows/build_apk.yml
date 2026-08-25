@@ -31,8 +31,10 @@ jobs:
 
       - name: Generate Official Android Platform Files
         run: |
+          cp pubspec.yaml /tmp/pubspec.yaml.bak
           rm -rf android
           flutter create --platforms=android --org com.daivik --project-name spotiloop .
+          cp /tmp/pubspec.yaml.bak pubspec.yaml
 
       - name: Configure App Name and Deep Link Filters
         run: |
