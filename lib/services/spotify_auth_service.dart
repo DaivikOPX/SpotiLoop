@@ -86,14 +86,10 @@ class SpotifyAuthService extends ChangeNotifier {
     }
   }
 
-  Future<bool> startLogin({String? customClientId}) async {
-    final activeClientId = customClientId ?? _storage.getClientId();
-    if (activeClientId == null || activeClientId.isEmpty) {
+  Future<bool> startLogin() async {
+    final activeClientId = _storage.getClientId();
+    if (activeClientId.isEmpty) {
       return false;
-    }
-
-    if (customClientId != null) {
-      await _storage.setClientId(customClientId);
     }
 
     _isAuthenticating = true;
