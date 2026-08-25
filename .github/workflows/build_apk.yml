@@ -34,13 +34,16 @@ jobs:
           rm -rf android
           flutter create --platforms=android --org com.daivik --project-name spotiloop .
 
-      - name: Configure Deep Link Intent Filters
+      - name: Configure App Name and Deep Link Filters
         run: |
-          # Inject spotiloop://callback deep link intent filter into AndroidManifest.xml
           python3 -c "
           manifest_path = 'android/app/src/main/AndroidManifest.xml'
           with open(manifest_path, 'r') as f:
               content = f.read()
+          
+          # Replace app label with Spoti Loop
+          content = content.replace('android:label=\"spotiloop\"', 'android:label=\"Spoti Loop\"')
+          
           deep_link = '''
               <!-- Spotify OAuth PKCE Deep Link Callback -->
               <intent-filter>
@@ -53,12 +56,14 @@ jobs:
           '''
           if 'spotiloop' not in content:
               content = content.replace('</activity>', deep_link + '\n        </activity>')
-              with open(manifest_path, 'w') as f:
-                  f.write(content)
+          with open(manifest_path, 'w') as f:
+              f.write(content)
           "
 
-      - name: Install Dependencies
-        run: flutter pub get
+      - name: Generate Custom Brand Launcher Icons
+        run: |
+          flutter pub get
+          dart run flutter_launcher_icons
 
       - name: Build Android APK (Release)
         run: flutter build apk --release --no-tree-shake-icons
@@ -74,8 +79,8 @@ jobs:
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
         with:
           tag_name: v1.0.0
-          name: "SpotiLoop v1.0.0 (Android APK)"
-          body: "Official Android APK release for SpotiLoop. Download `app-release.apk` below and install on your phone!"
+          name: "Spoti Loop v1.0.0 (Android APK)"
+          body: "Official Android APK release for Spoti Loop with custom brand icon. Download `app-release.apk` below and install on your phone!"
           files: build/app/outputs/flutter-apk/app-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
