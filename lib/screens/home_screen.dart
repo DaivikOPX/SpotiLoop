@@ -54,7 +54,7 @@ class HomeScreen extends StatelessWidget {
                 Icon(Icons.all_inclusive_rounded, color: Color(0xFF1DB954), size: 26),
                 SizedBox(width: 10),
                 Text(
-                  'SpotiLoop',
+                  'Spoti Loop',
                   style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
                 ),
               ],

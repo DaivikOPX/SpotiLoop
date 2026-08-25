@@ -1,7 +1,7 @@
-# 🔁 SpotiLoop — Precision Spotify A-B Looper
+# 🔁 Spoti Loop — Precision Spotify A-B Looper
 
 <div align="center">
-  <img src="assets/logo.png" width="120" alt="SpotiLoop Logo" style="border-radius: 24px; box-shadow: 0 8px 32px rgba(29, 185, 84, 0.3);" />
+  <img src="assets/logo.png" width="120" alt="Spoti Loop Logo" style="border-radius: 24px; box-shadow: 0 8px 32px rgba(29, 185, 84, 0.3);" />
   <br><br>
   <h1>Master Any Song with Sub-Second Looping</h1>
   <p><b>Seamless A-to-B section looper for Spotify with millisecond accuracy, zero cumulative drift, and real-time Spotify Connect sync.</b></p>
@@ -15,7 +15,7 @@
 
 ---
 
-## 🌐 Experience SpotiLoop Live
+## 🌐 Experience Spoti Loop Live
 
 ### 👉 **[https://daivikopx.github.io/SpotiLoop/](https://daivikopx.github.io/SpotiLoop/)**
 
@@ -31,7 +31,7 @@ No installations or terminal commands required! Simply open the web studio, auth
 | ⚡ **Zero Cumulative Drift** | Absolute millisecond timeline locking prevents audio drift, keeping your repeat loop locked on tempo indefinitely. |
 | 🎛️ **Live Scrubbing & Seeks** | Drag anywhere across the waveform timeline with real-time seeking, along with instant **-5s**, **-1s**, **+1s**, and **+5s** quick-jump buttons. |
 | 🎧 **Universal Spotify Connect** | Controls any active Spotify device seamlessly (Windows, Mac, iOS, Android, Linux, PlayStation, Smart TVs). |
-| 📱 **Native Android Mobile App** | Lightweight, high-performance Flutter mobile application built for practicing anywhere. |
+| 📱 **Native Android Mobile App** | Lightweight, high-performance Flutter mobile application with custom brand launcher icon. |
 | 🔒 **100% Private & Secure** | Standard Spotify OAuth 2.0 PKCE flow. No passwords, client secrets, or private data are ever stored or sent to third-party servers. |
 
 ---
@@ -40,10 +40,10 @@ No installations or terminal commands required! Simply open the web studio, auth
 
 Get the standalone APK directly for your Android device:
 
-* 📥 **[Download SpotiLoop v1.0.0 Release APK](https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/app-release.apk)**
+* 📥 **[Download Spoti Loop v1.0.0 Release APK](https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/app-release.apk)**
 
 ---
 
 ## 📜 Open Source & License
 
-SpotiLoop is 100% free and open source under the **MIT License**.
+Spoti Loop is 100% free and open source under the **MIT License**.
