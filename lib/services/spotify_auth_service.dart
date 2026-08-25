@@ -36,7 +36,16 @@ class SpotifyAuthService extends ChangeNotifier {
       debugPrint('Error getting initial link: $e');
     });
 
-    // 2. Listen for incoming deep links while app is open / backgrounded
+    // 2. Check for latest link
+    _appLinks.getLatestLink().then((uri) {
+      if (uri != null) {
+        _handleIncomingUri(uri);
+      }
+    }).catchError((e) {
+      debugPrint('Error getting latest link: $e');
+    });
+
+    // 3. Listen for incoming deep links while app is open / backgrounded
     _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
       _handleIncomingUri(uri);
     }, onError: (e) {
@@ -45,7 +54,9 @@ class SpotifyAuthService extends ChangeNotifier {
   }
 
   void _handleIncomingUri(Uri uri) {
-    if (uri.scheme == 'spotiloop') {
+    debugPrint('Received Deep Link URI: $uri');
+    final str = uri.toString();
+    if (uri.scheme == 'spotiloop' || str.startsWith('spotiloop://')) {
       final code = uri.queryParameters['code'];
       final error = uri.queryParameters['error'];
       if (code != null && code.isNotEmpty) {
@@ -142,7 +153,7 @@ class SpotifyAuthService extends ChangeNotifier {
               <!DOCTYPE html>
               <html>
                 <head>
-                  <title>SpotiLoop - Connected!</title>
+                  <title>Spoti Loop - Connected!</title>
                   <style>
                     body { font-family: 'Segoe UI', system-ui, sans-serif; background: #121212; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
                     .card { background: #181818; padding: 40px; border-radius: 16px; border: 1px solid #282828; text-align: center; max-width: 400px; }
@@ -153,7 +164,7 @@ class SpotifyAuthService extends ChangeNotifier {
                 <body>
                   <div class="card">
                     <h1>Connected to Spotify!</h1>
-                    <p>Authorization successful. You can close this window and return to the SpotiLoop app.</p>
+                    <p>Authorization successful. You can close this window and return to the Spoti Loop app.</p>
                   </div>
                 </body>
               </html>

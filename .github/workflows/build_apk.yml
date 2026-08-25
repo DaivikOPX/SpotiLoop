@@ -57,10 +57,15 @@ jobs:
                   <data android:scheme=\"spotiloop\"/>
               </intent-filter>
           '''
-          if 'spotiloop' not in content:
+          if 'android:scheme=\"spotiloop\"' not in content:
               content = content.replace('</activity>', deep_link + '\n        </activity>')
+          
           with open(manifest_path, 'w') as f:
               f.write(content)
+          
+          print('=== VERIFIED ANDROID MANIFEST ===')
+          with open(manifest_path, 'r') as f:
+              print(f.read())
           "
 
       - name: Generate Custom Brand Launcher Icons
