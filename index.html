@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SpotiLoop — Precision Spotify A-B Audio Looper</title>
   <meta name="description" content="Sub-second precision A-B audio looper for Spotify with zero drift, millisecond nudges, and real-time Connect sync.">
   <link rel="icon" type="image/png" href="./assets/logo.png">
@@ -136,6 +136,7 @@
       padding: 8px 14px;
       border-radius: 18px;
       text-decoration: none;
+      white-space: nowrap;
       transition: all 0.2s ease;
     }
     .nav-btn:hover {
@@ -155,12 +156,14 @@
       border: 1px solid var(--card-border);
       cursor: pointer;
       color: var(--text-muted);
+      white-space: nowrap;
     }
     .status-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
       background: #555;
+      flex-shrink: 0;
     }
     .status-dot.active {
       background: var(--spotify-green);
@@ -215,12 +218,6 @@
       line-height: 1.15;
       letter-spacing: -1.5px;
     }
-    @media (max-width: 600px) {
-      .hero-title {
-        font-size: 32px;
-        letter-spacing: -1px;
-      }
-    }
     .hero-title span {
       background: linear-gradient(135deg, #1DB954 0%, #00E676 100%);
       -webkit-background-clip: text;
@@ -240,6 +237,7 @@
       justify-content: center;
       gap: 12px;
       margin-top: 4px;
+      width: 100%;
     }
     .btn-primary-launch {
       background: var(--spotify-green);
@@ -252,6 +250,7 @@
       cursor: pointer;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 10px;
       box-shadow: 0 8px 24px var(--spotify-green-glow);
       transition: all 0.25s ease;
@@ -261,6 +260,10 @@
       background: var(--spotify-green-hover);
       transform: translateY(-2px);
       box-shadow: 0 12px 32px rgba(29, 185, 84, 0.5);
+    }
+    .secondary-actions-group {
+      display: flex;
+      gap: 12px;
     }
     .btn-hero-secondary {
       background: rgba(255, 255, 255, 0.05);
@@ -272,6 +275,7 @@
       border-radius: 30px;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
       text-decoration: none;
       transition: all 0.2s ease;
@@ -290,11 +294,6 @@
       width: 100%;
       margin-top: 14px;
       text-align: left;
-    }
-    @media (max-width: 600px) {
-      .bento-grid {
-        grid-template-columns: 1fr;
-      }
     }
     .bento-card {
       background: var(--card-bg);
@@ -543,11 +542,6 @@
       grid-template-columns: 1fr 1fr;
       gap: 14px;
     }
-    @media (max-width: 600px) {
-      .marker-grid {
-        grid-template-columns: 1fr;
-      }
-    }
     .marker-card {
       background: var(--card-inner);
       border: 1px solid var(--card-border);
@@ -672,11 +666,6 @@
       display: grid;
       grid-template-columns: 1fr 1.2fr;
       gap: 14px;
-    }
-    @media (max-width: 600px) {
-      .transport-grid {
-        grid-template-columns: 1fr;
-      }
     }
     .transport-bar {
       background: var(--card-inner);
@@ -816,6 +805,159 @@
     .footer-links a:hover {
       color: #fff;
     }
+
+    /* =========================================================
+       📱 MOBILE OPTIMIZATION (< 768px)
+       (Laptop view remains expansive and uncompressed!)
+       ========================================================= */
+    @media (max-width: 768px) {
+      .nav-container {
+        padding: 10px 14px;
+      }
+      .brand-title {
+        font-size: 17px;
+      }
+      .brand-logo-img {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+      }
+      .nav-actions {
+        gap: 6px;
+      }
+      .nav-btn {
+        padding: 6px 10px;
+        font-size: 11.5px;
+        gap: 4px;
+      }
+      .status-badge {
+        padding: 6px 10px;
+        font-size: 11.5px;
+      }
+
+      .main-wrapper {
+        padding: 20px 14px 32px 14px;
+      }
+
+      .landing-hero {
+        gap: 14px;
+      }
+      .hero-pill {
+        font-size: 11px;
+        padding: 4px 12px;
+      }
+      .hero-title {
+        font-size: 26px;
+        letter-spacing: -0.6px;
+        line-height: 1.22;
+      }
+      .hero-description {
+        font-size: 13.5px;
+        line-height: 1.45;
+        padding: 0 4px;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+        gap: 8px;
+      }
+      .btn-primary-launch {
+        width: 100%;
+        padding: 13px 20px;
+        font-size: 15px;
+      }
+      .secondary-actions-group {
+        width: 100%;
+        gap: 8px;
+      }
+      .btn-hero-secondary {
+        flex: 1;
+        padding: 11px 12px;
+        font-size: 12.5px;
+        white-space: nowrap;
+      }
+
+      .bento-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .bento-card {
+        padding: 12px 10px;
+        border-radius: 14px;
+      }
+      .bento-icon {
+        font-size: 18px;
+        margin-bottom: 4px;
+      }
+      .bento-title {
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .bento-desc {
+        font-size: 11px;
+        line-height: 1.35;
+        margin-top: 2px;
+      }
+
+      /* Studio Console Mobile */
+      .studio-console-card {
+        padding: 16px 12px;
+        border-radius: 20px;
+        gap: 12px;
+      }
+      .studio-track-card {
+        padding: 10px 12px;
+        gap: 12px;
+      }
+      .studio-art {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+      }
+      .studio-song-name {
+        font-size: 15px;
+      }
+      .studio-artist-name {
+        font-size: 12px;
+      }
+      .timeline-container {
+        padding: 12px 10px;
+      }
+      .time-readouts {
+        font-size: 11px;
+      }
+      .time-current {
+        font-size: 12px;
+      }
+      .marker-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      .marker-card {
+        padding: 12px;
+      }
+      .time-input-box {
+        font-size: 17px;
+        padding: 8px 4px;
+      }
+      .transport-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      .shortcuts-bar {
+        font-size: 10.5px;
+        gap: 8px;
+      }
+
+      /* Footer Mobile */
+      .footer-container {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+        font-size: 11.5px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -871,42 +1013,44 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
         </svg>
-        <span id="heroLaunchBtnText">Launch Web Studio</span>
+        <span id="heroLaunchBtnText">Authorize with Spotify</span>
       </button>
 
-      <a href="https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/app-release.apk" class="btn-hero-secondary">
-        <span>📱 Download Android APK</span>
-      </a>
+      <div class="secondary-actions-group">
+        <a href="https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/app-release.apk" class="btn-hero-secondary">
+          <span>📱 Download APK</span>
+        </a>
 
-      <a href="https://github.com/DaivikOPX/SpotiLoop" target="_blank" rel="noopener" class="btn-hero-secondary">
-        <span>⭐ Star on GitHub</span>
-      </a>
+        <a href="https://github.com/DaivikOPX/SpotiLoop" target="_blank" rel="noopener" class="btn-hero-secondary">
+          <span>⭐ GitHub</span>
+        </a>
+      </div>
     </div>
 
-    <!-- 4 Bento Feature Cards -->
+    <!-- 4 Bento Feature Cards (2x2 Compact Grid on Mobile) -->
     <div class="bento-grid">
       <div class="bento-card">
         <span class="bento-icon">🎯</span>
         <div class="bento-title">Sub-Second Nudges</div>
-        <div class="bento-desc">±50ms and ±100ms micro-step buttons to anchor exact transients and beats.</div>
+        <div class="bento-desc">±50ms & ±100ms micro-steps for exact beats.</div>
       </div>
 
       <div class="bento-card">
         <span class="bento-icon">⚡</span>
-        <div class="bento-title">Zero Cumulative Drift</div>
-        <div class="bento-desc">Absolute timeline anchoring prevents timing drift over hours of looping.</div>
+        <div class="bento-title">Zero Drift</div>
+        <div class="bento-desc">Absolute timeline anchoring stays on beat.</div>
       </div>
 
       <div class="bento-card">
         <span class="bento-icon">🎛️</span>
-        <div class="bento-title">Live Scrub & Volume</div>
-        <div class="bento-desc">Smooth dragging along the timeline, quick seeks, and master track volume.</div>
+        <div class="bento-title">Live Scrubbing</div>
+        <div class="bento-desc">Smooth dragging, quick seeks & master volume.</div>
       </div>
 
       <div class="bento-card">
         <span class="bento-icon">📱</span>
-        <div class="bento-title">Native Android APK</div>
-        <div class="bento-desc">High-performance Flutter mobile app with Spotify Connect integration.</div>
+        <div class="bento-title">Android App</div>
+        <div class="bento-desc">Native Flutter app with Spotify Connect sync.</div>
       </div>
     </div>
 
@@ -1533,7 +1677,7 @@
   function updateVolumeIcon(vol) {
     const icon = document.getElementById('volumeIcon');
     if (vol === 0) {
-      icon.innerHTML = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
+      icon.innerHTML = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
     } else if (vol < 50) {
       icon.innerHTML = '<path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z"/>';
     } else {
