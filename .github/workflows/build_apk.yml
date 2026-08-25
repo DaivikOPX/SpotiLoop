@@ -72,6 +72,7 @@ jobs:
 
       - name: Generate Custom Brand Launcher Icons
         run: |
+          pip install pillow
           python3 -c "
           import os
           from PIL import Image
