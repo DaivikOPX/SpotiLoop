@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SpotiLoop Pro — Master Any Song With Precision Looping</title>
-  <meta name="description" content="Seamless A-B audio looper for Spotify with millisecond precision, zero cumulative drift, and real-time Connect sync for musicians, dancers, and listeners.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SpotiLoop Pro — Precision Spotify A-B Looper</title>
+  <meta name="description" content="Sub-second precision A-B audio looper for Spotify with zero drift and Connect sync.">
   <link rel="icon" type="image/png" href="./assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
       --spotify-green: #1DB954;
@@ -17,15 +17,11 @@
       --point-a-color: #00E676;
       --point-b-color: #FF5252;
       --bg-dark: #070709;
-      --bg-surface: #0e0e12;
-      --bg-card: rgba(18, 18, 24, 0.7);
-      --card-border: rgba(255, 255, 255, 0.08);
-      --card-border-hover: rgba(29, 185, 84, 0.35);
+      --card-bg: rgba(14, 14, 18, 0.85);
+      --card-border: rgba(255, 255, 255, 0.09);
+      --card-inner: #0f0f14;
       --text-main: #FFFFFF;
       --text-muted: #8E8EA0;
-      --text-dim: #565666;
-      --glow-emerald: radial-gradient(circle at 50% 0%, rgba(29, 185, 84, 0.15) 0%, rgba(7, 7, 9, 0) 70%);
-      --glow-cyan: radial-gradient(circle at 100% 50%, rgba(0, 230, 118, 0.08) 0%, rgba(7, 7, 9, 0) 60%);
     }
 
     * {
@@ -35,43 +31,28 @@
       font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     }
 
-    html {
-      scroll-behavior: smooth;
+    html, body {
       background-color: var(--bg-dark);
       color: var(--text-main);
-    }
-
-    body {
-      background-color: var(--bg-dark);
-      color: var(--text-main);
-      overflow-x: hidden;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 12px;
+      overflow-x: hidden;
       position: relative;
     }
 
-    /* Ambient Background Glows */
-    .ambient-glow-top {
-      position: absolute;
-      top: 0;
+    /* Ambient Spotlight */
+    .ambient-glow {
+      position: fixed;
+      top: -150px;
       left: 50%;
       transform: translateX(-50%);
-      width: 100%;
-      max-width: 1200px;
-      height: 600px;
-      background: radial-gradient(ellipse at 50% 0%, rgba(29, 185, 84, 0.18) 0%, rgba(7, 7, 9, 0) 70%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .ambient-glow-side {
-      position: absolute;
-      top: 900px;
-      right: 0;
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, rgba(0, 230, 118, 0.06) 0%, rgba(7, 7, 9, 0) 70%);
+      width: 700px;
+      height: 500px;
+      background: radial-gradient(ellipse at 50% 30%, rgba(29, 185, 84, 0.2) 0%, rgba(7, 7, 9, 0) 70%);
       pointer-events: none;
       z-index: 0;
     }
@@ -79,19 +60,19 @@
     /* Toast */
     #toast {
       position: fixed;
-      bottom: 24px;
+      bottom: 20px;
       left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      background: rgba(18, 18, 24, 0.95);
+      transform: translateX(-50%) translateY(80px);
+      background: rgba(20, 20, 26, 0.95);
       border: 1px solid rgba(29, 185, 84, 0.4);
       color: #fff;
-      padding: 12px 24px;
-      border-radius: 30px;
+      padding: 10px 20px;
+      border-radius: 24px;
       font-size: 13px;
       font-weight: 700;
       backdrop-filter: blur(16px);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.6), 0 0 20px var(--spotify-green-glow);
-      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7), 0 0 20px var(--spotify-green-glow);
+      transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       z-index: 9999;
       pointer-events: none;
     }
@@ -99,271 +80,257 @@
       transform: translateX(-50%) translateY(0);
     }
 
-    /* Navigation Bar */
-    .navbar {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      background: rgba(7, 7, 9, 0.8);
-      border-bottom: 1px solid var(--card-border);
-      padding: 16px 24px;
-    }
-    .navbar-container {
-      max-width: 1200px;
-      margin: 0 auto;
+    /* Main Container */
+    .app-container {
+      width: 100%;
+      max-width: 520px;
+      position: relative;
+      z-index: 1;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .nav-brand {
-      display: flex;
-      align-items: center;
+      flex-direction: column;
       gap: 12px;
-      text-decoration: none;
-      color: #fff;
-      font-weight: 900;
-      font-size: 20px;
-      letter-spacing: -0.5px;
     }
-    .brand-logo-wrapper {
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
-      background: #000;
-      border: 1px solid rgba(255, 255, 255, 0.15);
+
+    /* Header Nav */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 6px;
+    }
+    .brand {
       display: flex;
       align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      box-shadow: 0 0 16px var(--spotify-green-glow);
+      gap: 10px;
+      font-weight: 900;
+      font-size: 18px;
+      letter-spacing: -0.5px;
+      color: #fff;
+      text-decoration: none;
     }
     .brand-logo-img {
-      width: 100%;
-      height: 100%;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
       object-fit: cover;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 0 14px var(--spotify-green-glow);
     }
-    .nav-links {
+    .header-links {
       display: flex;
       align-items: center;
-      gap: 28px;
-      list-style: none;
+      gap: 8px;
     }
-    .nav-links a {
+    .header-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--card-border);
       color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 10px;
+      border-radius: 14px;
       text-decoration: none;
-      font-size: 14px;
-      font-weight: 600;
-      transition: color 0.2s ease;
+      transition: all 0.2s;
     }
-    .nav-links a:hover {
+    .header-btn:hover {
+      background: rgba(255,255,255,0.12);
       color: #fff;
-    }
-    .nav-actions {
-      display: flex;
-      align-items: center;
-      gap: 14px;
+      border-color: rgba(255,255,255,0.25);
     }
     .status-badge {
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 12px;
+      gap: 5px;
+      font-size: 11px;
       font-weight: 700;
-      padding: 6px 12px;
-      border-radius: 20px;
-      background: rgba(255, 255, 255, 0.05);
+      padding: 5px 10px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.05);
       border: 1px solid var(--card-border);
       cursor: pointer;
-      transition: all 0.2s;
-    }
-    .status-badge:hover {
-      border-color: rgba(255, 255, 255, 0.2);
     }
     .status-dot {
-      width: 8px;
-      height: 8px;
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
       background: #666;
     }
     .status-dot.active {
       background: var(--spotify-green);
-      box-shadow: 0 0 8px var(--spotify-green);
-    }
-    .btn-nav-action {
-      background: var(--spotify-green);
-      color: #000;
-      font-size: 13px;
-      font-weight: 800;
-      padding: 8px 18px;
-      border-radius: 20px;
-      border: none;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      text-decoration: none;
-      box-shadow: 0 2px 12px var(--spotify-green-glow);
-      transition: all 0.2s ease;
-    }
-    .btn-nav-action:hover {
-      background: var(--spotify-green-hover);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 18px rgba(29, 185, 84, 0.4);
+      box-shadow: 0 0 6px var(--spotify-green);
     }
 
-    /* Hero Section */
-    .hero-section {
-      position: relative;
-      z-index: 1;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 60px 24px 40px;
-      text-align: center;
+    /* Main Card Frame */
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.6), 0 0 30px rgba(29, 185, 84, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
-    .pill-badge {
-      display: inline-flex;
+
+    /* Landing Showcase (When Disconnected) */
+    .landing-box {
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 8px;
+      text-align: center;
+      padding: 10px 4px;
+      gap: 14px;
+    }
+    .hero-pill {
       background: rgba(29, 185, 84, 0.1);
       border: 1px solid rgba(29, 185, 84, 0.3);
-      padding: 6px 16px;
-      border-radius: 30px;
-      font-size: 13px;
-      font-weight: 700;
       color: var(--spotify-green);
-      margin-bottom: 24px;
-      box-shadow: 0 0 20px rgba(29, 185, 84, 0.15);
+      font-size: 12px;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 20px;
+      display: inline-block;
     }
-    .hero-title {
-      font-size: clamp(36px, 5.5vw, 64px);
+    .landing-title {
+      font-size: 24px;
       font-weight: 900;
-      letter-spacing: -1.5px;
-      line-height: 1.08;
-      max-width: 900px;
-      margin: 0 auto 20px;
-      background: linear-gradient(180deg, #FFFFFF 40%, rgba(255, 255, 255, 0.7) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.6px;
+      line-height: 1.2;
     }
-    .hero-title span {
+    .landing-title span {
       background: linear-gradient(135deg, #1DB954 0%, #00E676 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-    .hero-subtitle {
-      font-size: clamp(16px, 2vw, 19px);
+    .landing-desc {
+      font-size: 13px;
       color: var(--text-muted);
-      max-width: 680px;
-      margin: 0 auto 36px;
-      line-height: 1.6;
+      line-height: 1.5;
+      max-width: 440px;
     }
-    .hero-cta-group {
+
+    /* Compact Features Grid */
+    .features-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      width: 100%;
+      text-align: left;
+      margin: 4px 0;
+    }
+    .feature-chip {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .feature-chip-icon {
+      font-size: 15px;
+      line-height: 1;
+      margin-top: 1px;
+    }
+    .feature-chip-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .feature-chip-desc {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      line-height: 1.35;
+    }
+
+    /* Primary Action Buttons */
+    .btn-spotify-connect {
+      width: 100%;
+      background: var(--spotify-green);
+      color: #000;
+      font-size: 15px;
+      font-weight: 900;
+      padding: 14px 20px;
+      border-radius: 24px;
+      border: none;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-wrap: wrap;
-      gap: 16px;
-      margin-bottom: 50px;
+      gap: 8px;
+      box-shadow: 0 4px 18px var(--spotify-green-glow);
+      transition: all 0.2s ease;
     }
-    .btn-hero-primary {
-      background: var(--spotify-green);
-      color: #000;
-      font-size: 16px;
-      font-weight: 900;
-      padding: 16px 36px;
-      border-radius: 32px;
-      border: none;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      text-decoration: none;
-      box-shadow: 0 6px 24px var(--spotify-green-glow);
-      transition: all 0.25s ease;
-    }
-    .btn-hero-primary:hover {
+    .btn-spotify-connect:hover {
       background: var(--spotify-green-hover);
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: 0 10px 32px rgba(29, 185, 84, 0.45);
+      transform: scale(1.02);
+      box-shadow: 0 6px 24px rgba(29, 185, 84, 0.45);
     }
-    .btn-hero-secondary {
-      background: rgba(255, 255, 255, 0.06);
-      color: #fff;
-      font-size: 16px;
-      font-weight: 700;
-      padding: 16px 28px;
-      border-radius: 32px;
+    .action-row {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+    .btn-secondary {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
       border: 1px solid var(--card-border);
-      cursor: pointer;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 10px 12px;
+      border-radius: 16px;
       display: inline-flex;
       align-items: center;
-      gap: 10px;
+      justify-content: center;
+      gap: 6px;
       text-decoration: none;
-      backdrop-filter: blur(12px);
-      transition: all 0.25s ease;
+      transition: all 0.2s;
     }
-    .btn-hero-secondary:hover {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: rgba(255, 255, 255, 0.25);
-      transform: translateY(-2px);
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.25);
     }
 
-    /* Live Studio Showcase Card in Hero */
-    .studio-showcase-wrapper {
-      max-width: 540px;
-      margin: 0 auto;
-      position: relative;
-      z-index: 2;
-    }
-    .studio-glass-frame {
-      background: rgba(14, 14, 18, 0.75);
-      backdrop-filter: blur(28px);
-      -webkit-backdrop-filter: blur(28px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 28px;
-      padding: 20px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(29, 185, 84, 0.12);
-      transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    }
-    .studio-glass-frame:hover {
-      border-color: rgba(29, 185, 84, 0.3);
-      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.8), 0 0 50px rgba(29, 185, 84, 0.2);
+    /* Studio Player Views (When Authenticated) */
+    .studio-box {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
     }
 
-    /* Looper Studio Components inside Card */
-    .card {
-      background: #0f0f13;
+    /* Track Row */
+    .inner-card {
+      background: var(--card-inner);
       border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 14px;
-      position: relative;
-      margin-bottom: 10px;
+      border-radius: 14px;
+      padding: 12px;
     }
-
-    /* Track Info Card */
-    .track-info {
+    .track-row {
       display: flex;
       align-items: center;
-      gap: 14px;
-      text-align: left;
+      gap: 12px;
     }
     .album-art {
-      width: 56px;
-      height: 56px;
-      border-radius: 10px;
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
       object-fit: cover;
       background: #222;
       flex-shrink: 0;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.5);
     }
     .track-details {
       flex: 1;
       min-width: 0;
     }
     .track-title {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 800;
       white-space: nowrap;
       overflow: hidden;
@@ -372,35 +339,23 @@
     }
     .track-artist {
       font-size: 12px;
-      font-weight: 500;
       color: var(--text-muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      margin-top: 2px;
+      margin-top: 1px;
     }
-    .device-indicator {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
+    .device-tag {
       font-size: 10px;
       font-weight: 700;
       color: var(--spotify-green);
-      background: rgba(29, 185, 84, 0.1);
-      padding: 2px 8px;
-      border-radius: 12px;
-      margin-top: 5px;
+      margin-top: 3px;
     }
 
-    /* Timeline Scrubber */
-    .timeline-wrapper {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
+    /* Scrubber */
     .timeline-track-area {
       position: relative;
-      height: 38px;
+      height: 32px;
       display: flex;
       align-items: center;
       cursor: pointer;
@@ -411,25 +366,24 @@
       position: absolute;
       left: 0;
       right: 0;
-      height: 8px;
+      height: 6px;
       background: rgba(255,255,255,0.1);
-      border-radius: 4px;
+      border-radius: 3px;
       overflow: hidden;
     }
     .timeline-progress-fill {
       height: 100%;
       background: linear-gradient(90deg, #1DB954, #00E676);
       width: 0%;
-      border-radius: 4px;
-      pointer-events: none;
+      border-radius: 3px;
     }
     .loop-highlight-zone {
       position: absolute;
-      height: 10px;
-      background: rgba(29, 185, 84, 0.25);
+      height: 8px;
+      background: rgba(29, 185, 84, 0.3);
       border-top: 1px solid var(--point-a-color);
       border-bottom: 1px solid var(--point-b-color);
-      border-radius: 4px;
+      border-radius: 3px;
       pointer-events: none;
       z-index: 2;
     }
@@ -437,183 +391,51 @@
       position: absolute;
       top: 50%;
       transform: translate(-50%, -50%);
-      width: 22px;
-      height: 22px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 900;
       color: #000;
       cursor: ew-resize;
       z-index: 5;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
-      transition: transform 0.1s;
     }
-    .drag-handle:active {
-      transform: translate(-50%, -50%) scale(1.2);
-    }
-    .handle-a {
-      background: var(--point-a-color);
-      box-shadow: 0 0 10px rgba(0, 230, 118, 0.6);
-    }
-    .handle-b {
-      background: var(--point-b-color);
-      box-shadow: 0 0 10px rgba(255, 82, 82, 0.6);
-    }
+    .handle-a { background: var(--point-a-color); }
+    .handle-b { background: var(--point-b-color); }
     .playhead-needle {
       position: absolute;
       top: 50%;
       transform: translate(-50%, -50%);
-      width: 14px;
-      height: 14px;
-      background: #FFFFFF;
+      width: 12px;
+      height: 12px;
+      background: #fff;
       border-radius: 50%;
-      box-shadow: 0 0 8px rgba(255, 255, 255, 0.9);
       pointer-events: none;
       z-index: 4;
+      box-shadow: 0 0 6px #fff;
     }
     .time-readouts {
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
       color: var(--text-muted);
+      margin-top: 2px;
     }
-    .time-current {
-      color: #fff;
-    }
+    .time-current { color: #fff; }
 
-    /* Quick Seek Micro-Bar */
-    .quick-seek-row {
+    /* Quick Seek Buttons */
+    .quick-seek-bar {
       display: flex;
-      gap: 6px;
+      gap: 4px;
       margin-top: 6px;
     }
     .quick-seek-btn {
-      flex: 1;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--card-border);
-      color: var(--text-muted);
-      font-size: 11px;
-      font-weight: 700;
-      font-family: 'JetBrains Mono', monospace;
-      padding: 5px 0;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .quick-seek-btn:hover {
-      background: rgba(255,255,255,0.1);
-      color: #fff;
-      border-color: rgba(255,255,255,0.2);
-    }
-
-    /* Dual Marker Boxes */
-    .marker-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    .marker-box {
-      background: #0f0f13;
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      text-align: left;
-    }
-    .marker-box-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .header-a {
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--point-a-color);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .header-b {
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--point-b-color);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .btn-jump {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--card-border);
-      color: #fff;
-      font-size: 10px;
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    .btn-jump:hover {
-      background: rgba(255,255,255,0.12);
-    }
-    .time-input-box {
-      width: 100%;
-      background: #000;
-      border: 1px solid var(--card-border);
-      color: #fff;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 17px;
-      font-weight: 800;
-      text-align: center;
-      padding: 8px 4px;
-      border-radius: 8px;
-    }
-    .time-input-box:focus {
-      outline: none;
-      border-color: var(--spotify-green);
-    }
-    .input-a:focus { border-color: var(--point-a-color); }
-    .input-b:focus { border-color: var(--point-b-color); }
-    .btn-capture-a {
-      background: rgba(0, 230, 118, 0.12);
-      border: 1px solid rgba(0, 230, 118, 0.3);
-      color: var(--point-a-color);
-      font-size: 11px;
-      font-weight: 800;
-      padding: 7px 0;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .btn-capture-a:hover {
-      background: var(--point-a-color);
-      color: #000;
-    }
-    .btn-capture-b {
-      background: rgba(255, 82, 82, 0.12);
-      border: 1px solid rgba(255, 82, 82, 0.3);
-      color: var(--point-b-color);
-      font-size: 11px;
-      font-weight: 800;
-      padding: 7px 0;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .btn-capture-b:hover {
-      background: var(--point-b-color);
-      color: #000;
-    }
-    .nudge-row {
-      display: flex;
-      gap: 4px;
-    }
-    .nudge-btn {
       flex: 1;
       background: rgba(255,255,255,0.04);
       border: 1px solid var(--card-border);
@@ -625,144 +447,177 @@
       border-radius: 6px;
       cursor: pointer;
     }
-    .nudge-btn:hover {
-      background: rgba(255,255,255,0.1);
-      color: #fff;
-    }
+    .quick-seek-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
-    /* Master Loop Toggle Bar */
-    .loop-toggle-card {
+    /* Dual Marker Controls */
+    .marker-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .marker-card {
+      background: var(--card-inner);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .marker-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px;
-      background: #0f0f13;
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      margin-bottom: 10px;
     }
-    .loop-toggle-card.active {
+    .tag-a { font-size: 10px; font-weight: 800; color: var(--point-a-color); text-transform: uppercase; }
+    .tag-b { font-size: 10px; font-weight: 800; color: var(--point-b-color); text-transform: uppercase; }
+    .jump-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--card-border);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .time-input-box {
+      width: 100%;
+      background: #000;
+      border: 1px solid var(--card-border);
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      font-weight: 800;
+      text-align: center;
+      padding: 6px 2px;
+      border-radius: 6px;
+    }
+    .time-input-box:focus { outline: none; border-color: var(--spotify-green); }
+    .btn-set-a {
+      background: rgba(0, 230, 118, 0.12);
+      border: 1px solid rgba(0, 230, 118, 0.3);
+      color: var(--point-a-color);
+      font-size: 10px;
+      font-weight: 800;
+      padding: 6px 0;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-set-a:hover { background: var(--point-a-color); color: #000; }
+    .btn-set-b {
+      background: rgba(255, 82, 82, 0.12);
+      border: 1px solid rgba(255, 82, 82, 0.3);
+      color: var(--point-b-color);
+      font-size: 10px;
+      font-weight: 800;
+      padding: 6px 0;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-set-b:hover { background: var(--point-b-color); color: #000; }
+    .nudge-row { display: flex; gap: 3px; }
+    .nudge-btn {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      font-size: 9.5px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 3px 0;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .nudge-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+    /* Master Loop Toggle */
+    .loop-toggle-bar {
+      background: var(--card-inner);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .loop-toggle-bar.active {
       background: rgba(29, 185, 84, 0.08);
       border-color: rgba(29, 185, 84, 0.4);
-      box-shadow: 0 0 20px rgba(29, 185, 84, 0.2);
+      box-shadow: 0 0 16px rgba(29, 185, 84, 0.2);
     }
-    .loop-toggle-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      text-align: left;
-    }
-    .loop-icon-box {
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
-      background: rgba(255,255,255,0.05);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-    }
-    .loop-toggle-card.active .loop-icon-box {
-      background: var(--spotify-green);
-      color: #000;
-    }
-    .loop-title-text {
-      font-size: 14px;
-      font-weight: 800;
-      color: #fff;
-    }
-    .loop-subtext {
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text-muted);
-      margin-top: 1px;
-    }
+    .loop-label-title { font-size: 13px; font-weight: 800; }
+    .loop-label-sub { font-size: 10.5px; color: var(--text-muted); }
     .switch-pill {
-      width: 44px;
-      height: 24px;
+      width: 40px;
+      height: 22px;
       background: rgba(255,255,255,0.1);
       border-radius: 20px;
       position: relative;
       transition: background 0.2s;
     }
     .switch-circle {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
       background: #fff;
       position: absolute;
       top: 3px;
       left: 3px;
-      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transition: transform 0.2s;
     }
-    .loop-toggle-card.active .switch-pill {
-      background: var(--spotify-green);
-    }
-    .loop-toggle-card.active .switch-circle {
-      transform: translateX(20px);
-    }
+    .loop-toggle-bar.active .switch-pill { background: var(--spotify-green); }
+    .loop-toggle-bar.active .switch-circle { transform: translateX(18px); }
 
-    /* Bottom Transport & Volume Controls */
-    .bottom-row {
-      display: flex;
-      gap: 10px;
-    }
+    /* Bottom Transport & Volume */
+    .bottom-row { display: flex; gap: 8px; }
     .transport-bar {
       flex: 1;
+      background: var(--card-inner);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: space-evenly;
-      padding: 8px 12px;
-      margin-bottom: 0;
+      padding: 6px 8px;
     }
     .transport-btn {
       background: none;
       border: none;
       color: #fff;
       cursor: pointer;
-      width: 32px;
-      height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .transport-btn svg {
-      width: 18px;
-      height: 18px;
-      fill: currentColor;
-    }
-    .play-master-btn {
-      width: 42px;
-      height: 42px;
+    .transport-btn svg { width: 16px; height: 16px; fill: currentColor; }
+    .play-btn {
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       background: #fff;
       color: #000;
       border: none;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.5);
-      transition: transform 0.15s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
     }
-    .play-master-btn:hover {
-      transform: scale(1.08);
-      background: var(--spotify-green);
-    }
-    .play-master-btn svg {
-      width: 20px;
-      height: 20px;
-      fill: currentColor;
-    }
-    .volume-card {
-      flex: 1.15;
+    .play-btn:hover { background: var(--spotify-green); }
+    .play-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+    .volume-bar {
+      flex: 1.2;
+      background: var(--card-inner);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 8px 12px;
-      margin-bottom: 0;
+      gap: 8px;
+      padding: 6px 10px;
     }
     .volume-btn {
       background: none;
@@ -771,10 +626,8 @@
       cursor: pointer;
       display: flex;
       align-items: center;
-      justify-content: center;
     }
-    .volume-btn:hover { color: #fff; }
-    .volume-slider-range {
+    .volume-slider {
       flex: 1;
       -webkit-appearance: none;
       appearance: none;
@@ -784,623 +637,278 @@
       outline: none;
       cursor: pointer;
     }
-    .volume-slider-range::-webkit-slider-thumb {
+    .volume-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 12px;
-      height: 12px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
       background: #fff;
       cursor: pointer;
     }
-    .volume-label {
+    .volume-readout {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
       color: var(--text-muted);
-      min-width: 32px;
+      min-width: 28px;
       text-align: right;
     }
 
-    /* Logged Out Connect Banner inside Studio Card */
-    .logged-out-hero-banner {
-      padding: 24px 16px;
-      text-align: center;
+    /* Footer Credits */
+    .app-footer {
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 14px;
-    }
-    .btn-connect-spotify-big {
-      background: var(--spotify-green);
-      color: #000;
-      font-size: 15px;
-      font-weight: 900;
-      padding: 14px 28px;
-      border-radius: 28px;
-      border: none;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      box-shadow: 0 6px 20px var(--spotify-green-glow);
-      transition: all 0.2s ease;
-    }
-    .btn-connect-spotify-big:hover {
-      background: var(--spotify-green-hover);
-      transform: scale(1.03);
-      box-shadow: 0 8px 26px rgba(29, 185, 84, 0.45);
-    }
-
-    /* Feature Bento Grid */
-    .section-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 80px 24px;
-    }
-    .section-header {
-      text-align: center;
-      margin-bottom: 50px;
-    }
-    .section-tag {
-      font-size: 12px;
-      font-weight: 800;
-      color: var(--spotify-green);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 12px;
-    }
-    .section-title {
-      font-size: clamp(28px, 4vw, 44px);
-      font-weight: 900;
-      letter-spacing: -1px;
-      margin-bottom: 14px;
-    }
-    .section-desc {
-      font-size: 16px;
-      color: var(--text-muted);
-      max-width: 600px;
-      margin: 0 auto;
-      line-height: 1.6;
-    }
-
-    .bento-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 20px;
-    }
-    .bento-card {
-      background: rgba(18, 18, 24, 0.5);
-      backdrop-filter: blur(16px);
-      border: 1px solid var(--card-border);
-      border-radius: 20px;
-      padding: 28px;
-      text-align: left;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
-    .bento-card:hover {
-      border-color: var(--card-border-hover);
-      transform: translateY(-4px);
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), 0 0 30px rgba(29, 185, 84, 0.08);
-    }
-    .bento-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
-      background: rgba(29, 185, 84, 0.1);
-      border: 1px solid rgba(29, 185, 84, 0.25);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-      margin-bottom: 18px;
-    }
-    .bento-title {
-      font-size: 18px;
-      font-weight: 800;
-      color: #fff;
-      margin-bottom: 8px;
-      letter-spacing: -0.3px;
-    }
-    .bento-desc {
-      font-size: 14px;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
-
-    /* Workflow 3-Step Section */
-    .steps-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 24px;
-      position: relative;
-    }
-    .step-card {
-      background: rgba(18, 18, 24, 0.4);
-      border: 1px solid var(--card-border);
-      border-radius: 20px;
-      padding: 32px 24px;
-      text-align: center;
-      position: relative;
-    }
-    .step-number {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: var(--spotify-green);
-      color: #000;
-      font-size: 15px;
-      font-weight: 900;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 18px;
-      box-shadow: 0 0 16px var(--spotify-green-glow);
-    }
-    .step-title {
-      font-size: 17px;
-      font-weight: 800;
-      margin-bottom: 8px;
-    }
-    .step-desc {
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
-
-    /* Android APK CTA Banner */
-    .apk-banner-card {
-      background: linear-gradient(135deg, rgba(29, 185, 84, 0.12) 0%, rgba(18, 18, 24, 0.8) 100%);
-      border: 1px solid rgba(29, 185, 84, 0.35);
-      border-radius: 28px;
-      padding: 44px 36px;
-      display: flex;
-      align-items: center;
       justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 28px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(29, 185, 84, 0.12);
-      text-align: left;
-    }
-    .apk-banner-text {
-      max-width: 600px;
-    }
-    .apk-banner-title {
-      font-size: 28px;
-      font-weight: 900;
-      letter-spacing: -0.8px;
-      margin-bottom: 10px;
-    }
-    .apk-banner-desc {
-      font-size: 15px;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
-
-    /* Footer */
-    .footer {
-      border-top: 1px solid var(--card-border);
-      background: #040406;
-      padding: 40px 24px;
-      margin-top: auto;
-    }
-    .footer-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: flex;
       align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 20px;
+      padding: 4px 6px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.3);
     }
-    .footer-brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 800;
-      font-size: 16px;
-    }
-    .footer-copy {
-      font-size: 13px;
-      color: var(--text-dim);
-    }
-    .footer-links {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      list-style: none;
-    }
-    .footer-links a {
+    .app-footer a {
       color: var(--text-muted);
       text-decoration: none;
-      font-size: 13px;
       font-weight: 600;
-      transition: color 0.2s;
     }
-    .footer-links a:hover { color: #fff; }
-
-    @media (max-width: 768px) {
-      .nav-links { display: none; }
-      .apk-banner-card { text-align: center; justify-content: center; }
-      .footer-container { flex-direction: column; text-align: center; }
-    }
+    .app-footer a:hover { color: #fff; }
   </style>
 </head>
 <body>
 
-<div class="ambient-glow-top"></div>
-<div class="ambient-glow-side"></div>
+<div class="ambient-glow"></div>
 <div id="toast">Toast Message</div>
 
-<!-- Sticky Navbar -->
-<nav class="navbar">
-  <div class="navbar-container">
-    <a href="#" class="nav-brand">
-      <div class="brand-logo-wrapper">
-        <img src="./assets/logo.png" onerror="this.onerror=null; this.src='assets/logo.png';" alt="SpotiLoop Logo" class="brand-logo-img">
-      </div>
-      SpotiLoop Pro
+<div class="app-container">
+  
+  <!-- Header -->
+  <header class="app-header">
+    <a href="#" class="brand">
+      <img src="./assets/logo.png" onerror="this.onerror=null; this.src='assets/logo.png';" alt="SpotiLoop Logo" class="brand-logo-img">
+      <span>SpotiLoop Pro</span>
     </a>
 
-    <ul class="nav-links">
-      <li><a href="#studio">Web Studio</a></li>
-      <li><a href="#features">Features</a></li>
-      <li><a href="#how-it-works">How It Works</a></li>
-      <li><a href="#download">Android App</a></li>
-      <li><a href="https://github.com/DaivikOPX/SpotiLoop" target="_blank" rel="noopener">GitHub</a></li>
-    </ul>
-
-    <div class="nav-actions">
+    <div class="header-links">
+      <a href="https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/app-release.apk" class="header-btn" title="Download Android APK">
+        <span>📱 APK (v1.0.0)</span>
+      </a>
+      <a href="https://github.com/DaivikOPX/SpotiLoop" target="_blank" rel="noopener" class="header-btn" title="View Source on GitHub">
+        <span>⭐ GitHub</span>
+      </a>
       <div id="authStatusBadge" class="status-badge" onclick="confirmDisconnect()">
         <span class="status-dot"></span>
-        <span id="authStatusText">Checking Spotify...</span>
+        <span id="authStatusText">Checking...</span>
       </div>
-      <a href="#studio" class="btn-nav-action" onclick="focusStudio()">
-        <span>⚡ Launch Studio</span>
-      </a>
     </div>
-  </div>
-</nav>
+  </header>
 
-<!-- Hero Section -->
-<header class="hero-section">
-  <div class="pill-badge">
-    <span>✦ Sub-Second A-B Audio Looper</span>
-    <span style="opacity: 0.4;">•</span>
-    <span>100% Free & Open Source</span>
-  </div>
+  <!-- Main Card -->
+  <main class="glass-card">
 
-  <h1 class="hero-title">
-    Master Every Solo, Riff & Beat With <span>Precision Looping</span>.
-  </h1>
-
-  <p class="hero-subtitle">
-    Control native Spotify playback directly from your browser. Set exact A & B repeat zones with sub-second accuracy, zero drift, and instant nudges for musicians, dancers, and listeners.
-  </p>
-
-  <div class="hero-cta-group">
-    <button id="heroPrimaryBtn" class="btn-hero-primary" onclick="startSpotifyLogin()">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-      </svg>
-      Authorize & Open Web Studio
-    </button>
-    <a href="https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/app-release.apk" class="btn-hero-secondary">
-      <span>📱 Download Android APK</span>
-    </a>
-    <a href="https://github.com/DaivikOPX/SpotiLoop" target="_blank" rel="noopener" class="btn-hero-secondary">
-      <span>⭐ GitHub</span>
-    </a>
-  </div>
-
-  <!-- Live Studio Showcase Interface Card -->
-  <div id="studio" class="studio-showcase-wrapper">
-    <div class="studio-glass-frame">
+    <!-- LANDING VIEW (When Disconnected) -->
+    <div id="connectView" class="landing-box">
+      <span class="hero-pill">✦ Sub-Second A-B Looper</span>
       
-      <!-- Studio Logged-Out Preview Prompt -->
-      <div id="connectView" class="logged-out-hero-banner">
-        <div class="brand-logo-wrapper" style="width: 52px; height: 52px; border-radius: 14px;">
-          <img src="./assets/logo.png" onerror="this.onerror=null; this.src='assets/logo.png';" alt="SpotiLoop Logo" class="brand-logo-img">
+      <h1 class="landing-title">
+        Master Any Song With <span>Precision Looping</span>
+      </h1>
+
+      <p class="landing-desc">
+        Loop guitar riffs, solos, choreography, or vocal phrases directly inside your Spotify app with millisecond accuracy and zero drift.
+      </p>
+
+      <!-- 4 Compact Feature Badges -->
+      <div class="features-list">
+        <div class="feature-chip">
+          <span class="feature-chip-icon">🎯</span>
+          <div>
+            <div class="feature-chip-title">Sub-Second Nudges</div>
+            <div class="feature-chip-desc">±50ms and ±100ms micro-step buttons for exact beats.</div>
+          </div>
         </div>
+
+        <div class="feature-chip">
+          <span class="feature-chip-icon">⚡</span>
+          <div>
+            <div class="feature-chip-title">Zero Cumulative Drift</div>
+            <div class="feature-chip-desc">Absolute timeline anchoring stays on beat forever.</div>
+          </div>
+        </div>
+
+        <div class="feature-chip">
+          <span class="feature-chip-icon">🎛️</span>
+          <div>
+            <div class="feature-chip-title">Scrubbing & Volume</div>
+            <div class="feature-chip-desc">Continuous dragging, quick seeks & master volume.</div>
+          </div>
+        </div>
+
+        <div class="feature-chip">
+          <span class="feature-chip-icon">📱</span>
+          <div>
+            <div class="feature-chip-title">Android App Available</div>
+            <div class="feature-chip-desc">Native Flutter app with Spotify Connect integration.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Connect CTA -->
+      <button class="btn-spotify-connect" onclick="startSpotifyLogin()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+        </svg>
+        Authorize with Spotify
+      </button>
+
+      <!-- Quick Action Buttons -->
+      <div class="action-row">
+        <a href="https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/app-release.apk" class="btn-secondary">
+          <span>📱 Download Android APK</span>
+        </a>
+        <a href="https://github.com/DaivikOPX/SpotiLoop" target="_blank" rel="noopener" class="btn-secondary">
+          <span>⭐ Star on GitHub</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- STUDIO PLAYER VIEW (When Authenticated) -->
+    <div id="playerView" class="studio-box">
+      
+      <!-- Track Info -->
+      <div class="inner-card track-row">
+        <img id="albumArt" class="album-art" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' fill='%23222'%3E%3Crect width='48' height='48'/%3E%3C/svg%3E" alt="Art">
+        <div class="track-details">
+          <div id="trackTitle" class="track-title">Waiting for playback...</div>
+          <div id="trackArtist" class="track-artist">Play any song inside your Spotify app</div>
+          <div id="deviceName" class="device-tag">🟢 Ready</div>
+        </div>
+      </div>
+
+      <!-- Scrubber -->
+      <div class="inner-card">
+        <div class="timeline-track-area" id="timelineTrack">
+          <div class="timeline-bg">
+            <div id="progressFill" class="timeline-progress-fill"></div>
+          </div>
+          <div id="loopZone" class="loop-highlight-zone" style="display:none;"></div>
+          <div id="handleA" class="drag-handle handle-a" style="display:none;" title="Start Point A">A</div>
+          <div id="handleB" class="drag-handle handle-b" style="display:none;" title="End Point B">B</div>
+          <div id="playheadNeedle" class="playhead-needle" style="left:0%;"></div>
+        </div>
+
+        <div class="time-readouts">
+          <span id="currTimeReadout" class="time-current">00:00.0</span>
+          <span id="loopSpanBadge" style="color:var(--spotify-green); font-size:11px; font-weight:700;"></span>
+          <span id="totalTimeReadout">00:00.0</span>
+        </div>
+
+        <div class="quick-seek-bar">
+          <button class="quick-seek-btn" onclick="quickSeek(-5000)">⏮ -5s</button>
+          <button class="quick-seek-btn" onclick="quickSeek(-1000)">◀ -1s</button>
+          <button class="quick-seek-btn" onclick="quickSeek(1000)">+1s ▶</button>
+          <button class="quick-seek-btn" onclick="quickSeek(5000)">+5s ⏭</button>
+        </div>
+      </div>
+
+      <!-- Markers -->
+      <div class="marker-grid">
+        <div class="marker-card">
+          <div class="marker-header">
+            <span class="tag-a">🚩 Point A (Start)</span>
+            <button class="jump-btn" onclick="jumpToA()">Jump ➔</button>
+          </div>
+          <input 
+            id="inputA" 
+            type="text" 
+            class="time-input-box" 
+            placeholder="00:00.0" 
+            onfocus="this.select()"
+            onchange="handleManualTimeInput('A', this.value)"
+            onkeydown="if(event.key==='Enter') this.blur()"
+          />
+          <button class="btn-set-a" onclick="setPointAToCurrent()">⚡ Set Current Time</button>
+          <div class="nudge-row">
+            <button class="nudge-btn" onclick="nudgeA(-1000)">-1s</button>
+            <button class="nudge-btn" onclick="nudgeA(-100)">-0.1s</button>
+            <button class="nudge-btn" onclick="nudgeA(100)">+0.1s</button>
+            <button class="nudge-btn" onclick="nudgeA(1000)">+1s</button>
+          </div>
+        </div>
+
+        <div class="marker-card">
+          <div class="marker-header">
+            <span class="tag-b">🏁 Point B (End)</span>
+            <button class="jump-btn" onclick="jumpToB()">Jump ➔</button>
+          </div>
+          <input 
+            id="inputB" 
+            type="text" 
+            class="time-input-box" 
+            placeholder="00:00.0" 
+            onfocus="this.select()"
+            onchange="handleManualTimeInput('B', this.value)"
+            onkeydown="if(event.key==='Enter') this.blur()"
+          />
+          <button class="btn-set-b" onclick="setPointBToCurrent()">⚡ Set Current Time</button>
+          <div class="nudge-row">
+            <button class="nudge-btn" onclick="nudgeB(-1000)">-1s</button>
+            <button class="nudge-btn" onclick="nudgeB(-100)">-0.1s</button>
+            <button class="nudge-btn" onclick="nudgeB(100)">+0.1s</button>
+            <button class="nudge-btn" onclick="nudgeB(1000)">+1s</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Master Loop Toggle -->
+      <div id="loopToggleCard" class="loop-toggle-bar" onclick="toggleLoop()">
         <div>
-          <h3 style="font-size: 19px; font-weight: 800; margin-bottom: 4px;">SpotiLoop Web Studio Ready</h3>
-          <p style="font-size: 13px; color: var(--text-muted);">Connect your Spotify account with 1-click to control playback & A-B looping.</p>
+          <div class="loop-label-title">A-B Looper Active</div>
+          <div id="loopSubtext" class="loop-label-sub">Click to start looping Point A & B</div>
         </div>
-        <button class="btn-connect-spotify-big" onclick="startSpotifyLogin()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-          </svg>
-          Authorize Spotify
-        </button>
+        <div class="switch-pill">
+          <div class="switch-circle"></div>
+        </div>
       </div>
 
-      <!-- Studio Live Player View (Active when authenticated) -->
-      <div id="playerView" style="display:none;">
-        
-        <!-- Track Info Card -->
-        <div class="card">
-          <div class="track-info">
-            <img id="albumArt" class="album-art" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' fill='%23222'%3E%3Crect width='56' height='56'/%3E%3C/svg%3E" alt="Art">
-            <div class="track-details">
-              <div id="trackTitle" class="track-title">Waiting for playback...</div>
-              <div id="trackArtist" class="track-artist">Play any song inside your Spotify app</div>
-              <div id="deviceBadge" class="device-indicator">
-                <span style="font-size:8px;">🟢</span>
-                <span id="deviceName">Spotify Ready</span>
-              </div>
-            </div>
-          </div>
+      <!-- Controls Row -->
+      <div class="bottom-row">
+        <div class="transport-bar">
+          <button class="transport-btn" onclick="spotifyPrev()" title="Previous"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button>
+          <button class="play-btn" onclick="spotifyTogglePlay()" title="Play/Pause"><svg id="playMasterIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+          <button class="transport-btn" onclick="spotifyNext()" title="Next"><svg viewBox="0 0 24 24"><path d="m6 18 8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
         </div>
 
-        <!-- Timeline Scrubber -->
-        <div class="card">
-          <div class="timeline-wrapper">
-            <div class="timeline-track-area" id="timelineTrack">
-              <div id="timelineTooltip" class="timeline-tooltip">00:00.0</div>
-              <div class="timeline-bg">
-                <div id="progressFill" class="timeline-progress-fill"></div>
-              </div>
-              <div id="loopZone" class="loop-highlight-zone" style="display:none;"></div>
-              
-              <!-- Draggable Handle A -->
-              <div id="handleA" class="drag-handle handle-a" style="display:none;" title="Drag Start Point A">
-                <span>A</span>
-              </div>
-
-              <!-- Draggable Handle B -->
-              <div id="handleB" class="drag-handle handle-b" style="display:none;" title="Drag End Point B">
-                <span>B</span>
-              </div>
-
-              <!-- Playhead Needle -->
-              <div id="playheadNeedle" class="playhead-needle" style="left:0%;"></div>
-            </div>
-
-            <div class="time-readouts">
-              <span id="currTimeReadout" class="time-current">00:00.0</span>
-              <span id="loopSpanBadge" style="color:var(--spotify-green); font-size:11px; font-weight:700;"></span>
-              <span id="totalTimeReadout">00:00.0</span>
-            </div>
-
-            <!-- Quick Precision Seek Micro-Bar -->
-            <div class="quick-seek-row">
-              <button class="quick-seek-btn" onclick="quickSeek(-5000)" title="Rewind 5s">⏮ -5s</button>
-              <button class="quick-seek-btn" onclick="quickSeek(-1000)" title="Rewind 1s">◀ -1s</button>
-              <button class="quick-seek-btn" onclick="quickSeek(1000)" title="Forward 1s">+1s ▶</button>
-              <button class="quick-seek-btn" onclick="quickSeek(5000)" title="Forward 5s">+5s ⏭</button>
-            </div>
-          </div>
+        <div class="volume-bar">
+          <button id="volumeMuteBtn" class="volume-btn" onclick="toggleVolumeMute()" title="Mute/Unmute">
+            <svg id="volumeIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+            </svg>
+          </button>
+          <input 
+            id="volumeSlider" 
+            type="range" 
+            class="volume-slider" 
+            min="0" 
+            max="100" 
+            value="75" 
+            oninput="handleVolumeInput(this.value)"
+          />
+          <span id="volumeValueLabel" class="volume-readout">75%</span>
         </div>
-
-        <!-- Dual Marker Controls -->
-        <div class="marker-grid">
-          <!-- Point A Box -->
-          <div class="marker-box">
-            <div class="marker-box-header">
-              <span class="header-a">🚩 Point A (Start)</span>
-              <button class="btn-jump" onclick="jumpToA()">Jump ➔</button>
-            </div>
-            <input 
-              id="inputA" 
-              type="text" 
-              class="time-input-box input-a" 
-              placeholder="00:00.0" 
-              onfocus="this.select()"
-              onchange="handleManualTimeInput('A', this.value)"
-              onkeydown="if(event.key==='Enter') this.blur()"
-            />
-            <button class="btn-capture-a" onclick="setPointAToCurrent()">⚡ Set Current Time</button>
-            <div class="nudge-row">
-              <button class="nudge-btn" onclick="nudgeA(-1000)">-1s</button>
-              <button class="nudge-btn" onclick="nudgeA(-100)">-0.1s</button>
-              <button class="nudge-btn" onclick="nudgeA(100)">+0.1s</button>
-              <button class="nudge-btn" onclick="nudgeA(1000)">+1s</button>
-            </div>
-          </div>
-
-          <!-- Point B Box -->
-          <div class="marker-box">
-            <div class="marker-box-header">
-              <span class="header-b">🏁 Point B (End)</span>
-              <button class="btn-jump" onclick="jumpToB()">Jump ➔</button>
-            </div>
-            <input 
-              id="inputB" 
-              type="text" 
-              class="time-input-box input-b" 
-              placeholder="00:00.0" 
-              onfocus="this.select()"
-              onchange="handleManualTimeInput('B', this.value)"
-              onkeydown="if(event.key==='Enter') this.blur()"
-            />
-            <button class="btn-capture-b" onclick="setPointBToCurrent()">⚡ Set Current Time</button>
-            <div class="nudge-row">
-              <button class="nudge-btn" onclick="nudgeB(-1000)">-1s</button>
-              <button class="nudge-btn" onclick="nudgeB(-100)">-0.1s</button>
-              <button class="nudge-btn" onclick="nudgeB(100)">+0.1s</button>
-              <button class="nudge-btn" onclick="nudgeB(1000)">+1s</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Master Loop Toggle Switch -->
-        <div id="loopToggleCard" class="loop-toggle-card" onclick="toggleLoop()">
-          <div class="loop-toggle-left">
-            <div class="loop-icon-box">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="17 1 21 5 17 9"></polyline>
-                <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
-                <polyline points="7 23 3 19 7 15"></polyline>
-                <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
-              </svg>
-            </div>
-            <div>
-              <div class="loop-title-text">A-B Looper Active</div>
-              <div id="loopSubtext" class="loop-subtext">Click to start looping between Point A & B</div>
-            </div>
-          </div>
-          <div class="switch-pill">
-            <div class="switch-circle"></div>
-          </div>
-        </div>
-
-        <!-- Bottom Controls Row (Transport + Volume) -->
-        <div class="bottom-row">
-          <!-- Playback Transport -->
-          <div class="card transport-bar">
-            <button class="transport-btn" onclick="spotifyPrev()" title="Previous Track">
-              <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
-            </button>
-            
-            <button class="play-master-btn" onclick="spotifyTogglePlay()" title="Play / Pause">
-              <svg id="playMasterIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            </button>
-
-            <button class="transport-btn" onclick="spotifyNext()" title="Next Track">
-              <svg viewBox="0 0 24 24"><path d="m6 18 8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
-            </button>
-          </div>
-
-          <!-- Volume Controls -->
-          <div class="card volume-card">
-            <button id="volumeMuteBtn" class="volume-btn" onclick="toggleVolumeMute()" title="Mute / Unmute">
-              <svg id="volumeIcon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-              </svg>
-            </button>
-            <input 
-              id="volumeSlider" 
-              type="range" 
-              class="volume-slider-range" 
-              min="0" 
-              max="100" 
-              value="75" 
-              oninput="handleVolumeInput(this.value)"
-            />
-            <span id="volumeValueLabel" class="volume-label">75%</span>
-          </div>
-        </div>
-
       </div>
 
     </div>
-  </div>
-</header>
 
-<!-- Features Bento Section -->
-<section id="features" class="section-container">
-  <div class="section-header">
-    <div class="section-tag">ENGINEERED FOR MUSICIANS & DANCERS</div>
-    <h2 class="section-title">Precision Tools Built For Real Practice</h2>
-    <p class="section-desc">Designed from the ground up to eliminate playback latency, drift, and clunky timeline controls.</p>
-  </div>
+  </main>
 
-  <div class="bento-grid">
-    <div class="bento-card">
-      <div class="bento-icon">🎯</div>
-      <h3 class="bento-title">Sub-Second Precision Nudges</h3>
-      <p class="bento-desc">Dial in microscopic starting and ending frames with instant ±50ms and ±100ms micro-step buttons.</p>
+  <!-- Compact Footer -->
+  <footer class="app-footer">
+    <span>SpotiLoop Pro • 100% Free & Open Source</span>
+    <div style="display: flex; gap: 12px;">
+      <a href="https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/app-release.apk">Download APK</a>
+      <a href="https://github.com/DaivikOPX/SpotiLoop" target="_blank" rel="noopener">GitHub</a>
     </div>
+  </footer>
 
-    <div class="bento-card">
-      <div class="bento-icon">⚡</div>
-      <h3 class="bento-title">Zero Cumulative Drift</h3>
-      <p class="bento-desc">Absolute timestamp anchoring keeps your loop locked on-beat even through 1,000+ continuous practice repetitions.</p>
-    </div>
-
-    <div class="bento-card">
-      <div class="bento-icon">🎛️</div>
-      <h3 class="bento-title">Continuous Scrubbing</h3>
-      <p class="bento-desc">Drag anywhere on the interactive timeline with live millisecond tooltips and rapid ±1s and ±5s jumps.</p>
-    </div>
-
-    <div class="bento-card">
-      <div class="bento-icon">🔊</div>
-      <h3 class="bento-title">Full Song Volume Control</h3>
-      <p class="bento-desc">Adjust track gain on the fly without leaving the interface, with instant single-click mute/unmute toggle.</p>
-    </div>
-
-    <div class="bento-card">
-      <div class="bento-icon">📱</div>
-      <h3 class="bento-title">Native Android APK</h3>
-      <p class="bento-desc">Take your loops into the dance studio or guitar room with the standalone Android application.</p>
-    </div>
-
-    <div class="bento-card">
-      <div class="bento-icon">🔒</div>
-      <h3 class="bento-title">100% Privacy & Open Source</h3>
-      <p class="bento-desc">Direct client-side PKCE authentication with Spotify. No logins, passwords, or track telemetry stored on third-party servers.</p>
-    </div>
-  </div>
-</section>
-
-<!-- How It Works Section -->
-<section id="how-it-works" class="section-container" style="background: rgba(18, 18, 24, 0.2); border-radius: 36px;">
-  <div class="section-header">
-    <div class="section-tag">THREE EASY STEPS</div>
-    <h2 class="section-title">How To Start Looping In 10 Seconds</h2>
-  </div>
-
-  <div class="steps-grid">
-    <div class="step-card">
-      <div class="step-number">1</div>
-      <h3 class="step-title">Connect Your Spotify</h3>
-      <p class="step-desc">Click Authorize with 1-click PKCE OAuth. No passwords or API keys needed.</p>
-    </div>
-
-    <div class="step-card">
-      <div class="step-number">2</div>
-      <h3 class="step-title">Set Point A & Point B</h3>
-      <p class="step-desc">Play your track and hit "Set Current Time" or drag the handles to frame the solo or choreography section.</p>
-    </div>
-
-    <div class="step-card">
-      <div class="step-number">3</div>
-      <h3 class="step-title">Loop & Master</h3>
-      <p class="step-desc">Flip the master loop switch. SpotiLoop seamlessly snaps playback back to Point A the millisecond it hits Point B.</p>
-    </div>
-  </div>
-</section>
-
-<!-- Android App Download Banner -->
-<section id="download" class="section-container">
-  <div class="apk-banner-card">
-    <div class="apk-banner-text">
-      <div class="pill-badge" style="margin-bottom: 12px;">📱 ANDROID RELEASE AVAILABLE</div>
-      <h2 class="apk-banner-title">Practice On The Go With SpotiLoop Android</h2>
-      <p class="apk-banner-desc">Download the standalone Flutter APK release directly to your mobile phone. Includes background playback listeners and Spotify Connect synchronization.</p>
-    </div>
-    <div>
-      <a href="https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/app-release.apk" class="btn-hero-primary" style="padding: 16px 32px;">
-        <span>📥 Download app-release.apk (v1.0.0)</span>
-      </a>
-    </div>
-  </div>
-</section>
-
-<!-- Footer -->
-<footer class="footer">
-  <div class="footer-container">
-    <div class="footer-brand">
-      <div class="brand-logo-wrapper" style="width: 24px; height: 24px;">
-        <img src="./assets/logo.png" onerror="this.onerror=null; this.src='assets/logo.png';" alt="SpotiLoop Logo" class="brand-logo-img">
-      </div>
-      SpotiLoop Pro
-    </div>
-
-    <div class="footer-copy">
-      Built with millisecond precision • Open source under MIT • Not affiliated with Spotify AB
-    </div>
-
-    <ul class="footer-links">
-      <li><a href="https://github.com/DaivikOPX/SpotiLoop" target="_blank" rel="noopener">GitHub Repo</a></li>
-      <li><a href="https://github.com/DaivikOPX/SpotiLoop/releases" target="_blank" rel="noopener">Releases</a></li>
-      <li><a href="https://developer.spotify.com/" target="_blank" rel="noopener">Spotify Web API</a></li>
-    </ul>
-  </div>
-</footer>
+</div>
 
 <script>
   function _resolveClientId() {
@@ -1437,10 +945,6 @@
     t.textContent = msg;
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 2000);
-  }
-
-  function focusStudio() {
-    document.getElementById('studio').scrollIntoView({ behavior: 'smooth' });
   }
 
   // PKCE Helpers
@@ -1523,9 +1027,8 @@
           localStorage.setItem('spotify_access_token', accessToken);
           if (data.refresh_token) localStorage.setItem('spotify_refresh_token', data.refresh_token);
 
-          // Clean URL query
           window.history.replaceState({}, document.title, window.location.pathname);
-          showToast('🟢 Spotify Connected Successfully!');
+          showToast('🟢 Spotify Connected!');
           updateUIState(true);
         } else {
           showToast('OAuth exchange failed');
@@ -1591,28 +1094,19 @@
   function updateUIState(authenticated) {
     const connectView = document.getElementById('connectView');
     const playerView = document.getElementById('playerView');
-    const heroBtn = document.getElementById('heroPrimaryBtn');
     const statusText = document.getElementById('authStatusText');
     const statusDot = document.querySelector('.status-dot');
 
     if (authenticated) {
       connectView.style.display = 'none';
-      playerView.style.display = 'block';
-      statusText.textContent = 'Spotify Active';
+      playerView.style.display = 'flex';
+      statusText.textContent = 'Active';
       statusDot.classList.add('active');
-      if (heroBtn) {
-        heroBtn.innerHTML = '<span>⚡ Go To Active Studio</span>';
-        heroBtn.onclick = focusStudio;
-      }
     } else {
       connectView.style.display = 'flex';
       playerView.style.display = 'none';
       statusText.textContent = 'Disconnected';
       statusDot.classList.remove('active');
-      if (heroBtn) {
-        heroBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg> Authorize & Open Web Studio';
-        heroBtn.onclick = startSpotifyLogin;
-      }
     }
   }
 
@@ -1677,15 +1171,13 @@
             lastSyncTime = Date.now();
           }
 
-          // Track metadata
           document.getElementById('trackTitle').textContent = data.item.name;
           document.getElementById('trackArtist').textContent = data.item.artists.map(a => a.name).join(', ');
           if (data.item.album && data.item.album.images.length) {
             document.getElementById('albumArt').src = data.item.album.images[0].url;
           }
           if (data.device) {
-            document.getElementById('deviceName').textContent = data.device.name;
-            // Sync volume
+            document.getElementById('deviceName').textContent = `🟢 ${data.device.name}`;
             if (typeof data.device.volume_percent === 'number') {
               syncVolumeUI(data.device.volume_percent);
             }
@@ -1709,11 +1201,9 @@
     }
   }
 
-  // Loop Monitoring Tick (Every 50ms)
   async function loopMonitorTick() {
     const pos = getEstimatedProgress();
 
-    // Update UI playhead
     if (durationMs > 0) {
       const pct = (pos / durationMs) * 100;
       document.getElementById('progressFill').style.width = `${pct}%`;
@@ -1721,7 +1211,6 @@
       document.getElementById('currTimeReadout').textContent = formatTime(pos);
     }
 
-    // A-B Loop Trigger
     if (isLoopActive && pointA !== null && pointB !== null && pointB > pointA) {
       if (pos >= (pointB - seekLeadOffsetMs)) {
         const now = Date.now();
@@ -1782,7 +1271,7 @@
     setTimeout(syncPlaybackState, 300);
   }
 
-  // Volume Handlers
+  // Volume
   let currentVolume = 75;
   let isMuted = false;
   let preMuteVolume = 75;
@@ -1849,7 +1338,7 @@
     }
   }
 
-  // A-B Loop Markers & Controls
+  // Markers
   function setPointAToCurrent() {
     pointA = getEstimatedProgress();
     document.getElementById('inputA').value = formatTime(pointA);
@@ -1911,11 +1400,11 @@
       card.classList.add('active');
       loopCount = 0;
       document.getElementById('loopSubtext').textContent = `Looping: ${formatTime(pointA)} ➔ ${formatTime(pointB)}`;
-      showToast('🔁 A-B Looping Engaged!');
+      showToast('🔁 Looping Active!');
       spotifySeek(pointA);
     } else {
       card.classList.remove('active');
-      document.getElementById('loopSubtext').textContent = 'Click to start looping between Point A & B';
+      document.getElementById('loopSubtext').textContent = 'Click to start looping Point A & B';
       showToast('Loop Stopped');
     }
   }
@@ -2008,7 +1497,6 @@
       updateUIState(false);
     }
 
-    // Polling Intervals
     setInterval(syncPlaybackState, 1500);
     setInterval(loopMonitorTick, 50);
   });
