@@ -6,6 +6,7 @@ class StorageService {
   static const String _keyAccessToken = 'spotify_access_token';
   static const String _keyRefreshToken = 'spotify_refresh_token';
   static const String _keyTokenExpiry = 'spotify_token_expiry';
+  static const String _keyCodeVerifier = 'spotify_code_verifier';
   static const String _keyPresets = 'spotify_loop_presets';
   static const String _keySeekOffsetMs = 'loop_seek_offset_ms';
   static const String _keyAutoLoopOnSongChange = 'auto_loop_on_song_change';
@@ -28,6 +29,10 @@ class StorageService {
   String getClientId() => _prefs.getString(_keyClientId) ?? _resolveDefaultClientId();
   Future<void> setClientId(String clientId) => _prefs.setString(_keyClientId, clientId.trim());
 
+  // PKCE Code Verifier
+  String? getCodeVerifier() => _prefs.getString(_keyCodeVerifier);
+  Future<void> setCodeVerifier(String verifier) => _prefs.setString(_keyCodeVerifier, verifier);
+
   // Tokens
   String? getAccessToken() => _prefs.getString(_keyAccessToken);
   Future<void> setAccessToken(String token) => _prefs.setString(_keyAccessToken, token);
@@ -47,6 +52,7 @@ class StorageService {
     await _prefs.remove(_keyAccessToken);
     await _prefs.remove(_keyRefreshToken);
     await _prefs.remove(_keyTokenExpiry);
+    await _prefs.remove(_keyCodeVerifier);
   }
 
   // Presets

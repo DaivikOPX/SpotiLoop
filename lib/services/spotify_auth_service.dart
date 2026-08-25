@@ -27,18 +27,34 @@ class SpotifyAuthService extends ChangeNotifier {
   }
 
   void _initDeepLinks() {
-    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
-      if (uri.scheme == 'spotiloop' && uri.host == 'callback') {
-        final code = uri.queryParameters['code'];
-        final error = uri.queryParameters['error'];
-        if (code != null) {
-          _handleAuthCode(code);
-        } else if (error != null) {
-          _isAuthenticating = false;
-          notifyListeners();
-        }
+    // 1. Check for initial link on cold launch
+    _appLinks.getInitialLink().then((uri) {
+      if (uri != null) {
+        _handleIncomingUri(uri);
       }
+    }).catchError((e) {
+      debugPrint('Error getting initial link: $e');
     });
+
+    // 2. Listen for incoming deep links while app is open / backgrounded
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      _handleIncomingUri(uri);
+    }, onError: (e) {
+      debugPrint('Deep link stream error: $e');
+    });
+  }
+
+  void _handleIncomingUri(Uri uri) {
+    if (uri.scheme == 'spotiloop') {
+      final code = uri.queryParameters['code'];
+      final error = uri.queryParameters['error'];
+      if (code != null && code.isNotEmpty) {
+        _handleAuthCode(code);
+      } else if (error != null) {
+        _isAuthenticating = false;
+        notifyListeners();
+      }
+    }
   }
 
   @override
@@ -84,6 +100,8 @@ class SpotifyAuthService extends ChangeNotifier {
     notifyListeners();
 
     _currentCodeVerifier = _generateRandomString(64);
+    await _storage.setCodeVerifier(_currentCodeVerifier!);
+
     final codeChallenge = _generateCodeChallenge(_currentCodeVerifier!);
     final state = _generateRandomString(16);
 
@@ -173,7 +191,8 @@ class SpotifyAuthService extends ChangeNotifier {
 
   Future<void> _handleAuthCode(String code) async {
     final clientId = _storage.getClientId();
-    if (clientId == null || _currentCodeVerifier == null) {
+    final verifier = _storage.getCodeVerifier() ?? _currentCodeVerifier;
+    if (clientId == null || verifier == null) {
       _isAuthenticating = false;
       notifyListeners();
       return;
@@ -188,7 +207,7 @@ class SpotifyAuthService extends ChangeNotifier {
           'code': code,
           'redirect_uri': redirectUri,
           'client_id': clientId,
-          'code_verifier': _currentCodeVerifier,
+          'code_verifier': verifier,
         },
       );
 
