@@ -48,6 +48,7 @@ jobs:
                   <category android:name=\"android.intent.category.DEFAULT\"/>
                   <category android:name=\"android.intent.category.BROWSABLE\"/>
                   <data android:scheme=\"spotiloop\" android:host=\"callback\"/>
+                  <data android:scheme=\"spotiloop\"/>
               </intent-filter>
           '''
           if 'spotiloop' not in content:
