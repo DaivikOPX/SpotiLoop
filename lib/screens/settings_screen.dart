@@ -167,7 +167,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'SpotiLoop Pro',
+                        'SpotiLoop',
                         style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
                       ),
                       Text(

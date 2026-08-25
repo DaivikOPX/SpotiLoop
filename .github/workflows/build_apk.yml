@@ -74,8 +74,8 @@ jobs:
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
         with:
           tag_name: v1.0.0
-          name: "SpotiLoop Pro v1.0.0 (Android APK)"
-          body: "Official Android APK release for SpotiLoop Pro. Download `app-release.apk` below and install on your phone!"
+          name: "SpotiLoop v1.0.0 (Android APK)"
+          body: "Official Android APK release for SpotiLoop. Download `app-release.apk` below and install on your phone!"
           files: build/app/outputs/flutter-apk/app-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
