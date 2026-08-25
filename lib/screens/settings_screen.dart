@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../services/spotify_auth_service.dart';
 import '../services/storage_service.dart';
 
@@ -18,52 +17,12 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  late TextEditingController _clientIdController;
-  late int _seekOffsetMs;
   late bool _autoLoop;
-  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    _clientIdController = TextEditingController(text: widget.storage.getClientId() ?? '');
-    _seekOffsetMs = widget.storage.getSeekOffsetMs();
     _autoLoop = widget.storage.getAutoLoopOnSongChange();
-  }
-
-  @override
-  void dispose() {
-    _clientIdController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _openSpotifyDashboard() async {
-    final uri = Uri.parse('https://developer.spotify.com/dashboard');
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
-
-  Future<void> _saveAndLogin() async {
-    final clientId = _clientIdController.text.trim();
-    if (clientId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your Spotify Client ID')),
-      );
-      return;
-    }
-
-    setState(() => _isSaving = true);
-    await widget.storage.setClientId(clientId);
-    await widget.storage.setSeekOffsetMs(_seekOffsetMs);
-    await widget.storage.setAutoLoopOnSongChange(_autoLoop);
-
-    final success = await widget.authService.startLogin(customClientId: clientId);
-    setState(() => _isSaving = false);
-
-    if (!success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to open login page. Check your internet connection.')),
-      );
-    }
   }
 
   @override
@@ -73,7 +32,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        title: const Text('SpotiLoop Settings', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Settings', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF181818),
         elevation: 0,
       ),
@@ -82,7 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           // Connection Status Card
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: const Color(0xFF1E1E1E),
               borderRadius: BorderRadius.circular(16),
@@ -121,7 +80,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Text(
                         isAuth
                             ? 'Ready to control your Spotify playback'
-                            : 'Enter Client ID below to connect',
+                            : 'Sign in to start looping',
                         style: const TextStyle(fontSize: 13, color: Colors.white60),
                       ),
                     ],
@@ -139,130 +98,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
-
-          // Setup Guide Accordion/Card
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E1E1E),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white10),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: const [
-                    Icon(Icons.help_outline_rounded, color: Color(0xFF1DB954), size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      'Spotify Setup (1-Minute Guide)',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  '1. Open the Spotify Developer Dashboard.\n'
-                  '2. Click "Create app" with any name (e.g. SpotiLoop).\n'
-                  '3. In App Settings, add these Redirect URIs:\n'
-                  '   • http://127.0.0.1:8888/callback (For Windows)\n'
-                  '   • spotiloop://callback (For Android)\n'
-                  '4. Copy your Client ID and paste it below.',
-                  style: TextStyle(fontSize: 13, color: Colors.white70, height: 1.5),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: _openSpotifyDashboard,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF1DB954),
-                    side: const BorderSide(color: Color(0xFF1DB954)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                  label: const Text('Open Spotify Developer Dashboard'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Client ID Input
-          const Text(
-            'Spotify Client ID',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _clientIdController,
-            style: const TextStyle(color: Colors.white, fontFamily: 'monospace'),
-            decoration: InputDecoration(
-              hintText: 'e.g. 3a8b4e72c81...',
-              hintStyle: const TextStyle(color: Colors.white38),
-              filled: true,
-              fillColor: const Color(0xFF1E1E1E),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.white12),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF1DB954)),
-              ),
-            ),
-          ),
           const SizedBox(height: 20),
 
-          // Latency Calibration Slider
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E1E1E),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white10),
+          if (!isAuth) ...[
+            ElevatedButton.icon(
+              onPressed: () async {
+                final ok = await widget.authService.startLogin();
+                if (!ok && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Failed to open Spotify login.')),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1DB954),
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              icon: const Icon(Icons.play_circle_fill_rounded, size: 20),
+              label: const Text(
+                'Login with Spotify',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Seek Anticipation Offset',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
-                    ),
-                    Text(
-                      '${_seekOffsetMs > 0 ? "+" : ""}$_seekOffsetMs ms',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1DB954),
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Compensates for Bluetooth or network seek delay so the loop turnaround sounds seamless.',
-                  style: TextStyle(fontSize: 12, color: Colors.white54),
-                ),
-                Slider(
-                  value: _seekOffsetMs.toDouble(),
-                  min: 0,
-                  max: 500,
-                  divisions: 20,
-                  activeColor: const Color(0xFF1DB954),
-                  inactiveColor: Colors.white12,
-                  onChanged: (val) {
-                    setState(() => _seekOffsetMs = val.toInt());
-                    widget.storage.setSeekOffsetMs(_seekOffsetMs);
-                  },
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 24),
+          ],
 
           // Auto Loop Switch
           SwitchListTile(
@@ -278,7 +139,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
             ),
             subtitle: const Text(
-              'Automatically activate saved A-B loops whenever a recognized song starts playing.',
+              'Automatically activate saved loops when a recognized song plays.',
               style: TextStyle(fontSize: 12, color: Colors.white54),
             ),
             value: _autoLoop,
@@ -287,27 +148,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
               widget.storage.setAutoLoopOnSongChange(val);
             },
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 24),
 
-          // Save / Connect Button
-          ElevatedButton(
-            onPressed: _isSaving ? null : _saveAndLogin,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1DB954),
-              foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          // About Section
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E1E),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white10),
             ),
-            child: _isSaving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
-                  )
-                : Text(
-                    isAuth ? 'Save & Reconnect' : 'Connect to Spotify',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            child: Row(
+              children: const [
+                Icon(Icons.all_inclusive_rounded, color: Color(0xFF1DB954), size: 24),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'SpotiLoop Pro',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                      ),
+                      Text(
+                        'Version 1.0.0 • Open Source',
+                        style: TextStyle(fontSize: 12, color: Colors.white54),
+                      ),
+                    ],
                   ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

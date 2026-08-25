@@ -234,37 +234,53 @@ class HomeScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: const Color(0xFF1DB954).withOpacity(0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.all_inclusive_rounded, size: 64, color: Color(0xFF1DB954)),
+              child: const Icon(Icons.all_inclusive_rounded, size: 72, color: Color(0xFF1DB954)),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
             const Text(
-              'Welcome to SpotiLoop',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
+              'SpotiLoop',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             const Text(
-              'A-B Loop any song playing on your official Spotify app with sub-second precision.',
+              'Precision A-B Looping for Spotify',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.white70, height: 1.5),
+              style: TextStyle(fontSize: 15, color: Colors.white70),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 36),
             ElevatedButton.icon(
-              onPressed: () => _openSettings(context),
+              onPressed: authService.isAuthenticating
+                  ? null
+                  : () async {
+                      final ok = await authService.startLogin();
+                      if (!ok && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Failed to open Spotify login. Please check connection.')),
+                        );
+                      }
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1DB954),
                 foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                elevation: 4,
               ),
-              icon: const Icon(Icons.link_rounded, size: 20),
-              label: const Text(
-                'Connect Spotify Account',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              icon: authService.isAuthenticating
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                    )
+                  : const Icon(Icons.play_circle_fill_rounded, size: 22),
+              label: Text(
+                authService.isAuthenticating ? 'Connecting...' : 'Login with Spotify',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
           ],
