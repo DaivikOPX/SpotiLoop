@@ -1099,7 +1099,7 @@
         </div>
       </div>
 
-      <!-- Clean Centered Transport Console (No volume / shortcuts bloat) -->
+      <!-- Clean Centered Transport Console -->
       <div class="transport-bar">
         <button class="transport-btn" onclick="spotifyPrev()" title="Previous Track"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button>
         <button class="play-btn" onclick="spotifyTogglePlay()" title="Play/Pause"><svg id="playMasterIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
@@ -1153,6 +1153,49 @@
   let lastSeekDispatchedTime = 0;
   let seekLockoutUntil = 0;
 
+  // Background Web Audio Keep-Alive to prevent mobile Chrome tab freeze
+  let audioKeepAliveCtx = null;
+  function activateKeepAliveAudio() {
+    try {
+      if (!audioKeepAliveCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          audioKeepAliveCtx = new AudioCtx();
+          const osc = audioKeepAliveCtx.createOscillator();
+          const gain = audioKeepAliveCtx.createGain();
+          gain.gain.value = 0.00001; // Inaudible keep-alive signal
+          osc.connect(gain);
+          gain.connect(audioKeepAliveCtx.destination);
+          osc.start();
+        }
+      }
+      if (audioKeepAliveCtx && audioKeepAliveCtx.state === 'suspended') {
+        audioKeepAliveCtx.resume();
+      }
+    } catch (e) {
+      console.warn('Audio keep-alive warning:', e);
+    }
+  }
+
+  // WakeLock API to keep device CPU active during loops
+  let wakeLockObj = null;
+  async function requestLoopWakeLock() {
+    try {
+      if ('wakeLock' in navigator && isLoopActive) {
+        wakeLockObj = await navigator.wakeLock.request('screen');
+      }
+    } catch (e) {
+      console.warn('WakeLock not granted:', e);
+    }
+  }
+
+  function releaseLoopWakeLock() {
+    if (wakeLockObj) {
+      wakeLockObj.release().catch(() => {});
+      wakeLockObj = null;
+    }
+  }
+
   function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -1169,10 +1212,12 @@
   function showPlayerView() {
     document.getElementById('landingHeroSection').style.display = 'none';
     document.getElementById('studioConsoleSection').style.display = 'flex';
+    activateKeepAliveAudio();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function handleMainLaunchClick() {
+    activateKeepAliveAudio();
     if (accessToken) {
       showPlayerView();
     } else {
@@ -1181,6 +1226,7 @@
   }
 
   function handleBadgeClick() {
+    activateKeepAliveAudio();
     if (!accessToken) {
       startSpotifyLogin();
     } else {
@@ -1428,6 +1474,12 @@
 
           document.getElementById('totalTimeReadout').textContent = formatTime(durationMs);
           updatePlayIcon(isPlaying);
+
+          // If loop is active and track overshot Point B while in background, trigger immediate seek
+          const pos = getEstimatedProgress();
+          if (isLoopActive && pointA !== null && pointB !== null && pos >= (pointB - seekLeadOffsetMs)) {
+            await spotifySeek(pointA);
+          }
         }
       }
     } catch (e) {
@@ -1457,7 +1509,7 @@
     if (isLoopActive && pointA !== null && pointB !== null && pointB > pointA) {
       if (pos >= (pointB - seekLeadOffsetMs)) {
         const now = Date.now();
-        if (now - lastSeekDispatchedTime > 400) {
+        if (now - lastSeekDispatchedTime > 350) {
           lastSeekDispatchedTime = now;
           loopCount++;
           document.getElementById('loopSubtext').textContent = `Looping: ${formatTime(pointA)} ➔ ${formatTime(pointB)} (${loopCount}x)`;
@@ -1488,6 +1540,7 @@
 
   async function spotifyTogglePlay() {
     if (!accessToken) return;
+    activateKeepAliveAudio();
     try {
       if (isPlaying) {
         await spotifyFetch('me/player/pause', { method: 'PUT' });
@@ -1561,6 +1614,7 @@
   }
 
   function toggleLoop() {
+    activateKeepAliveAudio();
     if (pointA === null || pointB === null) {
       showToast('⚠️ Set Point A & Point B first!');
       return;
@@ -1577,10 +1631,12 @@
       loopCount = 0;
       document.getElementById('loopSubtext').textContent = `Looping: ${formatTime(pointA)} ➔ ${formatTime(pointB)}`;
       showToast('🔁 Looping Active!');
+      requestLoopWakeLock();
       spotifySeek(pointA);
     } else {
       card.classList.remove('active');
       document.getElementById('loopSubtext').textContent = 'Click to start looping between Point A and Point B';
+      releaseLoopWakeLock();
       showToast('Loop Stopped');
     }
   }
@@ -1644,6 +1700,50 @@
     spotifySeek(targetMs);
   }
 
+  // Visibility Change Handling (Immediate Catch-Up when returning from background)
+  document.addEventListener('visibilitychange', async () => {
+    if (!document.hidden) {
+      if (audioKeepAliveCtx && audioKeepAliveCtx.state === 'suspended') {
+        audioKeepAliveCtx.resume();
+      }
+      await syncPlaybackState();
+    }
+  });
+
+  // Background Web Worker Ticker (Bypasses Browser Main-Thread Throttle)
+  function initBackgroundWorkerTicker() {
+    try {
+      const workerBlob = new Blob([`
+        let timer = null;
+        self.onmessage = function(e) {
+          if (e.data === 'start') {
+            if (!timer) {
+              timer = setInterval(() => {
+                self.postMessage('tick');
+              }, 50);
+            }
+          } else if (e.data === 'stop') {
+            if (timer) {
+              clearInterval(timer);
+              timer = null;
+            }
+          }
+        };
+      `], { type: 'application/javascript' });
+
+      const tickerWorker = new Worker(URL.createObjectURL(workerBlob));
+      tickerWorker.onmessage = (e) => {
+        if (e.data === 'tick') {
+          loopMonitorTick();
+        }
+      };
+      tickerWorker.postMessage('start');
+    } catch (e) {
+      console.warn('Fallback to standard interval:', e);
+      setInterval(loopMonitorTick, 50);
+    }
+  }
+
   // Initialization
   window.addEventListener('DOMContentLoaded', async () => {
     await handleOAuthCallback();
@@ -1658,8 +1758,9 @@
       updateUIState(false);
     }
 
+    // Polling & Background Worker Engine
     setInterval(syncPlaybackState, 1500);
-    setInterval(loopMonitorTick, 50);
+    initBackgroundWorkerTicker();
   });
 </script>
 
