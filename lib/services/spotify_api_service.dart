@@ -119,4 +119,20 @@ class SpotifyApiService {
       return false;
     }
   }
+
+  /// Set playback volume (0 - 100)
+  Future<bool> setVolume(int percent) async {
+    try {
+      final headers = await _getHeaders();
+      final clamped = percent.clamp(0, 100);
+      final response = await http.put(
+        Uri.parse('https://api.spotify.com/v1/me/player/volume?volume_percent=$clamped'),
+        headers: headers,
+      );
+      return response.statusCode == 204 || response.statusCode == 200;
+    } catch (e) {
+      debugPrint('SpotifyApiService setVolume error: $e');
+      return false;
+    }
+  }
 }
