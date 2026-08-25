@@ -22,6 +22,7 @@ class LoopEngine extends ChangeNotifier {
   Timer? _precisionTimer;
   Timer? _apiSyncTimer;
   DateTime _lastSeekDispatched = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime _seekLockoutUntil = DateTime.fromMillisecondsSinceEpoch(0);
 
   // Getters
   SpotifyTrack? get currentTrack => _currentTrack;
@@ -33,15 +34,18 @@ class LoopEngine extends ChangeNotifier {
   bool get isPlaying => _isPlaying;
   int get durationMs => _currentTrack?.durationMs ?? 0;
 
+  bool get isLoopValid => _startMarkerMs != null && _endMarkerMs != null && _startMarkerMs! < _endMarkerMs!;
+  int get loopDurationMs => isLoopValid ? (_endMarkerMs! - _startMarkerMs!) : 0;
+
   LoopEngine(this._apiService, this._storage) {
     _startTimers();
   }
 
   void _startTimers() {
-    // High-precision local tick timer for smooth progress UI and sub-second loop triggering
-    _precisionTimer = Timer.periodic(const Duration(milliseconds: 35), (_) => _onPrecisionTick());
+    // 50ms High-precision loop tick
+    _precisionTimer = Timer.periodic(const Duration(milliseconds: 50), (_) => _onPrecisionTick());
 
-    // Background Spotify API polling to detect external track changes, pauses, device switches
+    // 2.5s Background Spotify state polling
     _apiSyncTimer = Timer.periodic(const Duration(milliseconds: 2500), (_) => syncWithSpotify());
 
     // Initial sync
@@ -68,9 +72,12 @@ class LoopEngine extends ChangeNotifier {
 
     final isNewTrack = _currentTrack?.id != track.id;
     _currentTrack = track;
-    _currentProgressMs = track.progressMs;
-    _lastProgressSync = DateTime.now();
     _isPlaying = track.isPlaying;
+
+    if (DateTime.now().isAfter(_seekLockoutUntil)) {
+      _currentProgressMs = track.progressMs;
+      _lastProgressSync = DateTime.now();
+    }
 
     if (isNewTrack && track.id.isNotEmpty) {
       _loopCount = 0;
@@ -243,10 +250,14 @@ class LoopEngine extends ChangeNotifier {
   }
 
   Future<void> seek(int positionMs) async {
-    _currentProgressMs = positionMs.clamp(0, durationMs);
-    _lastProgressSync = DateTime.now();
+    final maxDuration = durationMs > 0 ? durationMs : 3600000;
+    final target = positionMs.clamp(0, maxDuration);
+    _currentProgressMs = target;
+    final now = DateTime.now();
+    _lastProgressSync = now;
+    _seekLockoutUntil = now.add(const Duration(milliseconds: 1500));
     notifyListeners();
-    await _apiService.seekTo(_currentProgressMs);
+    await _apiService.seekTo(target);
   }
 
   Future<void> next() async {

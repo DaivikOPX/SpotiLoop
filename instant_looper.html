@@ -236,28 +236,94 @@
       box-shadow: 0 0 10px var(--point-b-glow);
     }
 
+    /* Timeline Floating Tooltip */
+    .timeline-tooltip {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      transform: translateX(-50%);
+      background: #181a20;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.15);
+      pointer-events: none;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+      display: none;
+      z-index: 30;
+    }
+    .timeline-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 4px;
+      border-style: solid;
+      border-color: #181a20 transparent transparent transparent;
+    }
+
     .playhead-needle {
       position: absolute;
       top: 50%;
       transform: translate(-50%, -50%);
-      width: 12px;
-      height: 12px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
       background: #ffffff;
-      box-shadow: 0 0 6px rgba(255,255,255,0.9), 0 2px 4px rgba(0,0,0,0.8);
+      box-shadow: 0 0 8px rgba(255,255,255,0.95), 0 2px 5px rgba(0,0,0,0.8);
       pointer-events: none;
       z-index: 5;
+      transition: transform 0.1s ease;
+    }
+
+    .timeline-track-area:hover .playhead-needle,
+    .timeline-track-area.scrubbing .playhead-needle {
+      transform: translate(-50%, -50%) scale(1.25);
     }
 
     .time-readouts {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       font-size: 11.5px;
       font-weight: 700;
       font-family: 'JetBrains Mono', monospace;
       color: var(--text-muted);
+      margin-top: 6px;
     }
     .time-current { color: #fff; }
+
+    /* Quick Seek Micro-Bar */
+    .quick-seek-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    .quick-seek-btn {
+      background: #14161f;
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--text-muted);
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .quick-seek-btn:hover {
+      background: #202433;
+      color: #fff;
+      border-color: rgba(255,255,255,0.2);
+    }
 
     /* Dual Marker Cards */
     .marker-grid {
@@ -755,18 +821,19 @@
     <div class="card">
       <div class="timeline-wrapper">
         <div class="timeline-track-area" id="timelineTrack">
+          <div id="timelineTooltip" class="timeline-tooltip">00:00.0</div>
           <div class="timeline-bg">
             <div id="progressFill" class="timeline-progress-fill"></div>
           </div>
           <div id="loopZone" class="loop-highlight-zone" style="display:none;"></div>
           
           <!-- Draggable Handle A -->
-          <div id="handleA" class="drag-handle handle-a" style="display:none;">
+          <div id="handleA" class="drag-handle handle-a" style="display:none;" title="Drag to adjust Start Point A">
             <span>A</span>
           </div>
 
           <!-- Draggable Handle B -->
-          <div id="handleB" class="drag-handle handle-b" style="display:none;">
+          <div id="handleB" class="drag-handle handle-b" style="display:none;" title="Drag to adjust End Point B">
             <span>B</span>
           </div>
 
@@ -778,6 +845,14 @@
           <span id="currTimeReadout" class="time-current">00:00.0</span>
           <span id="loopSpanBadge" style="color:var(--spotify-green); font-size:11px; font-weight:700;"></span>
           <span id="totalTimeReadout">00:00.0</span>
+        </div>
+
+        <!-- Quick Precision Seek Micro-Bar -->
+        <div class="quick-seek-row">
+          <button class="quick-seek-btn" onclick="quickSeek(-5000)" title="Rewind 5 seconds">⏮ -5s</button>
+          <button class="quick-seek-btn" onclick="quickSeek(-1000)" title="Rewind 1 second">◀ -1s</button>
+          <button class="quick-seek-btn" onclick="quickSeek(1000)" title="Forward 1 second">+1s ▶</button>
+          <button class="quick-seek-btn" onclick="quickSeek(5000)" title="Forward 5 seconds">+5s ⏭</button>
         </div>
       </div>
     </div>
@@ -1326,9 +1401,26 @@
     } catch (_) {}
   }
 
+  function quickSeek(deltaMs) {
+    ensureAudioContextActive();
+    const current = getEstimatedProgress();
+    const target = Math.max(0, Math.min(current + deltaMs, durationMs || 3600000));
+    triggerSeek(target);
+    showToast(`${deltaMs > 0 ? '+' : ''}${deltaMs / 1000}s`);
+  }
+
   // Animation Loop for 60fps Scrubber
+  let isScrubbing = false;
+  let scrubProgressMs = 0;
+
   function renderUiTick() {
-    const pos = getEstimatedProgress();
+    let pos = isScrubbing ? scrubProgressMs : getEstimatedProgress();
+
+    // Visual instant loop turnaround if looping
+    if (isLoopActive && isPlaying && pointB !== null && pointA !== null && pos >= pointB) {
+      pos = pointA;
+    }
+
     document.getElementById('currTimeReadout').textContent = formatTime(pos);
 
     if (durationMs > 0) {
@@ -1476,53 +1568,124 @@
     }
   }
 
-  // Pointer Drag Handling
+  // Refined Interactive Scrubbing & Pointer Drag Handling
   function setupDragHandlers() {
     const track = document.getElementById('timelineTrack');
     const handleA = document.getElementById('handleA');
     const handleB = document.getElementById('handleB');
+    const tooltip = document.getElementById('timelineTooltip');
 
-    function getPositionFromEvent(e) {
+    function getPositionAndFracFromEvent(e) {
       const rect = track.getBoundingClientRect();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const frac = Math.max(0, Math.min((clientX - rect.left) / rect.width, 1));
-      return Math.round(frac * (durationMs || 1000));
+      const targetMs = Math.round(frac * (durationMs || 1000));
+      return { targetMs, frac, clientX, left: clientX - rect.left };
     }
 
+    // Hover Tooltip
+    track.addEventListener('pointermove', (e) => {
+      if (!durationMs || activeDrag) return;
+      const { targetMs, frac } = getPositionAndFracFromEvent(e);
+      tooltip.style.display = 'block';
+      tooltip.style.left = `${frac * 100}%`;
+      tooltip.textContent = formatTime(targetMs);
+    });
+
+    track.addEventListener('pointerleave', () => {
+      if (!isScrubbing && !activeDrag) {
+        tooltip.style.display = 'none';
+      }
+    });
+
+    // Continuous Scrubbing on Track
     track.addEventListener('pointerdown', (e) => {
       if (e.target === handleA || e.target === handleB) return;
       if (!durationMs) return;
-      const targetMs = getPositionFromEvent(e);
-      triggerSeek(targetMs);
+
+      e.preventDefault();
+      ensureAudioContextActive();
+      isScrubbing = true;
+      track.classList.add('scrubbing');
+
+      const { targetMs, frac } = getPositionAndFracFromEvent(e);
+      scrubProgressMs = targetMs;
+      tooltip.style.display = 'block';
+      tooltip.style.left = `${frac * 100}%`;
+      tooltip.textContent = formatTime(targetMs);
+
+      function onScrubMove(moveEvent) {
+        if (!isScrubbing) return;
+        const info = getPositionAndFracFromEvent(moveEvent);
+        scrubProgressMs = info.targetMs;
+        tooltip.style.left = `${info.frac * 100}%`;
+        tooltip.textContent = formatTime(info.targetMs);
+      }
+
+      function onScrubUp() {
+        if (!isScrubbing) return;
+        isScrubbing = false;
+        track.classList.remove('scrubbing');
+        tooltip.style.display = 'none';
+        window.removeEventListener('pointermove', onScrubMove);
+        window.removeEventListener('pointerup', onScrubUp);
+        triggerSeek(scrubProgressMs);
+      }
+
+      window.addEventListener('pointermove', onScrubMove);
+      window.addEventListener('pointerup', onScrubUp);
     });
 
+    // Handle A and B Dragging
     let activeDrag = null;
-    function onPointerDown(target, e) {
+
+    function onHandlePointerDown(target, e) {
       e.stopPropagation();
+      e.preventDefault();
+      ensureAudioContextActive();
       activeDrag = target;
-      window.addEventListener('pointermove', onPointerMove);
-      window.addEventListener('pointerup', onPointerUp);
-    }
 
-    function onPointerMove(e) {
-      if (!activeDrag || !durationMs) return;
-      const pos = getPositionFromEvent(e);
-      if (activeDrag === 'A') {
-        pointA = Math.min(pos, pointB !== null ? pointB - 100 : durationMs);
-      } else if (activeDrag === 'B') {
-        pointB = Math.max(pos, pointA !== null ? pointA + 100 : 0);
+      const { targetMs, frac } = getPositionAndFracFromEvent(e);
+      tooltip.style.display = 'block';
+      tooltip.style.left = `${frac * 100}%`;
+      tooltip.textContent = `${target === 'A' ? 'Point A: ' : 'Point B: '}${formatTime(targetMs)}`;
+
+      function onHandleMove(moveEvent) {
+        if (!activeDrag || !durationMs) return;
+        let { targetMs, frac } = getPositionAndFracFromEvent(moveEvent);
+
+        // Magnetic snap to playhead within 250ms
+        const playhead = getEstimatedProgress();
+        if (Math.abs(targetMs - playhead) < 250) {
+          targetMs = playhead;
+          frac = playhead / durationMs;
+        }
+
+        if (activeDrag === 'A') {
+          pointA = Math.min(targetMs, pointB !== null ? pointB - 100 : durationMs);
+          tooltip.textContent = `🚩 Point A: ${formatTime(pointA)}`;
+          tooltip.style.left = `${(pointA / durationMs) * 100}%`;
+        } else if (activeDrag === 'B') {
+          pointB = Math.max(targetMs, pointA !== null ? pointA + 100 : 0);
+          tooltip.textContent = `🏁 Point B: ${formatTime(pointB)}`;
+          tooltip.style.left = `${(pointB / durationMs) * 100}%`;
+        }
+        renderMarkers();
       }
-      renderMarkers();
+
+      function onHandleUp() {
+        activeDrag = null;
+        tooltip.style.display = 'none';
+        window.removeEventListener('pointermove', onHandleMove);
+        window.removeEventListener('pointerup', onHandleUp);
+      }
+
+      window.addEventListener('pointermove', onHandleMove);
+      window.addEventListener('pointerup', onHandleUp);
     }
 
-    function onPointerUp() {
-      activeDrag = null;
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-    }
-
-    handleA.addEventListener('pointerdown', (e) => onPointerDown('A', e));
-    handleB.addEventListener('pointerdown', (e) => onPointerDown('B', e));
+    handleA.addEventListener('pointerdown', (e) => onHandlePointerDown('A', e));
+    handleB.addEventListener('pointerdown', (e) => onHandlePointerDown('B', e));
   }
 
   // Global Keyboard Shortcuts
