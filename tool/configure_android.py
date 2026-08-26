@@ -39,7 +39,17 @@ def configure_android():
             f.write(content)
         print("Updated AndroidManifest.xml successfully.")
 
-    # 2. settings.gradle
+    # 2. gradle-wrapper.properties (Update to Gradle 8.4)
+    gradle_wrapper = 'android/gradle/wrapper/gradle-wrapper.properties'
+    if os.path.exists(gradle_wrapper):
+        with open(gradle_wrapper, 'r', encoding='utf-8') as f:
+            gw = f.read()
+        gw = re.sub(r'distributionUrl=.*', r'distributionUrl=https\\://services.gradle.org/distributions/gradle-8.4-all.zip', gw)
+        with open(gradle_wrapper, 'w', encoding='utf-8') as f:
+            f.write(gw)
+        print("Updated gradle-wrapper.properties with Gradle 8.4.")
+
+    # 3. settings.gradle
     settings_gradle = 'android/settings.gradle'
     if os.path.exists(settings_gradle):
         with open(settings_gradle, 'r', encoding='utf-8') as f:
@@ -59,9 +69,9 @@ plugins {
 
         with open(settings_gradle, 'w', encoding='utf-8') as f:
             f.write(s)
-        print("Updated settings.gradle:\n", s)
+        print("Updated settings.gradle with Kotlin 1.9.24.")
 
-    # 3. build.gradle
+    # 4. build.gradle
     build_gradle = 'android/build.gradle'
     if os.path.exists(build_gradle):
         with open(build_gradle, 'r', encoding='utf-8') as f:
@@ -87,7 +97,7 @@ plugins {
             f.write(b)
         print("Updated build.gradle with Kotlin buildscript classpath.")
 
-    # 4. app/build.gradle
+    # 5. app/build.gradle
     app_build_gradle = 'android/app/build.gradle'
     if os.path.exists(app_build_gradle):
         with open(app_build_gradle, 'r', encoding='utf-8') as f:
