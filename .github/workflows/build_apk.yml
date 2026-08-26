@@ -36,7 +36,7 @@ jobs:
           flutter create --platforms=android --org com.daivik --project-name spotiloop .
           cp /tmp/pubspec.yaml.bak pubspec.yaml
 
-      - name: Configure App Name and Deep Link Intent Filters
+      - name: Configure App Name, Permissions and Deep Link Intent Filters
         run: |
           python3 -c "
           manifest_path = 'android/app/src/main/AndroidManifest.xml'
@@ -48,6 +48,14 @@ jobs:
           
           # Ensure singleTask launch mode so existing app instance receives the deep link callback
           content = content.replace('android:launchMode=\"singleTop\"', 'android:launchMode=\"singleTask\"')
+
+          # Add INTERNET and NETWORK permissions for HTTP requests and token exchange
+          permissions = '''
+    <uses-permission android:name=\"android.permission.INTERNET\"/>
+    <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>
+          '''
+          if 'android.permission.INTERNET' not in content:
+              content = content.replace('<application', permissions + '\n    <application')
 
           deep_link = '''
               <!-- Spotify OAuth PKCE Deep Link Callback -->
