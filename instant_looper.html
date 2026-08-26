@@ -503,7 +503,8 @@
       border-radius: 50%;
       pointer-events: none;
       z-index: 4;
-      box-shadow: 0 0 10px #fff;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 2px 5px rgba(0,0,0,0.5);
+      display: none;
     }
     .time-readouts {
       display: flex;
@@ -1498,12 +1499,18 @@
 
   async function loopMonitorTick() {
     const pos = getEstimatedProgress();
+    const needle = document.getElementById('playheadNeedle');
+    const fill = document.getElementById('progressFill');
 
     if (durationMs > 0) {
-      const pct = (pos / durationMs) * 100;
-      document.getElementById('progressFill').style.width = `${pct}%`;
-      document.getElementById('playheadNeedle').style.left = `${pct}%`;
+      const pct = Math.max(0, Math.min(100, (pos / durationMs) * 100));
+      fill.style.width = `${pct}%`;
+      needle.style.display = 'block';
+      needle.style.left = `${pct}%`;
       document.getElementById('currTimeReadout').textContent = formatTime(pos);
+    } else {
+      fill.style.width = '0%';
+      needle.style.display = 'none';
     }
 
     if (isLoopActive && pointA !== null && pointB !== null && pointB > pointA) {
