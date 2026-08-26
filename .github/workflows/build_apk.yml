@@ -49,8 +49,8 @@ jobs:
           # Ensure singleTask launch mode so existing app instance receives the deep link callback
           content = content.replace('android:launchMode=\"singleTop\"', 'android:launchMode=\"singleTask\"')
 
-          # Add INTERNET and NETWORK permissions
-          perm_block = '<uses-permission android:name=\"android.permission.INTERNET\"/>\n    <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>\n    <application'
+          # Add INTERNET, NETWORK, WAKE_LOCK, and FOREGROUND_SERVICE permissions
+          perm_block = '<uses-permission android:name=\"android.permission.INTERNET\"/>\n    <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>\n    <uses-permission android:name=\"android.permission.WAKE_LOCK\"/>\n    <uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\"/>\n    <application'
           if 'android.permission.INTERNET' not in content:
               content = content.replace('<application', perm_block)
 
