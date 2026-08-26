@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../models/spotify_track.dart';
 import '../models/loop_preset.dart';
 import 'spotify_api_service.dart';
@@ -57,8 +58,8 @@ class LoopEngine extends ChangeNotifier {
     // 50ms High-precision loop tick
     _precisionTimer = Timer.periodic(const Duration(milliseconds: 50), (_) => _onPrecisionTick());
 
-    // 2.5s Background Spotify state polling
-    _apiSyncTimer = Timer.periodic(const Duration(milliseconds: 2500), (_) => syncWithSpotify());
+    // 1.2s Background Spotify Connect sync
+    _apiSyncTimer = Timer.periodic(const Duration(milliseconds: 1200), (_) => syncWithSpotify());
 
     // Initial sync
     syncWithSpotify();
@@ -69,6 +70,7 @@ class LoopEngine extends ChangeNotifier {
     _precisionTimer?.cancel();
     _apiSyncTimer?.cancel();
     progressNotifier.dispose();
+    WakelockPlus.disable().catchError((_) {});
     super.dispose();
   }
 
@@ -87,14 +89,12 @@ class LoopEngine extends ChangeNotifier {
     _currentTrack = track;
     _isPlaying = track.isPlaying;
 
-    if (isNewTrack || !track.isPlaying || DateTime.now().isAfter(_seekLockoutUntil)) {
-      final currentEst = liveProgressMs;
-      // Only snap if drift > 1.2s or track changed or paused
-      if (isNewTrack || !track.isPlaying || (currentEst - track.progressMs).abs() > 1200) {
-        _currentProgressMs = track.progressMs;
-        _lastProgressSync = DateTime.now();
-        progressNotifier.value = _currentProgressMs;
-      }
+    final now = DateTime.now();
+    // Calibrate progress from Spotify's authoritative server
+    if (isNewTrack || !track.isPlaying || now.isAfter(_seekLockoutUntil)) {
+      _currentProgressMs = track.progressMs;
+      _lastProgressSync = now;
+      progressNotifier.value = track.progressMs;
     }
 
     if (isNewTrack && track.id.isNotEmpty) {
@@ -113,6 +113,7 @@ class LoopEngine extends ChangeNotifier {
       _endMarkerMs = match.endMs;
       if (_storage.getAutoLoopOnSongChange()) {
         _isLoopActive = true;
+        WakelockPlus.enable().catchError((_) {});
       }
     }
   }
@@ -130,12 +131,12 @@ class LoopEngine extends ChangeNotifier {
 
     // Loop trigger check
     if (_isLoopActive && _startMarkerMs != null && _endMarkerMs != null && _endMarkerMs! > _startMarkerMs!) {
-      final offset = _storage.getSeekOffsetMs();
+      final offset = _storage.getSeekOffsetMs() > 0 ? _storage.getSeekOffsetMs() : 120; // 120ms lead offset
       final triggerPoint = _endMarkerMs! - offset;
 
       if (currentPos >= triggerPoint) {
-        // Prevent rapid duplicate seeks within 250ms
-        if (now.difference(_lastSeekDispatched).inMilliseconds > 250) {
+        // Prevent rapid duplicate seeks within 300ms
+        if (now.difference(_lastSeekDispatched).inMilliseconds > 300) {
           _lastSeekDispatched = now;
           _loopCount++;
 
@@ -143,8 +144,9 @@ class LoopEngine extends ChangeNotifier {
           _currentProgressMs = _startMarkerMs!;
           _lastProgressSync = now;
           progressNotifier.value = _startMarkerMs!;
+          _seekLockoutUntil = now.add(const Duration(milliseconds: 1400));
 
-          // Dispatch seek command to Spotify
+          // Dispatch seek command to Spotify Connect
           _apiService.seekTo(_startMarkerMs!);
           notifyListeners();
         }
@@ -228,6 +230,7 @@ class LoopEngine extends ChangeNotifier {
       _currentProgressMs = _startMarkerMs!;
       _lastProgressSync = DateTime.now();
       progressNotifier.value = _startMarkerMs!;
+      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1400));
       _apiService.seekTo(_startMarkerMs!);
       notifyListeners();
     }
@@ -238,6 +241,7 @@ class LoopEngine extends ChangeNotifier {
       _currentProgressMs = _endMarkerMs!;
       _lastProgressSync = DateTime.now();
       progressNotifier.value = _endMarkerMs!;
+      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1400));
       _apiService.seekTo(_endMarkerMs!);
       notifyListeners();
     }
@@ -251,8 +255,11 @@ class LoopEngine extends ChangeNotifier {
       _endMarkerMs = durationMs > 0 ? durationMs : 30000;
     }
     _isLoopActive = !_isLoopActive;
-    if (_isLoopActive && _startMarkerMs != null) {
-      jumpToA();
+    if (_isLoopActive) {
+      WakelockPlus.enable().catchError((_) {});
+      if (_startMarkerMs != null) jumpToA();
+    } else {
+      WakelockPlus.disable().catchError((_) {});
     }
     notifyListeners();
   }
@@ -262,6 +269,7 @@ class LoopEngine extends ChangeNotifier {
     _endMarkerMs = null;
     _isLoopActive = false;
     _loopCount = 0;
+    WakelockPlus.disable().catchError((_) {});
     notifyListeners();
   }
 
@@ -330,6 +338,7 @@ class LoopEngine extends ChangeNotifier {
     _startMarkerMs = preset.startMs;
     _endMarkerMs = preset.endMs;
     _isLoopActive = true;
+    WakelockPlus.enable().catchError((_) {});
     jumpToA();
     notifyListeners();
   }

@@ -36,15 +36,31 @@ class SpotifyTrack {
     final images = albumObj['images'] as List<dynamic>? ?? [];
     final albumArt = images.isNotEmpty ? (images[0]['url'] as String? ?? '') : '';
 
+    final rawProgress = json['progress_ms'] as int? ?? 0;
+    final serverTimestamp = json['timestamp'] as int?;
+    final isPlaying = json['is_playing'] as bool? ?? false;
+
+    // Compensate for network transit latency if server timestamp is present
+    int compensatedProgress = rawProgress;
+    if (serverTimestamp != null && isPlaying) {
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final networkLatency = nowMs - serverTimestamp;
+      if (networkLatency > 0 && networkLatency < 4000) {
+        compensatedProgress = rawProgress + networkLatency;
+      }
+    }
+
+    final duration = item['duration_ms'] as int? ?? 0;
+
     return SpotifyTrack(
       id: item['id'] as String? ?? '',
       title: item['name'] as String? ?? 'Unknown Title',
       artist: artistsString.isNotEmpty ? artistsString : 'Unknown Artist',
       album: albumObj['name'] as String? ?? 'Unknown Album',
       albumArtUrl: albumArt,
-      durationMs: item['duration_ms'] as int? ?? 0,
-      progressMs: json['progress_ms'] as int? ?? 0,
-      isPlaying: json['is_playing'] as bool? ?? false,
+      durationMs: duration,
+      progressMs: (duration > 0 && compensatedProgress > duration) ? duration : compensatedProgress,
+      isPlaying: isPlaying,
       deviceName: device?['name'] as String?,
       deviceType: device?['type'] as String?,
       fetchedAt: DateTime.now(),
