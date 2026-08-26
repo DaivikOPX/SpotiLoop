@@ -70,6 +70,32 @@ jobs:
           with open(manifest_path, 'w') as f:
               f.write(content)
           
+          import os, re
+          # Ensure modern Kotlin version (1.9.24) and minSdk 21
+          settings_gradle = 'android/settings.gradle'
+          if os.path.exists(settings_gradle):
+              with open(settings_gradle, 'r') as f:
+                  s = f.read()
+              s = re.sub(r'id "org\.jetbrains\.kotlin\.android" version "[^"]+"', 'id "org.jetbrains.kotlin.android" version "1.9.24"', s)
+              with open(settings_gradle, 'w') as f:
+                  f.write(s)
+                  
+          build_gradle = 'android/build.gradle'
+          if os.path.exists(build_gradle):
+              with open(build_gradle, 'r') as f:
+                  b = f.read()
+              b = re.sub(r"ext\.kotlin_version = '[^']+'", "ext.kotlin_version = '1.9.24'", b)
+              with open(build_gradle, 'w') as f:
+                  f.write(b)
+
+          app_build_gradle = 'android/app/build.gradle'
+          if os.path.exists(app_build_gradle):
+              with open(app_build_gradle, 'r') as f:
+                  ab = f.read()
+              ab = ab.replace('minSdkVersion flutter.minSdkVersion', 'minSdkVersion 21')
+              with open(app_build_gradle, 'w') as f:
+                  f.write(ab)
+
           print('=== VERIFIED ANDROID MANIFEST ===')
           with open(manifest_path, 'r') as f:
               print(f.read())
