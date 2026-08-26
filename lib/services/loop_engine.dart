@@ -83,9 +83,12 @@ class LoopEngine extends ChangeNotifier {
     _currentTrack = track;
     _isPlaying = track.isPlaying;
 
-    if (DateTime.now().isAfter(_seekLockoutUntil)) {
-      _currentProgressMs = track.progressMs;
-      _lastProgressSync = DateTime.now();
+    if (isNewTrack || !track.isPlaying || DateTime.now().isAfter(_seekLockoutUntil)) {
+      final currentEst = liveProgressMs;
+      if (isNewTrack || !track.isPlaying || (currentEst - track.progressMs).abs() > 1200) {
+        _currentProgressMs = track.progressMs;
+        _lastProgressSync = DateTime.now();
+      }
     }
 
     if (isNewTrack && track.id.isNotEmpty) {
