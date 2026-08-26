@@ -17,10 +17,12 @@ class SpotifyAuthService extends ChangeNotifier {
 
   String? _currentCodeVerifier;
   bool _isAuthenticating = false;
+  String? _authError;
 
   bool get isAuthenticating => _isAuthenticating;
   bool get isAuthenticated => _storage.getAccessToken() != null;
   String? get clientId => _storage.getClientId();
+  String? get authError => _authError;
 
   SpotifyAuthService(this._storage) {
     _initDeepLinks();
@@ -55,13 +57,29 @@ class SpotifyAuthService extends ChangeNotifier {
 
   void _handleIncomingUri(Uri uri) {
     debugPrint('Received Deep Link URI: $uri');
-    final str = uri.toString();
-    if (uri.scheme == 'spotiloop' || str.startsWith('spotiloop://')) {
-      final code = uri.queryParameters['code'];
-      final error = uri.queryParameters['error'];
+    final uriStr = uri.toString();
+    if (uri.scheme == 'spotiloop' || uriStr.startsWith('spotiloop://') || uriStr.startsWith('spotiloop:')) {
+      String? code = uri.queryParameters['code'];
+      String? error = uri.queryParameters['error'];
+
+      // Fallback regex parsing if queryParameters missed it
+      if (code == null && uriStr.contains('code=')) {
+        final match = RegExp(r'[?&]code=([^&]+)').firstMatch(uriStr);
+        if (match != null) {
+          code = match.group(1);
+        }
+      }
+      if (error == null && uriStr.contains('error=')) {
+        final match = RegExp(r'[?&]error=([^&]+)').firstMatch(uriStr);
+        if (match != null) {
+          error = match.group(1);
+        }
+      }
+
       if (code != null && code.isNotEmpty) {
         _handleAuthCode(code);
       } else if (error != null) {
+        _authError = 'Spotify authorization cancelled: $error';
         _isAuthenticating = false;
         notifyListeners();
       }
@@ -100,9 +118,12 @@ class SpotifyAuthService extends ChangeNotifier {
   Future<bool> startLogin() async {
     final activeClientId = _storage.getClientId();
     if (activeClientId.isEmpty) {
+      _authError = 'Missing Spotify Client ID configuration';
+      notifyListeners();
       return false;
     }
 
+    _authError = null;
     _isAuthenticating = true;
     notifyListeners();
 
@@ -130,6 +151,7 @@ class SpotifyAuthService extends ChangeNotifier {
 
     final launched = await launchUrl(authUrl, mode: LaunchMode.externalApplication);
     if (!launched) {
+      _authError = 'Could not launch Spotify authorization browser';
       _isAuthenticating = false;
       notifyListeners();
       return false;
@@ -186,6 +208,7 @@ class SpotifyAuthService extends ChangeNotifier {
             await request.response.close();
             await _localServer?.close();
             _localServer = null;
+            _authError = 'Spotify authorization failed: $error';
             _isAuthenticating = false;
             notifyListeners();
           }
@@ -197,9 +220,14 @@ class SpotifyAuthService extends ChangeNotifier {
   }
 
   Future<void> _handleAuthCode(String code) async {
+    _authError = null;
+    _isAuthenticating = true;
+    notifyListeners();
+
     final clientId = _storage.getClientId();
     final verifier = _storage.getCodeVerifier() ?? _currentCodeVerifier;
     if (clientId == null || verifier == null) {
+      _authError = 'Missing Spotify client credentials or verifier';
       _isAuthenticating = false;
       notifyListeners();
       return;
@@ -229,10 +257,14 @@ class SpotifyAuthService extends ChangeNotifier {
           await _storage.setRefreshToken(refreshToken);
         }
         await _storage.setTokenExpiry(DateTime.now().add(Duration(seconds: expiresIn - 60)));
+        _authError = null;
       } else {
+        final data = jsonDecode(response.body);
+        _authError = data['error_description'] ?? data['error'] ?? 'Token exchange failed (${response.statusCode})';
         debugPrint('Token exchange error: ${response.body}');
       }
     } catch (e) {
+      _authError = 'Connection error during token exchange: $e';
       debugPrint('Error exchanging auth code: $e');
     } finally {
       _isAuthenticating = false;
@@ -249,7 +281,6 @@ class SpotifyAuthService extends ChangeNotifier {
     if (token == null) return null;
 
     if (expiry != null && DateTime.now().isAfter(expiry) && refreshToken != null && clientId != null) {
-      // Refresh token
       try {
         final response = await http.post(
           Uri.parse('https://accounts.spotify.com/api/token'),
@@ -284,6 +315,7 @@ class SpotifyAuthService extends ChangeNotifier {
 
   Future<void> logout() async {
     await _storage.clearAuth();
+    _authError = null;
     notifyListeners();
   }
 }

@@ -15,6 +15,13 @@ void main() async {
   final apiService = SpotifyApiService(authService);
   final loopEngine = LoopEngine(apiService, storage);
 
+  // Automatically trigger playback sync whenever authentication state transitions to logged in
+  authService.addListener(() {
+    if (authService.isAuthenticated) {
+      loopEngine.syncWithSpotify();
+    }
+  });
+
   runApp(SpotiLoopApp(
     storage: storage,
     authService: authService,
@@ -41,13 +48,13 @@ class SpotiLoopApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF121212),
+        scaffoldBackgroundColor: const Color(0xFF070709),
         primaryColor: const Color(0xFF1DB954),
         colorScheme: const ColorScheme.dark(
           primary: Color(0xFF1DB954),
           secondary: Color(0xFF1ED760),
-          surface: Color(0xFF1E1E1E),
-          background: Color(0xFF121212),
+          surface: Color(0xFF15151C),
+          background: Color(0xFF070709),
         ),
         fontFamily: 'Segoe UI',
         useMaterial3: true,

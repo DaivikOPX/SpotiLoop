@@ -21,7 +21,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: engine,
+      listenable: Listenable.merge([engine, authService]),
       builder: (context, _) {
         final isAuth = authService.isAuthenticated;
 
@@ -53,6 +53,18 @@ class HomeScreen extends StatelessWidget {
                 ),
               ],
             ),
+            actions: isAuth
+                ? [
+                    IconButton(
+                      icon: const Icon(Icons.logout_rounded, color: Colors.white60, size: 20),
+                      tooltip: 'Disconnect Spotify',
+                      onPressed: () async {
+                        await authService.logout();
+                        engine.resetMarkers();
+                      },
+                    ),
+                  ]
+                : [],
           ),
           body: !isAuth
               ? _buildConnectPrompt(context)
@@ -268,7 +280,32 @@ class HomeScreen extends StatelessWidget {
               height: 1.45,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
+
+          // Error Banner if token exchange failed
+          if (authService.authError != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF5252).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFF5252).withOpacity(0.4)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded, color: Color(0xFFFF5252), size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      authService.authError!,
+                      style: const TextStyle(fontSize: 12.5, color: Color(0xFFFF5252), fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
 
           // Primary Launch Button
           SizedBox(
@@ -278,9 +315,12 @@ class HomeScreen extends StatelessWidget {
                   ? null
                   : () async {
                       final ok = await authService.startLogin();
-                      if (!ok && context.mounted) {
+                      if (!ok && context.mounted && authService.authError != null) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Failed to open Spotify authorization. Please check connection.')),
+                          SnackBar(
+                            content: Text(authService.authError!),
+                            backgroundColor: const Color(0xFFFF5252),
+                          ),
                         );
                       }
                     },
@@ -300,7 +340,7 @@ class HomeScreen extends StatelessWidget {
                     )
                   : const Icon(Icons.play_circle_fill_rounded, size: 22),
               label: Text(
-                authService.isAuthenticating ? 'Authorizing...' : 'Authorize with Spotify',
+                authService.isAuthenticating ? 'Connecting to Spotify...' : 'Authorize with Spotify',
                 style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w900),
               ),
             ),
