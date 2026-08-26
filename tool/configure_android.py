@@ -44,25 +44,48 @@ def configure_android():
     if os.path.exists(settings_gradle):
         with open(settings_gradle, 'r', encoding='utf-8') as f:
             s = f.read()
-        print("ORIGINAL settings.gradle:\n", s)
-        s = re.sub(r'id\s*[\'"]org\.jetbrains\.kotlin\.android[\'"]\s*version\s*[\'"][^\'"]+[\'"]', 'id "org.jetbrains.kotlin.android" version "1.9.24"', s)
+        
+        plugins_block = '''
+plugins {
+    id "dev.flutter.flutter-plugin-loader" version "1.0.0"
+    id "com.android.application" version "8.3.0" apply false
+    id "org.jetbrains.kotlin.android" version "1.9.24" apply false
+}
+'''
+        if 'plugins {' in s:
+            s = re.sub(r'plugins\s*\{[^}]*\}', plugins_block.strip(), s)
+        else:
+            s = s + '\n' + plugins_block
+
         with open(settings_gradle, 'w', encoding='utf-8') as f:
             f.write(s)
-        print("UPDATED settings.gradle:\n", s)
+        print("Updated settings.gradle:\n", s)
 
     # 3. build.gradle
     build_gradle = 'android/build.gradle'
     if os.path.exists(build_gradle):
         with open(build_gradle, 'r', encoding='utf-8') as f:
             b = f.read()
-        print("ORIGINAL build.gradle:\n", b)
-        if 'ext.kotlin_version' in b:
-            b = re.sub(r"ext\.kotlin_version\s*=\s*['\"][^'\"]+['\"]", "ext.kotlin_version = '1.9.24'", b)
-        else:
-            b = "buildscript {\n    ext.kotlin_version = '1.9.24'\n}\n" + b
+
+        buildscript_block = '''buildscript {
+    ext.kotlin_version = '1.9.24'
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.3.0'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+'''
+        if 'buildscript {' not in b:
+            b = buildscript_block + '\n' + b
+
         with open(build_gradle, 'w', encoding='utf-8') as f:
             f.write(b)
-        print("UPDATED build.gradle:\n", b)
+        print("Updated build.gradle with Kotlin buildscript classpath.")
 
     # 4. app/build.gradle
     app_build_gradle = 'android/app/build.gradle'
