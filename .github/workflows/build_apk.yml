@@ -101,13 +101,15 @@ jobs:
         run: flutter pub get
 
       - name: Build Android APK (Release)
-        run: flutter build apk --release --no-tree-shake-icons
+        run: |
+          flutter build apk --release --no-tree-shake-icons
+          cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/Spoti-Loop.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: spotiloop-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: Spoti-Loop-apk
+          path: build/app/outputs/flutter-apk/Spoti-Loop.apk
 
       - name: Create / Update GitHub Release
         uses: softprops/action-gh-release@v2
@@ -115,7 +117,9 @@ jobs:
         with:
           tag_name: v1.0.0
           name: "Spoti Loop v1.0.0 (Android APK)"
-          body: "Official Android APK release for Spoti Loop with custom brand icon and Spotify OAuth PKCE deep linking. Download `app-release.apk` below and install on your phone!"
-          files: build/app/outputs/flutter-apk/app-release.apk
+          body: "Official Android APK release for Spoti Loop with custom brand icon and Spotify OAuth PKCE deep linking. Download `Spoti-Loop.apk` below and install on your phone!"
+          files: |
+            build/app/outputs/flutter-apk/Spoti-Loop.apk
+            build/app/outputs/flutter-apk/app-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

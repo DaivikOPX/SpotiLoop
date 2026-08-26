@@ -8,7 +8,7 @@
 
   <p>
     <a href="https://daivikopx.github.io/SpotiLoop/"><img src="https://img.shields.io/badge/Live%20Web%20Studio-daivikopx.github.io%2FSpotiLoop-1DB954?style=for-the-badge&logo=spotify&logoColor=white" alt="Live Web App" /></a>
-    <a href="https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/app-release.apk"><img src="https://img.shields.io/badge/Download-Android%20APK%20(v1.0.0)-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android APK" /></a>
+    <a href="https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/Spoti-Loop.apk"><img src="https://img.shields.io/badge/Download-Android%20APK%20(v1.0.0)-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android APK" /></a>
     <a href="https://github.com/DaivikOPX/SpotiLoop/stargazers"><img src="https://img.shields.io/github/stars/DaivikOPX/SpotiLoop?style=for-the-badge&color=yellow" alt="GitHub Stars" /></a>
   </p>
 </div>
@@ -40,7 +40,7 @@ No installations or terminal commands required! Simply open the web studio, auth
 
 Get the standalone APK directly for your Android device:
 
-* 📥 **[Download Spoti Loop v1.0.0 Release APK](https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/app-release.apk)**
+* 📥 **[Download Spoti Loop v1.0.0 Release APK](https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/Spoti-Loop.apk)**
 
 ---
 
