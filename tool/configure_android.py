@@ -44,20 +44,25 @@ def configure_android():
     if os.path.exists(settings_gradle):
         with open(settings_gradle, 'r', encoding='utf-8') as f:
             s = f.read()
-        s = re.sub(r'id "org\.jetbrains\.kotlin\.android" version "[^"]+"', 'id "org.jetbrains.kotlin.android" version "1.9.24"', s)
+        print("ORIGINAL settings.gradle:\n", s)
+        s = re.sub(r'id\s*[\'"]org\.jetbrains\.kotlin\.android[\'"]\s*version\s*[\'"][^\'"]+[\'"]', 'id "org.jetbrains.kotlin.android" version "1.9.24"', s)
         with open(settings_gradle, 'w', encoding='utf-8') as f:
             f.write(s)
-        print("Updated settings.gradle with Kotlin 1.9.24.")
+        print("UPDATED settings.gradle:\n", s)
 
     # 3. build.gradle
     build_gradle = 'android/build.gradle'
     if os.path.exists(build_gradle):
         with open(build_gradle, 'r', encoding='utf-8') as f:
             b = f.read()
-        b = re.sub(r"ext\.kotlin_version = '[^']+'", "ext.kotlin_version = '1.9.24'", b)
+        print("ORIGINAL build.gradle:\n", b)
+        if 'ext.kotlin_version' in b:
+            b = re.sub(r"ext\.kotlin_version\s*=\s*['\"][^'\"]+['\"]", "ext.kotlin_version = '1.9.24'", b)
+        else:
+            b = "buildscript {\n    ext.kotlin_version = '1.9.24'\n}\n" + b
         with open(build_gradle, 'w', encoding='utf-8') as f:
             f.write(b)
-        print("Updated android/build.gradle with Kotlin 1.9.24.")
+        print("UPDATED build.gradle:\n", b)
 
     # 4. app/build.gradle
     app_build_gradle = 'android/app/build.gradle'
@@ -65,6 +70,7 @@ def configure_android():
         with open(app_build_gradle, 'r', encoding='utf-8') as f:
             ab = f.read()
         ab = ab.replace('minSdkVersion flutter.minSdkVersion', 'minSdkVersion 21')
+        ab = re.sub(r'minSdkVersion\s+\d+', 'minSdkVersion 21', ab)
         with open(app_build_gradle, 'w', encoding='utf-8') as f:
             f.write(ab)
         print("Updated app/build.gradle with minSdkVersion 21.")
