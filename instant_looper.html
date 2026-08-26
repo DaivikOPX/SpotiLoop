@@ -1440,26 +1440,34 @@
   }
 
   function getEstimatedProgress() {
+    if (isScrubbing) return lastProgressMs;
     if (!isPlaying) return lastProgressMs;
     const elapsed = Date.now() - lastSyncTime;
     return Math.min(durationMs, lastProgressMs + elapsed);
   }
 
   async function syncPlaybackState() {
-    if (!accessToken) return;
+    if (!accessToken || isScrubbing) return;
     try {
       const res = await spotifyFetch('me/player');
       if (res && res.status === 200) {
         const data = await res.json();
         if (data && data.item) {
+          const isNewTrack = !currentTrack || currentTrack.id !== data.item.id;
           currentTrack = data.item;
           durationMs = data.item.duration_ms || 0;
           isPlaying = data.is_playing;
           activeDeviceId = data.device ? data.device.id : null;
 
-          if (Date.now() > seekLockoutUntil) {
-            lastProgressMs = data.progress_ms || 0;
-            lastSyncTime = Date.now();
+          if (isNewTrack || Date.now() > seekLockoutUntil) {
+            const apiProgress = data.progress_ms || 0;
+            const currentEst = getEstimatedProgress();
+            
+            // Only snap if drift > 1.2s or track changed or paused
+            if (isNewTrack || !isPlaying || Math.abs(currentEst - apiProgress) > 1200) {
+              lastProgressMs = apiProgress;
+              lastSyncTime = Date.now();
+            }
           }
 
           document.getElementById('trackTitle').textContent = data.item.name;
@@ -1476,9 +1484,11 @@
           document.getElementById('totalTimeReadout').textContent = formatTime(durationMs);
           updatePlayIcon(isPlaying);
 
-          // If loop is active and track overshot Point B while in background, trigger immediate seek
+          // If loop is active and track overshot Point B while tab was asleep
           const pos = getEstimatedProgress();
           if (isLoopActive && pointA !== null && pointB !== null && pos >= (pointB - seekLeadOffsetMs)) {
+            lastProgressMs = pointA;
+            lastSyncTime = Date.now();
             await spotifySeek(pointA);
           }
         }
@@ -1497,7 +1507,7 @@
     }
   }
 
-  async function loopMonitorTick() {
+  function renderTimelineVisuals() {
     const pos = getEstimatedProgress();
     const needle = document.getElementById('playheadNeedle');
     const fill = document.getElementById('progressFill');
@@ -1511,15 +1521,27 @@
     } else {
       fill.style.width = '0%';
       needle.style.display = 'none';
+      document.getElementById('currTimeReadout').textContent = '00:00.0';
     }
+  }
 
-    if (isLoopActive && pointA !== null && pointB !== null && pointB > pointA) {
+  async function loopMonitorTick() {
+    renderTimelineVisuals();
+
+    if (isLoopActive && pointA !== null && pointB !== null && pointB > pointA && !isScrubbing) {
+      const pos = getEstimatedProgress();
       if (pos >= (pointB - seekLeadOffsetMs)) {
         const now = Date.now();
-        if (now - lastSeekDispatchedTime > 350) {
+        if (now - lastSeekDispatchedTime > 300) {
           lastSeekDispatchedTime = now;
           loopCount++;
           document.getElementById('loopSubtext').textContent = `Looping: ${formatTime(pointA)} ➔ ${formatTime(pointB)} (${loopCount}x)`;
+          
+          // Instantly snap local dial back to Point A with zero visual latency
+          lastProgressMs = pointA;
+          lastSyncTime = now;
+          renderTimelineVisuals();
+
           await spotifySeek(pointA);
         }
       }
@@ -1528,9 +1550,10 @@
 
   async function spotifySeek(positionMs) {
     if (!accessToken) return;
-    seekLockoutUntil = Date.now() + 1200;
+    seekLockoutUntil = Date.now() + 1500;
     lastProgressMs = positionMs;
     lastSyncTime = Date.now();
+    renderTimelineVisuals();
 
     try {
       await spotifyFetch(`me/player/seek?position_ms=${Math.floor(positionMs)}`, { method: 'PUT' });
@@ -1550,13 +1573,17 @@
     activateKeepAliveAudio();
     try {
       if (isPlaying) {
-        await spotifyFetch('me/player/pause', { method: 'PUT' });
         isPlaying = false;
+        lastProgressMs = getEstimatedProgress();
+        lastSyncTime = Date.now();
+        updatePlayIcon(false);
+        await spotifyFetch('me/player/pause', { method: 'PUT' });
       } else {
-        await spotifyFetch('me/player/play', { method: 'PUT' });
         isPlaying = true;
+        lastSyncTime = Date.now();
+        updatePlayIcon(true);
+        await spotifyFetch('me/player/play', { method: 'PUT' });
       }
-      updatePlayIcon(isPlaying);
     } catch (e) {
       console.error('Toggle play error:', e);
     }
@@ -1676,36 +1703,49 @@
     }
   }
 
-  // Interactive Timeline Scrubbing
+  // Smooth Interactive Timeline Scrubbing (Debounced API + Realtime Visual Drag)
   const timelineTrack = document.getElementById('timelineTrack');
   let isScrubbing = false;
+  let scrubTargetMs = 0;
+
+  function calculateScrubPos(e) {
+    if (durationMs <= 0) return 0;
+    const rect = timelineTrack.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    return ratio * durationMs;
+  }
 
   timelineTrack.addEventListener('pointerdown', (e) => {
+    if (durationMs <= 0) return;
     isScrubbing = true;
     timelineTrack.setPointerCapture(e.pointerId);
-    handleTimelineScrub(e);
+    scrubTargetMs = calculateScrubPos(e);
+    lastProgressMs = scrubTargetMs;
+    lastSyncTime = Date.now();
+    renderTimelineVisuals();
   });
 
   timelineTrack.addEventListener('pointermove', (e) => {
     if (isScrubbing) {
-      handleTimelineScrub(e);
+      scrubTargetMs = calculateScrubPos(e);
+      lastProgressMs = scrubTargetMs;
+      lastSyncTime = Date.now();
+      renderTimelineVisuals();
     }
   });
 
-  timelineTrack.addEventListener('pointerup', (e) => {
+  timelineTrack.addEventListener('pointerup', async (e) => {
     if (isScrubbing) {
       isScrubbing = false;
       timelineTrack.releasePointerCapture(e.pointerId);
+      scrubTargetMs = calculateScrubPos(e);
+      await spotifySeek(scrubTargetMs);
     }
   });
 
-  function handleTimelineScrub(e) {
-    if (durationMs <= 0) return;
-    const rect = timelineTrack.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const targetMs = ratio * durationMs;
-    spotifySeek(targetMs);
-  }
+  timelineTrack.addEventListener('pointercancel', () => {
+    isScrubbing = false;
+  });
 
   // Visibility Change Handling (Immediate Catch-Up when returning from background)
   document.addEventListener('visibilitychange', async () => {
