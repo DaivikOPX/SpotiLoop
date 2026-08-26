@@ -25,7 +25,7 @@ class SpotifyTrack {
     required this.fetchedAt,
   });
 
-  factory SpotifyTrack.fromJson(Map<String, dynamic> json) {
+  factory SpotifyTrack.fromJson(Map<String, dynamic> json, {int oneWayLatencyMs = 0}) {
     final item = json['item'] as Map<String, dynamic>? ?? {};
     final device = json['device'] as Map<String, dynamic>?;
 
@@ -37,20 +37,12 @@ class SpotifyTrack {
     final albumArt = images.isNotEmpty ? (images[0]['url'] as String? ?? '') : '';
 
     final rawProgress = json['progress_ms'] as int? ?? 0;
-    final serverTimestamp = json['timestamp'] as int?;
     final isPlaying = json['is_playing'] as bool? ?? false;
-
-    // Compensate for network transit latency if server timestamp is present
-    int compensatedProgress = rawProgress;
-    if (serverTimestamp != null && isPlaying) {
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final networkLatency = nowMs - serverTimestamp;
-      if (networkLatency > 0 && networkLatency < 4000) {
-        compensatedProgress = rawProgress + networkLatency;
-      }
-    }
-
     final duration = item['duration_ms'] as int? ?? 0;
+
+    // Compensate for exact HTTP network transit delay measured on local clock
+    final compensated = isPlaying ? (rawProgress + oneWayLatencyMs) : rawProgress;
+    final finalProgress = (duration > 0 && compensated > duration) ? duration : compensated;
 
     return SpotifyTrack(
       id: item['id'] as String? ?? '',
@@ -59,7 +51,7 @@ class SpotifyTrack {
       album: albumObj['name'] as String? ?? 'Unknown Album',
       albumArtUrl: albumArt,
       durationMs: duration,
-      progressMs: (duration > 0 && compensatedProgress > duration) ? duration : compensatedProgress,
+      progressMs: finalProgress,
       isPlaying: isPlaying,
       deviceName: device?['name'] as String?,
       deviceType: device?['type'] as String?,
@@ -67,11 +59,10 @@ class SpotifyTrack {
     );
   }
 
-  /// Calculates real-time estimated progress based on time elapsed since fetch
   int get estimatedProgressMs {
     if (!isPlaying) return progressMs;
     final elapsed = DateTime.now().difference(fetchedAt).inMilliseconds;
     final estimated = progressMs + elapsed;
-    return estimated > durationMs ? durationMs : estimated;
+    return (durationMs > 0 && estimated > durationMs) ? durationMs : estimated;
   }
 }

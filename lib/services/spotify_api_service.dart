@@ -20,28 +20,44 @@ class SpotifyApiService {
     };
   }
 
-  /// Fetches the currently playing track and playback state from Spotify
+  /// Fetches the currently playing track with local round-trip transit latency calibration
   Future<SpotifyTrack?> getPlaybackState() async {
     try {
       var headers = await _getHeaders();
+      final startTime = DateTime.now();
       var response = await http.get(
         Uri.parse('https://api.spotify.com/v1/me/player'),
         headers: headers,
       );
+      final endTime = DateTime.now();
 
       if (response.statusCode == 401) {
-        // Token expired, force refresh and retry once
         headers = await _getHeaders(forceRefresh: true);
+        final retryStart = DateTime.now();
         response = await http.get(
           Uri.parse('https://api.spotify.com/v1/me/player'),
           headers: headers,
         );
+        final retryEnd = DateTime.now();
+        final roundTrip = retryEnd.difference(retryStart).inMilliseconds;
+        final oneWayLatency = (roundTrip ~/ 2).clamp(0, 800);
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body) as Map<String, dynamic>;
+          if (data['item'] != null) {
+            return SpotifyTrack.fromJson(data, oneWayLatencyMs: oneWayLatency);
+          }
+        }
+        return null;
       }
+
+      final roundTrip = endTime.difference(startTime).inMilliseconds;
+      final oneWayLatency = (roundTrip ~/ 2).clamp(0, 800);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         if (data['item'] != null) {
-          return SpotifyTrack.fromJson(data);
+          return SpotifyTrack.fromJson(data, oneWayLatencyMs: oneWayLatency);
         }
       } else if (response.statusCode == 204) {
         // No active playback

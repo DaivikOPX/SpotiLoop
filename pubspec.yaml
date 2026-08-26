@@ -17,6 +17,7 @@ dependencies:
   crypto: ^3.0.3
   app_links: ^6.1.1
   wakelock_plus: ^1.2.8
+  audioplayers: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -27,3 +28,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo.png
+    - assets/silence.wav

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../models/spotify_track.dart';
 import '../models/loop_preset.dart';
 import 'spotify_api_service.dart';
@@ -19,6 +20,9 @@ class LoopEngine extends ChangeNotifier {
   int _currentProgressMs = 0;
   DateTime _lastProgressSync = DateTime.now();
   bool _isPlaying = false;
+
+  // Background Audio Session Keeper to prevent Android Doze Mode
+  final AudioPlayer _bgAudioKeeper = AudioPlayer();
 
   // High-frequency Progress Notifier (prevents entire UI from rebuilding on every tick)
   final ValueNotifier<int> progressNotifier = ValueNotifier<int>(0);
@@ -51,7 +55,13 @@ class LoopEngine extends ChangeNotifier {
   }
 
   LoopEngine(this._apiService, this._storage) {
+    _initBackgroundKeeper();
     _startTimers();
+  }
+
+  void _initBackgroundKeeper() {
+    _bgAudioKeeper.setReleaseMode(ReleaseMode.loop);
+    _bgAudioKeeper.setVolume(0.00001); // Inaudible background keep-alive signal
   }
 
   void _startTimers() {
@@ -71,6 +81,8 @@ class LoopEngine extends ChangeNotifier {
     _apiSyncTimer?.cancel();
     progressNotifier.dispose();
     WakelockPlus.disable().catchError((_) {});
+    _bgAudioKeeper.stop().catchError((_) {});
+    _bgAudioKeeper.dispose();
     super.dispose();
   }
 
@@ -112,10 +124,21 @@ class LoopEngine extends ChangeNotifier {
       _startMarkerMs = match.startMs;
       _endMarkerMs = match.endMs;
       if (_storage.getAutoLoopOnSongChange()) {
-        _isLoopActive = true;
-        WakelockPlus.enable().catchError((_) {});
+        _activateLooping();
       }
     }
+  }
+
+  void _activateLooping() {
+    _isLoopActive = true;
+    WakelockPlus.enable().catchError((_) {});
+    _bgAudioKeeper.play(AssetSource('silence.wav')).catchError((_) {});
+  }
+
+  void _deactivateLooping() {
+    _isLoopActive = false;
+    WakelockPlus.disable().catchError((_) {});
+    _bgAudioKeeper.stop().catchError((_) {});
   }
 
   void _onPrecisionTick() {
@@ -131,7 +154,7 @@ class LoopEngine extends ChangeNotifier {
 
     // Loop trigger check
     if (_isLoopActive && _startMarkerMs != null && _endMarkerMs != null && _endMarkerMs! > _startMarkerMs!) {
-      final offset = _storage.getSeekOffsetMs() > 0 ? _storage.getSeekOffsetMs() : 120; // 120ms lead offset
+      final offset = _storage.getSeekOffsetMs() > 0 ? _storage.getSeekOffsetMs() : 180; // 180ms lead offset
       final triggerPoint = _endMarkerMs! - offset;
 
       if (currentPos >= triggerPoint) {
@@ -254,12 +277,12 @@ class LoopEngine extends ChangeNotifier {
     if (_endMarkerMs == null) {
       _endMarkerMs = durationMs > 0 ? durationMs : 30000;
     }
-    _isLoopActive = !_isLoopActive;
-    if (_isLoopActive) {
-      WakelockPlus.enable().catchError((_) {});
+    
+    if (!_isLoopActive) {
+      _activateLooping();
       if (_startMarkerMs != null) jumpToA();
     } else {
-      WakelockPlus.disable().catchError((_) {});
+      _deactivateLooping();
     }
     notifyListeners();
   }
@@ -267,9 +290,8 @@ class LoopEngine extends ChangeNotifier {
   void resetMarkers() {
     _startMarkerMs = null;
     _endMarkerMs = null;
-    _isLoopActive = false;
+    _deactivateLooping();
     _loopCount = 0;
-    WakelockPlus.disable().catchError((_) {});
     notifyListeners();
   }
 
@@ -337,8 +359,7 @@ class LoopEngine extends ChangeNotifier {
   void applyPreset(LoopPreset preset) {
     _startMarkerMs = preset.startMs;
     _endMarkerMs = preset.endMs;
-    _isLoopActive = true;
-    WakelockPlus.enable().catchError((_) {});
+    _activateLooping();
     jumpToA();
     notifyListeners();
   }
