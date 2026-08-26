@@ -19,6 +19,9 @@ class LoopEngine extends ChangeNotifier {
   DateTime _lastProgressSync = DateTime.now();
   bool _isPlaying = false;
 
+  // High-frequency Progress Notifier (prevents entire UI from rebuilding on every tick)
+  final ValueNotifier<int> progressNotifier = ValueNotifier<int>(0);
+
   Timer? _precisionTimer;
   Timer? _apiSyncTimer;
   DateTime _lastSeekDispatched = DateTime.fromMillisecondsSinceEpoch(0);
@@ -65,6 +68,7 @@ class LoopEngine extends ChangeNotifier {
   void dispose() {
     _precisionTimer?.cancel();
     _apiSyncTimer?.cancel();
+    progressNotifier.dispose();
     super.dispose();
   }
 
@@ -85,9 +89,11 @@ class LoopEngine extends ChangeNotifier {
 
     if (isNewTrack || !track.isPlaying || DateTime.now().isAfter(_seekLockoutUntil)) {
       final currentEst = liveProgressMs;
+      // Only snap if drift > 1.2s or track changed or paused
       if (isNewTrack || !track.isPlaying || (currentEst - track.progressMs).abs() > 1200) {
         _currentProgressMs = track.progressMs;
         _lastProgressSync = DateTime.now();
+        progressNotifier.value = _currentProgressMs;
       }
     }
 
@@ -119,11 +125,11 @@ class LoopEngine extends ChangeNotifier {
     final estimated = _currentProgressMs + elapsed;
     final maxDuration = _currentTrack!.durationMs;
 
-    final currentPos = estimated > maxDuration ? maxDuration : estimated;
+    final currentPos = (maxDuration > 0 && estimated > maxDuration) ? maxDuration : estimated;
+    progressNotifier.value = currentPos;
 
     // Loop trigger check
-    if (_isLoopActive && _startMarkerMs != null && _endMarkerMs != null) {
-      // If we reached or passed Point B (accounting for user-configured latency offset)
+    if (_isLoopActive && _startMarkerMs != null && _endMarkerMs != null && _endMarkerMs! > _startMarkerMs!) {
       final offset = _storage.getSeekOffsetMs();
       final triggerPoint = _endMarkerMs! - offset;
 
@@ -136,16 +142,14 @@ class LoopEngine extends ChangeNotifier {
           // Optimistically reset local timer back to Point A immediately
           _currentProgressMs = _startMarkerMs!;
           _lastProgressSync = now;
+          progressNotifier.value = _startMarkerMs!;
 
           // Dispatch seek command to Spotify
           _apiService.seekTo(_startMarkerMs!);
           notifyListeners();
-          return;
         }
       }
     }
-
-    notifyListeners();
   }
 
   int get liveProgressMs {
@@ -160,7 +164,7 @@ class LoopEngine extends ChangeNotifier {
   void setPointAToCurrent() {
     final pos = liveProgressMs;
     if (_endMarkerMs != null && pos >= _endMarkerMs!) {
-      _startMarkerMs = (_endMarkerMs! - 1000).clamp(0, durationMs);
+      _startMarkerMs = (_endMarkerMs! - 1000).clamp(0, durationMs > 0 ? durationMs : 3600000);
     } else {
       _startMarkerMs = pos;
     }
@@ -170,20 +174,31 @@ class LoopEngine extends ChangeNotifier {
   void setPointBToCurrent() {
     final pos = liveProgressMs;
     if (_startMarkerMs != null && pos <= _startMarkerMs!) {
-      _endMarkerMs = (_startMarkerMs! + 1000).clamp(0, durationMs);
+      _endMarkerMs = (_startMarkerMs! + 1000).clamp(0, durationMs > 0 ? durationMs : 3600000);
     } else {
       _endMarkerMs = pos;
     }
     notifyListeners();
   }
 
-  void setPointA(int ms) {
-    _startMarkerMs = ms.clamp(0, _endMarkerMs ?? durationMs);
+  void setPointA(int? ms) {
+    if (ms == null) {
+      _startMarkerMs = null;
+    } else {
+      final max = _endMarkerMs ?? (durationMs > 0 ? durationMs : 3600000);
+      _startMarkerMs = ms.clamp(0, max);
+    }
     notifyListeners();
   }
 
-  void setPointB(int ms) {
-    _endMarkerMs = ms.clamp(_startMarkerMs ?? 0, durationMs);
+  void setPointB(int? ms) {
+    if (ms == null) {
+      _endMarkerMs = null;
+    } else {
+      final min = _startMarkerMs ?? 0;
+      final max = durationMs > 0 ? durationMs : 3600000;
+      _endMarkerMs = ms.clamp(min, max);
+    }
     notifyListeners();
   }
 
@@ -192,18 +207,19 @@ class LoopEngine extends ChangeNotifier {
       _startMarkerMs = liveProgressMs;
     }
     final target = _startMarkerMs! + deltaMs;
-    final max = (_endMarkerMs != null) ? _endMarkerMs! - 100 : durationMs;
-    _startMarkerMs = target.clamp(0, max > 0 ? max : durationMs);
+    final max = (_endMarkerMs != null) ? _endMarkerMs! - 100 : (durationMs > 0 ? durationMs : 3600000);
+    _startMarkerMs = target.clamp(0, max > 0 ? max : 3600000);
     notifyListeners();
   }
 
   void nudgeB(int deltaMs) {
     if (_endMarkerMs == null) {
-      _endMarkerMs = durationMs;
+      _endMarkerMs = durationMs > 0 ? durationMs : 30000;
     }
     final target = _endMarkerMs! + deltaMs;
     final min = (_startMarkerMs != null) ? _startMarkerMs! + 100 : 0;
-    _endMarkerMs = target.clamp(min, durationMs);
+    final max = durationMs > 0 ? durationMs : 3600000;
+    _endMarkerMs = target.clamp(min, max);
     notifyListeners();
   }
 
@@ -211,6 +227,7 @@ class LoopEngine extends ChangeNotifier {
     if (_startMarkerMs != null) {
       _currentProgressMs = _startMarkerMs!;
       _lastProgressSync = DateTime.now();
+      progressNotifier.value = _startMarkerMs!;
       _apiService.seekTo(_startMarkerMs!);
       notifyListeners();
     }
@@ -220,6 +237,7 @@ class LoopEngine extends ChangeNotifier {
     if (_endMarkerMs != null) {
       _currentProgressMs = _endMarkerMs!;
       _lastProgressSync = DateTime.now();
+      progressNotifier.value = _endMarkerMs!;
       _apiService.seekTo(_endMarkerMs!);
       notifyListeners();
     }
@@ -233,6 +251,9 @@ class LoopEngine extends ChangeNotifier {
       _endMarkerMs = durationMs > 0 ? durationMs : 30000;
     }
     _isLoopActive = !_isLoopActive;
+    if (_isLoopActive && _startMarkerMs != null) {
+      jumpToA();
+    }
     notifyListeners();
   }
 
@@ -250,6 +271,7 @@ class LoopEngine extends ChangeNotifier {
       _isPlaying = false;
       _currentProgressMs = liveProgressMs;
       _lastProgressSync = DateTime.now();
+      progressNotifier.value = _currentProgressMs;
       notifyListeners();
       await _apiService.pause();
     } else {
@@ -267,6 +289,7 @@ class LoopEngine extends ChangeNotifier {
     _currentProgressMs = target;
     final now = DateTime.now();
     _lastProgressSync = now;
+    progressNotifier.value = target;
     _seekLockoutUntil = now.add(const Duration(milliseconds: 1500));
     notifyListeners();
     await _apiService.seekTo(target);

@@ -9,8 +9,8 @@ class SpotifyApiService {
 
   SpotifyApiService(this._authService);
 
-  Future<Map<String, String>> _getHeaders() async {
-    final token = await _authService.getValidAccessToken();
+  Future<Map<String, String>> _getHeaders({bool forceRefresh = false}) async {
+    final token = await _authService.getValidAccessToken(forceRefresh: forceRefresh);
     if (token == null) {
       throw Exception('Not authenticated with Spotify');
     }
@@ -23,11 +23,20 @@ class SpotifyApiService {
   /// Fetches the currently playing track and playback state from Spotify
   Future<SpotifyTrack?> getPlaybackState() async {
     try {
-      final headers = await _getHeaders();
-      final response = await http.get(
+      var headers = await _getHeaders();
+      var response = await http.get(
         Uri.parse('https://api.spotify.com/v1/me/player'),
         headers: headers,
       );
+
+      if (response.statusCode == 401) {
+        // Token expired, force refresh and retry once
+        headers = await _getHeaders(forceRefresh: true);
+        response = await http.get(
+          Uri.parse('https://api.spotify.com/v1/me/player'),
+          headers: headers,
+        );
+      }
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -37,9 +46,6 @@ class SpotifyApiService {
       } else if (response.statusCode == 204) {
         // No active playback
         return null;
-      } else if (response.statusCode == 401) {
-        // Token expired
-        await _authService.getValidAccessToken();
       }
     } catch (e) {
       debugPrint('SpotifyApiService getPlaybackState error: $e');
@@ -50,9 +56,15 @@ class SpotifyApiService {
   /// Sends a seek command to Spotify Connect
   Future<bool> seekTo(int positionMs) async {
     try {
-      final headers = await _getHeaders();
+      var headers = await _getHeaders();
       final url = Uri.parse('https://api.spotify.com/v1/me/player/seek?position_ms=$positionMs');
-      final response = await http.put(url, headers: headers);
+      var response = await http.put(url, headers: headers);
+
+      if (response.statusCode == 401) {
+        headers = await _getHeaders(forceRefresh: true);
+        response = await http.put(url, headers: headers);
+      }
+
       return response.statusCode == 204 || response.statusCode == 200;
     } catch (e) {
       debugPrint('SpotifyApiService seekTo error: $e');
@@ -63,11 +75,15 @@ class SpotifyApiService {
   /// Resume playback
   Future<bool> play() async {
     try {
-      final headers = await _getHeaders();
-      final response = await http.put(
-        Uri.parse('https://api.spotify.com/v1/me/player/play'),
-        headers: headers,
-      );
+      var headers = await _getHeaders();
+      final url = Uri.parse('https://api.spotify.com/v1/me/player/play');
+      var response = await http.put(url, headers: headers);
+
+      if (response.statusCode == 401) {
+        headers = await _getHeaders(forceRefresh: true);
+        response = await http.put(url, headers: headers);
+      }
+
       return response.statusCode == 204 || response.statusCode == 200;
     } catch (e) {
       debugPrint('SpotifyApiService play error: $e');
@@ -78,11 +94,15 @@ class SpotifyApiService {
   /// Pause playback
   Future<bool> pause() async {
     try {
-      final headers = await _getHeaders();
-      final response = await http.put(
-        Uri.parse('https://api.spotify.com/v1/me/player/pause'),
-        headers: headers,
-      );
+      var headers = await _getHeaders();
+      final url = Uri.parse('https://api.spotify.com/v1/me/player/pause');
+      var response = await http.put(url, headers: headers);
+
+      if (response.statusCode == 401) {
+        headers = await _getHeaders(forceRefresh: true);
+        response = await http.put(url, headers: headers);
+      }
+
       return response.statusCode == 204 || response.statusCode == 200;
     } catch (e) {
       debugPrint('SpotifyApiService pause error: $e');
@@ -93,11 +113,15 @@ class SpotifyApiService {
   /// Skip to next track
   Future<bool> next() async {
     try {
-      final headers = await _getHeaders();
-      final response = await http.post(
-        Uri.parse('https://api.spotify.com/v1/me/player/next'),
-        headers: headers,
-      );
+      var headers = await _getHeaders();
+      final url = Uri.parse('https://api.spotify.com/v1/me/player/next');
+      var response = await http.post(url, headers: headers);
+
+      if (response.statusCode == 401) {
+        headers = await _getHeaders(forceRefresh: true);
+        response = await http.post(url, headers: headers);
+      }
+
       return response.statusCode == 204 || response.statusCode == 200;
     } catch (e) {
       debugPrint('SpotifyApiService next error: $e');
@@ -108,11 +132,15 @@ class SpotifyApiService {
   /// Skip to previous track
   Future<bool> previous() async {
     try {
-      final headers = await _getHeaders();
-      final response = await http.post(
-        Uri.parse('https://api.spotify.com/v1/me/player/previous'),
-        headers: headers,
-      );
+      var headers = await _getHeaders();
+      final url = Uri.parse('https://api.spotify.com/v1/me/player/previous');
+      var response = await http.post(url, headers: headers);
+
+      if (response.statusCode == 401) {
+        headers = await _getHeaders(forceRefresh: true);
+        response = await http.post(url, headers: headers);
+      }
+
       return response.statusCode == 204 || response.statusCode == 200;
     } catch (e) {
       debugPrint('SpotifyApiService previous error: $e');
@@ -123,12 +151,16 @@ class SpotifyApiService {
   /// Set playback volume (0 - 100)
   Future<bool> setVolume(int percent) async {
     try {
-      final headers = await _getHeaders();
+      var headers = await _getHeaders();
       final clamped = percent.clamp(0, 100);
-      final response = await http.put(
-        Uri.parse('https://api.spotify.com/v1/me/player/volume?volume_percent=$clamped'),
-        headers: headers,
-      );
+      final url = Uri.parse('https://api.spotify.com/v1/me/player/volume?volume_percent=$clamped');
+      var response = await http.put(url, headers: headers);
+
+      if (response.statusCode == 401) {
+        headers = await _getHeaders(forceRefresh: true);
+        response = await http.put(url, headers: headers);
+      }
+
       return response.statusCode == 204 || response.statusCode == 200;
     } catch (e) {
       debugPrint('SpotifyApiService setVolume error: $e');

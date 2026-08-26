@@ -13,6 +13,8 @@ class MarkerControls extends StatefulWidget {
 class _MarkerControlsState extends State<MarkerControls> {
   late TextEditingController _controllerA;
   late TextEditingController _controllerB;
+  late FocusNode _focusNodeA;
+  late FocusNode _focusNodeB;
 
   @override
   void initState() {
@@ -27,32 +29,69 @@ class _MarkerControlsState extends State<MarkerControls> {
           ? LoopEngine.formatTime(widget.engine.endMarkerMs!)
           : '',
     );
+    _focusNodeA = FocusNode();
+    _focusNodeB = FocusNode();
+
+    _focusNodeA.addListener(_onFocusAChanged);
+    _focusNodeB.addListener(_onFocusBChanged);
+  }
+
+  void _onFocusAChanged() {
+    if (!_focusNodeA.hasFocus) {
+      // Re-format on blur if valid
+      if (widget.engine.startMarkerMs != null) {
+        _controllerA.text = LoopEngine.formatTime(widget.engine.startMarkerMs!);
+      }
+    }
+  }
+
+  void _onFocusBChanged() {
+    if (!_focusNodeB.hasFocus) {
+      // Re-format on blur if valid
+      if (widget.engine.endMarkerMs != null) {
+        _controllerB.text = LoopEngine.formatTime(widget.engine.endMarkerMs!);
+      }
+    }
   }
 
   @override
   void didUpdateWidget(covariant MarkerControls oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.engine.startMarkerMs != null) {
-      final formattedA = LoopEngine.formatTime(widget.engine.startMarkerMs!);
-      if (_controllerA.text != formattedA) {
-        _controllerA.text = formattedA;
+    
+    // Only update controller text if user is NOT actively typing inside the text field
+    if (!_focusNodeA.hasFocus) {
+      if (widget.engine.startMarkerMs != null) {
+        final formattedA = LoopEngine.formatTime(widget.engine.startMarkerMs!);
+        if (_controllerA.text != formattedA) {
+          _controllerA.text = formattedA;
+        }
+      } else {
+        if (_controllerA.text.isNotEmpty) {
+          _controllerA.text = '';
+        }
       }
-    } else {
-      _controllerA.text = '';
     }
 
-    if (widget.engine.endMarkerMs != null) {
-      final formattedB = LoopEngine.formatTime(widget.engine.endMarkerMs!);
-      if (_controllerB.text != formattedB) {
-        _controllerB.text = formattedB;
+    if (!_focusNodeB.hasFocus) {
+      if (widget.engine.endMarkerMs != null) {
+        final formattedB = LoopEngine.formatTime(widget.engine.endMarkerMs!);
+        if (_controllerB.text != formattedB) {
+          _controllerB.text = formattedB;
+        }
+      } else {
+        if (_controllerB.text.isNotEmpty) {
+          _controllerB.text = '';
+        }
       }
-    } else {
-      _controllerB.text = '';
     }
   }
 
   @override
   void dispose() {
+    _focusNodeA.removeListener(_onFocusAChanged);
+    _focusNodeB.removeListener(_onFocusBChanged);
+    _focusNodeA.dispose();
+    _focusNodeB.dispose();
     _controllerA.dispose();
     _controllerB.dispose();
     super.dispose();
@@ -113,17 +152,43 @@ class _MarkerControlsState extends State<MarkerControls> {
             Expanded(
               child: _buildMarkerCard(
                 title: 'Point A',
-                subTitle: 'START',
                 color: const Color(0xFF00E676),
                 controller: _controllerA,
+                focusNode: _focusNodeA,
                 hintText: '00:00.0',
-                onSubmitted: (val) {
-                  final ms = _parseTimeToMs(val);
-                  if (ms != null) widget.engine.setPointA(ms);
+                onChanged: (val) {
+                  if (val.trim().isEmpty) {
+                    widget.engine.setPointA(null);
+                  } else {
+                    final ms = _parseTimeToMs(val);
+                    if (ms != null) widget.engine.setPointA(ms);
+                  }
                 },
-                onSetCurrent: () => widget.engine.setPointAToCurrent(),
+                onSubmitted: (val) {
+                  _focusNodeA.unfocus();
+                  if (val.trim().isEmpty) {
+                    widget.engine.setPointA(null);
+                  } else {
+                    final ms = _parseTimeToMs(val);
+                    if (ms != null) {
+                      widget.engine.setPointA(ms);
+                      _controllerA.text = LoopEngine.formatTime(ms);
+                    }
+                  }
+                },
+                onSetCurrent: () {
+                  widget.engine.setPointAToCurrent();
+                  if (widget.engine.startMarkerMs != null) {
+                    _controllerA.text = LoopEngine.formatTime(widget.engine.startMarkerMs!);
+                  }
+                },
                 onJump: widget.engine.startMarkerMs != null ? () => widget.engine.jumpToA() : null,
-                onNudge: (ms) => widget.engine.nudgeA(ms),
+                onNudge: (ms) {
+                  widget.engine.nudgeA(ms);
+                  if (widget.engine.startMarkerMs != null) {
+                    _controllerA.text = LoopEngine.formatTime(widget.engine.startMarkerMs!);
+                  }
+                },
               ),
             ),
             const SizedBox(width: 10),
@@ -131,17 +196,43 @@ class _MarkerControlsState extends State<MarkerControls> {
             Expanded(
               child: _buildMarkerCard(
                 title: 'Point B',
-                subTitle: 'END',
                 color: const Color(0xFFFF5252),
                 controller: _controllerB,
+                focusNode: _focusNodeB,
                 hintText: '00:00.0',
-                onSubmitted: (val) {
-                  final ms = _parseTimeToMs(val);
-                  if (ms != null) widget.engine.setPointB(ms);
+                onChanged: (val) {
+                  if (val.trim().isEmpty) {
+                    widget.engine.setPointB(null);
+                  } else {
+                    final ms = _parseTimeToMs(val);
+                    if (ms != null) widget.engine.setPointB(ms);
+                  }
                 },
-                onSetCurrent: () => widget.engine.setPointBToCurrent(),
+                onSubmitted: (val) {
+                  _focusNodeB.unfocus();
+                  if (val.trim().isEmpty) {
+                    widget.engine.setPointB(null);
+                  } else {
+                    final ms = _parseTimeToMs(val);
+                    if (ms != null) {
+                      widget.engine.setPointB(ms);
+                      _controllerB.text = LoopEngine.formatTime(ms);
+                    }
+                  }
+                },
+                onSetCurrent: () {
+                  widget.engine.setPointBToCurrent();
+                  if (widget.engine.endMarkerMs != null) {
+                    _controllerB.text = LoopEngine.formatTime(widget.engine.endMarkerMs!);
+                  }
+                },
                 onJump: widget.engine.endMarkerMs != null ? () => widget.engine.jumpToB() : null,
-                onNudge: (ms) => widget.engine.nudgeB(ms),
+                onNudge: (ms) {
+                  widget.engine.nudgeB(ms);
+                  if (widget.engine.endMarkerMs != null) {
+                    _controllerB.text = LoopEngine.formatTime(widget.engine.endMarkerMs!);
+                  }
+                },
               ),
             ),
           ],
@@ -151,7 +242,13 @@ class _MarkerControlsState extends State<MarkerControls> {
           const SizedBox(height: 6),
           Center(
             child: TextButton.icon(
-              onPressed: () => widget.engine.resetMarkers(),
+              onPressed: () {
+                _focusNodeA.unfocus();
+                _focusNodeB.unfocus();
+                widget.engine.resetMarkers();
+                _controllerA.text = '';
+                _controllerB.text = '';
+              },
               style: TextButton.styleFrom(
                 foregroundColor: Colors.white54,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -170,10 +267,11 @@ class _MarkerControlsState extends State<MarkerControls> {
 
   Widget _buildMarkerCard({
     required String title,
-    required String subTitle,
     required Color color,
     required TextEditingController controller,
+    required FocusNode focusNode,
     required String hintText,
+    required ValueChanged<String> onChanged,
     required ValueChanged<String> onSubmitted,
     required VoidCallback onSetCurrent,
     required VoidCallback? onJump,
@@ -247,7 +345,7 @@ class _MarkerControlsState extends State<MarkerControls> {
           ),
           const SizedBox(height: 8),
 
-          // Digital Time Display Box
+          // Digital Time Display Box (Can be cleared freely)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
@@ -257,7 +355,9 @@ class _MarkerControlsState extends State<MarkerControls> {
             ),
             child: TextField(
               controller: controller,
+              focusNode: focusNode,
               textAlign: TextAlign.center,
+              keyboardType: TextInputType.text,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
@@ -272,6 +372,7 @@ class _MarkerControlsState extends State<MarkerControls> {
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(vertical: 7),
               ),
+              onChanged: onChanged,
               onSubmitted: onSubmitted,
             ),
           ),
