@@ -26,10 +26,11 @@ class HomeScreen extends StatelessWidget {
         final isAuth = authService.isAuthenticated;
 
         return Scaffold(
-          backgroundColor: const Color(0xFF070709),
+          backgroundColor: const Color(0xFF090A0F),
           appBar: AppBar(
-            backgroundColor: const Color(0xFF070709),
+            backgroundColor: const Color(0xFF090A0F),
             elevation: 0,
+            titleSpacing: 16,
             title: Row(
               children: [
                 ClipRRect(
@@ -49,7 +50,12 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(width: 10),
                 const Text(
                   'Spoti Loop',
-                  style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5, color: Colors.white),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                    letterSpacing: -0.4,
+                    color: Colors.white,
+                  ),
                 ),
               ],
             ),
@@ -70,30 +76,30 @@ class HomeScreen extends StatelessWidget {
               ? _buildConnectPrompt(context)
               : SafeArea(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Now Playing Track Header
+                        // 1. Now Playing Track Card
                         TrackHeader(
                           track: engine.currentTrack,
                           onRefresh: () => engine.syncWithSpotify(),
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 12),
 
-                        // Visual Loop Timeline Scrubber
+                        // 2. High-Precision Interactive Scrubber Timeline
                         LoopRangeSlider(engine: engine),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 12),
 
-                        // Marker Controls (Set A, Set B, Nudge, Jump)
+                        // 3. Dual Marker Stations (Point A & Point B)
                         MarkerControls(engine: engine),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 12),
 
-                        // Master Loop Toggle Card
+                        // 4. Master Hardware Loop Switch Card
                         _buildLoopToggleCard(),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 12),
 
-                        // Clean Centered Playback Transport Controls
+                        // 5. Clean Floating Transport Console
                         _buildPlaybackControls(context),
                       ],
                     ),
@@ -109,57 +115,61 @@ class HomeScreen extends StatelessWidget {
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isActive ? const Color(0xFF1DB954).withOpacity(0.12) : const Color(0xFF15151C),
+        color: isActive ? const Color(0xFF1DB954).withOpacity(0.12) : const Color(0xFF14151E),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: isActive ? const Color(0xFF1DB954).withOpacity(0.45) : Colors.white10,
+          color: isActive ? const Color(0xFF1DB954).withOpacity(0.5) : const Color(0xFF232532),
           width: isActive ? 1.5 : 1.0,
         ),
-        boxShadow: isActive
-            ? [
-                BoxShadow(
-                  color: const Color(0xFF1DB954).withOpacity(0.2),
-                  blurRadius: 16,
-                  spreadRadius: 1,
-                )
-              ]
-            : [],
+        boxShadow: [
+          BoxShadow(
+            color: isActive ? const Color(0xFF1DB954).withOpacity(0.2) : Colors.black.withOpacity(0.3),
+            blurRadius: 12,
+            spreadRadius: isActive ? 1 : 0,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
-              color: isActive ? const Color(0xFF1DB954) : const Color(0xFF22222C),
+              color: isActive ? const Color(0xFF1DB954) : const Color(0xFF1F212D),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              Icons.repeat_on_rounded,
+              Icons.repeat_rounded,
               color: isActive ? Colors.black : Colors.white60,
-              size: 22,
+              size: 20,
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isActive ? 'A-B Looper Active' : 'A-B Looper Paused',
+                  isActive ? 'A-B Looper Active' : 'A-B Looper Standby',
                   style: TextStyle(
-                    fontSize: 15.5,
+                    fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: isActive ? const Color(0xFF1DB954) : Colors.white,
+                    color: isActive ? const Color(0xFF00E676) : Colors.white,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   isActive
                       ? 'Looping: ${LoopEngine.formatTime(engine.startMarkerMs ?? 0)} ➔ ${LoopEngine.formatTime(engine.endMarkerMs ?? 0)} (${engine.loopCount}x)'
-                      : 'Tap to start looping between Point A and Point B',
-                  style: const TextStyle(fontSize: 12, color: Colors.white60),
+                      : 'Tap switch to start continuous loop',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: isActive ? Colors.white70 : Colors.white54,
+                  ),
                 ),
               ],
             ),
@@ -167,9 +177,9 @@ class HomeScreen extends StatelessWidget {
           Switch(
             value: isActive,
             activeColor: const Color(0xFF1DB954),
-            activeTrackColor: const Color(0xFF1DB954).withOpacity(0.4),
-            inactiveThumbColor: Colors.white54,
-            inactiveTrackColor: const Color(0xFF252530),
+            activeTrackColor: const Color(0xFF1DB954).withOpacity(0.35),
+            inactiveThumbColor: Colors.white60,
+            inactiveTrackColor: const Color(0xFF222432),
             onChanged: (_) => engine.toggleLoop(),
           ),
         ],
@@ -181,31 +191,45 @@ class HomeScreen extends StatelessWidget {
     final isPlaying = engine.isPlaying;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF15151C),
+        color: const Color(0xFF14151E),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: const Color(0xFF232532)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           IconButton(
-            icon: const Icon(Icons.skip_previous_rounded, size: 30, color: Colors.white),
+            icon: const Icon(Icons.skip_previous_rounded, size: 28, color: Colors.white),
             tooltip: 'Previous Track',
             onPressed: () => engine.previous(),
           ),
           Container(
             width: 52,
             height: 52,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.2),
+                  blurRadius: 12,
+                  spreadRadius: 1,
+                ),
+              ],
             ),
             child: IconButton(
               icon: Icon(
                 isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                size: 32,
+                size: 30,
                 color: Colors.black,
               ),
               tooltip: isPlaying ? 'Pause' : 'Play',
@@ -213,7 +237,7 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.skip_next_rounded, size: 30, color: Colors.white),
+            icon: const Icon(Icons.skip_next_rounded, size: 28, color: Colors.white),
             tooltip: 'Next Track',
             onPressed: () => engine.next(),
           ),
@@ -401,9 +425,9 @@ class HomeScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF15151C),
+        color: const Color(0xFF14151E),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: const Color(0xFF232532)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

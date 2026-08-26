@@ -62,7 +62,6 @@ class _MarkerControlsState extends State<MarkerControls> {
     final cleaned = text.trim().replaceAll(' ', '');
     if (cleaned.isEmpty) return null;
 
-    // 1. Colon format: 1:14 or 1:14.5
     if (cleaned.contains(':')) {
       final parts = cleaned.split(':');
       if (parts.length == 2) {
@@ -74,7 +73,6 @@ class _MarkerControlsState extends State<MarkerControls> {
       }
     }
 
-    // 2. Dot notation: 1.14.5 or 1.14 or 74.5
     if (cleaned.contains('.')) {
       final dotParts = cleaned.split('.');
       if (dotParts.length == 3) {
@@ -96,7 +94,6 @@ class _MarkerControlsState extends State<MarkerControls> {
       }
     }
 
-    // 3. Plain seconds: 45
     final secs = double.tryParse(cleaned);
     if (secs != null) {
       return (secs * 1000).round();
@@ -106,18 +103,20 @@ class _MarkerControlsState extends State<MarkerControls> {
 
   @override
   Widget build(BuildContext context) {
+    final hasMarkers = widget.engine.startMarkerMs != null || widget.engine.endMarkerMs != null;
+
     return Column(
       children: [
         Row(
           children: [
-            // Point A Card
+            // Point A Station
             Expanded(
               child: _buildMarkerCard(
-                title: 'Point A (Start)',
-                icon: Icons.flag_rounded,
+                title: 'Point A',
+                subTitle: 'START',
                 color: const Color(0xFF00E676),
                 controller: _controllerA,
-                hintText: '00:00.0 or sec',
+                hintText: '00:00.0',
                 onSubmitted: (val) {
                   final ms = _parseTimeToMs(val);
                   if (ms != null) widget.engine.setPointA(ms);
@@ -127,15 +126,15 @@ class _MarkerControlsState extends State<MarkerControls> {
                 onNudge: (ms) => widget.engine.nudgeA(ms),
               ),
             ),
-            const SizedBox(width: 12),
-            // Point B Card
+            const SizedBox(width: 10),
+            // Point B Station
             Expanded(
               child: _buildMarkerCard(
-                title: 'Point B (End)',
-                icon: Icons.flag_circle_rounded,
+                title: 'Point B',
+                subTitle: 'END',
                 color: const Color(0xFFFF5252),
                 controller: _controllerB,
-                hintText: '00:00.0 or sec',
+                hintText: '00:00.0',
                 onSubmitted: (val) {
                   final ms = _parseTimeToMs(val);
                   if (ms != null) widget.engine.setPointB(ms);
@@ -147,25 +146,31 @@ class _MarkerControlsState extends State<MarkerControls> {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        // Quick Reset Row
-        if (widget.engine.startMarkerMs != null || widget.engine.endMarkerMs != null)
-          Align(
-            alignment: Alignment.centerRight,
+
+        if (hasMarkers) ...[
+          const SizedBox(height: 6),
+          Center(
             child: TextButton.icon(
               onPressed: () => widget.engine.resetMarkers(),
-              style: TextButton.styleFrom(foregroundColor: Colors.white54),
-              icon: const Icon(Icons.clear_rounded, size: 16),
-              label: const Text('Clear A-B Markers', style: TextStyle(fontSize: 12)),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white54,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              ),
+              icon: const Icon(Icons.close_rounded, size: 15),
+              label: const Text(
+                'Clear A-B Markers',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
             ),
           ),
+        ],
       ],
     );
   }
 
   Widget _buildMarkerCard({
     required String title,
-    required IconData icon,
+    required String subTitle,
     required Color color,
     required TextEditingController controller,
     required String hintText,
@@ -175,47 +180,80 @@ class _MarkerControlsState extends State<MarkerControls> {
     required Function(int ms) onNudge,
   }) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1F2B),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        color: const Color(0xFF14151E),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF232532)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Header Row with Title & Jump Button
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, size: 18, color: color),
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     title,
-                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: color),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: color,
+                    ),
                   ),
                 ],
               ),
               if (onJump != null)
                 InkWell(
                   onTap: onJump,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                    child: Text('Jump ➔', style: TextStyle(fontSize: 11, color: Colors.white60)),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.white12),
+                    ),
+                    child: const Text(
+                      'Jump ➔',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white70,
+                      ),
+                    ),
                   ),
                 ),
             ],
           ),
           const SizedBox(height: 8),
 
-          // Editable Time Box
+          // Digital Time Display Box
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: const Color(0xFF11131A),
+              color: const Color(0xFF0C0D13),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white12),
+              border: Border.all(color: const Color(0xFF232532)),
             ),
             child: TextField(
               controller: controller,
@@ -225,13 +263,14 @@ class _MarkerControlsState extends State<MarkerControls> {
                 fontWeight: FontWeight.w900,
                 fontFamily: 'monospace',
                 color: color,
+                letterSpacing: 0.5,
               ),
               decoration: InputDecoration(
                 hintText: hintText,
-                hintStyle: TextStyle(color: Colors.white24, fontSize: 13),
+                hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(vertical: 7),
               ),
               onSubmitted: onSubmitted,
             ),
@@ -242,7 +281,7 @@ class _MarkerControlsState extends State<MarkerControls> {
           ElevatedButton.icon(
             onPressed: onSetCurrent,
             style: ElevatedButton.styleFrom(
-              backgroundColor: color.withOpacity(0.18),
+              backgroundColor: color.withOpacity(0.14),
               foregroundColor: color,
               elevation: 0,
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -252,17 +291,22 @@ class _MarkerControlsState extends State<MarkerControls> {
               ),
             ),
             icon: const Icon(Icons.touch_app_rounded, size: 15),
-            label: const Text('Set Current', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            label: const Text(
+              'Set Current',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+            ),
           ),
           const SizedBox(height: 8),
 
-          // Sub-second Nudges
+          // 4-Segment Micro-Nudge Row (Equally Spaced)
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildNudgeBtn('-1s', () => onNudge(-1000)),
+              const SizedBox(width: 4),
               _buildNudgeBtn('-0.1s', () => onNudge(-100)),
+              const SizedBox(width: 4),
               _buildNudgeBtn('+0.1s', () => onNudge(100)),
+              const SizedBox(width: 4),
               _buildNudgeBtn('+1s', () => onNudge(1000)),
             ],
           ),
@@ -272,18 +316,30 @@ class _MarkerControlsState extends State<MarkerControls> {
   }
 
   Widget _buildNudgeBtn(String text, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-        decoration: BoxDecoration(
-          color: const Color(0xFF25293A),
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(6),
-        ),
-        child: Text(
-          text,
-          style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Colors.white70),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C1E2B),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFF2B2E3E)),
+            ),
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFFD0D0E0),
+                fontFamily: 'monospace',
+              ),
+            ),
+          ),
         ),
       ),
     );
