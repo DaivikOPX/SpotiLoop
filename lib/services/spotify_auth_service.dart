@@ -20,12 +20,21 @@ class SpotifyAuthService extends ChangeNotifier {
   String? _authError;
 
   bool get isAuthenticating => _isAuthenticating;
-  bool get isAuthenticated => _storage.getAccessToken() != null;
+  bool get isAuthenticated => _storage.getAccessToken() != null || _storage.getRefreshToken() != null;
   String? get clientId => _storage.getClientId();
   String? get authError => _authError;
 
   SpotifyAuthService(this._storage) {
     _initDeepLinks();
+    _checkAndRefreshTokenOnStartup();
+  }
+
+  Future<void> _checkAndRefreshTokenOnStartup() async {
+    final refreshToken = _storage.getRefreshToken();
+    if (refreshToken != null) {
+      await getValidAccessToken();
+      notifyListeners();
+    }
   }
 
   void _initDeepLinks() {
@@ -272,15 +281,15 @@ class SpotifyAuthService extends ChangeNotifier {
     }
   }
 
-  Future<String?> getValidAccessToken() async {
+  Future<String?> getValidAccessToken({bool forceRefresh = false}) async {
     final token = _storage.getAccessToken();
     final expiry = _storage.getTokenExpiry();
     final refreshToken = _storage.getRefreshToken();
     final clientId = _storage.getClientId();
 
-    if (token == null) return null;
+    final needsRefresh = forceRefresh || token == null || expiry == null || DateTime.now().isAfter(expiry);
 
-    if (expiry != null && DateTime.now().isAfter(expiry) && refreshToken != null && clientId != null) {
+    if (needsRefresh && refreshToken != null && clientId != null) {
       try {
         final response = await http.post(
           Uri.parse('https://accounts.spotify.com/api/token'),
@@ -304,6 +313,12 @@ class SpotifyAuthService extends ChangeNotifier {
           }
           await _storage.setTokenExpiry(DateTime.now().add(Duration(seconds: expiresIn - 60)));
           return newAccessToken;
+        } else {
+          final data = jsonDecode(response.body);
+          if (data['error'] == 'invalid_grant') {
+            await logout();
+            return null;
+          }
         }
       } catch (e) {
         debugPrint('Token refresh failed: $e');
