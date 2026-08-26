@@ -97,16 +97,18 @@ plugins {
             f.write(b)
         print("Updated build.gradle with Kotlin buildscript classpath.")
 
-    # 5. app/build.gradle
+    # 5. app/build.gradle (Set Java & Kotlin JVM target to 17)
     app_build_gradle = 'android/app/build.gradle'
     if os.path.exists(app_build_gradle):
         with open(app_build_gradle, 'r', encoding='utf-8') as f:
             ab = f.read()
+        ab = ab.replace('JavaVersion.VERSION_1_8', 'JavaVersion.VERSION_17')
+        ab = ab.replace("jvmTarget = '1.8'", "jvmTarget = '17'")
         ab = ab.replace('minSdkVersion flutter.minSdkVersion', 'minSdkVersion 21')
         ab = re.sub(r'minSdkVersion\s+\d+', 'minSdkVersion 21', ab)
         with open(app_build_gradle, 'w', encoding='utf-8') as f:
             f.write(ab)
-        print("Updated app/build.gradle with minSdkVersion 21.")
+        print("Updated app/build.gradle with Java 17 and Kotlin 17 JVM targets.")
 
 if __name__ == '__main__':
     configure_android()
