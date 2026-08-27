@@ -65,11 +65,11 @@ class LoopEngine extends ChangeNotifier {
   }
 
   void _startTimers() {
-    // 50ms High-precision loop tick
-    _precisionTimer = Timer.periodic(const Duration(milliseconds: 50), (_) => _onPrecisionTick());
+    // 35ms High-precision loop tick (~30 FPS)
+    _precisionTimer = Timer.periodic(const Duration(milliseconds: 35), (_) => _onPrecisionTick());
 
-    // 1.2s Background Spotify Connect sync
-    _apiSyncTimer = Timer.periodic(const Duration(milliseconds: 1200), (_) => syncWithSpotify());
+    // 1.5s Background Spotify Connect sync
+    _apiSyncTimer = Timer.periodic(const Duration(milliseconds: 1500), (_) => syncWithSpotify());
 
     // Initial sync
     syncWithSpotify();
@@ -102,11 +102,20 @@ class LoopEngine extends ChangeNotifier {
     _isPlaying = track.isPlaying;
 
     final now = DateTime.now();
-    // Calibrate progress from Spotify's authoritative server
-    if (isNewTrack || !track.isPlaying || now.isAfter(_seekLockoutUntil)) {
+
+    // Anti-jitter: If playing, only snap if real drift is significant (> 1.2s)
+    if (isNewTrack || !track.isPlaying) {
       _currentProgressMs = track.progressMs;
       _lastProgressSync = now;
-      progressNotifier.value = track.progressMs;
+      progressNotifier.value = _currentProgressMs;
+    } else if (now.isAfter(_seekLockoutUntil)) {
+      final currentEst = liveProgressMs;
+      final drift = (currentEst - track.progressMs).abs();
+      if (drift > 1200) {
+        _currentProgressMs = track.progressMs;
+        _lastProgressSync = now;
+        progressNotifier.value = _currentProgressMs;
+      }
     }
 
     if (isNewTrack && track.id.isNotEmpty) {
@@ -154,7 +163,7 @@ class LoopEngine extends ChangeNotifier {
 
     // Loop trigger check
     if (_isLoopActive && _startMarkerMs != null && _endMarkerMs != null && _endMarkerMs! > _startMarkerMs!) {
-      final offset = _storage.getSeekOffsetMs() > 0 ? _storage.getSeekOffsetMs() : 180; // 180ms lead offset
+      final offset = _storage.getSeekOffsetMs() > 0 ? _storage.getSeekOffsetMs() : 120; // 120ms lead offset
       final triggerPoint = _endMarkerMs! - offset;
 
       if (currentPos >= triggerPoint) {
@@ -167,7 +176,7 @@ class LoopEngine extends ChangeNotifier {
           _currentProgressMs = _startMarkerMs!;
           _lastProgressSync = now;
           progressNotifier.value = _startMarkerMs!;
-          _seekLockoutUntil = now.add(const Duration(milliseconds: 1400));
+          _seekLockoutUntil = now.add(const Duration(milliseconds: 1800));
 
           // Dispatch seek command to Spotify Connect
           _apiService.seekTo(_startMarkerMs!);
@@ -253,7 +262,7 @@ class LoopEngine extends ChangeNotifier {
       _currentProgressMs = _startMarkerMs!;
       _lastProgressSync = DateTime.now();
       progressNotifier.value = _startMarkerMs!;
-      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1400));
+      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1800));
       _apiService.seekTo(_startMarkerMs!);
       notifyListeners();
     }
@@ -264,7 +273,7 @@ class LoopEngine extends ChangeNotifier {
       _currentProgressMs = _endMarkerMs!;
       _lastProgressSync = DateTime.now();
       progressNotifier.value = _endMarkerMs!;
-      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1400));
+      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1800));
       _apiService.seekTo(_endMarkerMs!);
       notifyListeners();
     }
@@ -320,7 +329,7 @@ class LoopEngine extends ChangeNotifier {
     final now = DateTime.now();
     _lastProgressSync = now;
     progressNotifier.value = target;
-    _seekLockoutUntil = now.add(const Duration(milliseconds: 1500));
+    _seekLockoutUntil = now.add(const Duration(milliseconds: 1800));
     notifyListeners();
     await _apiService.seekTo(target);
   }
