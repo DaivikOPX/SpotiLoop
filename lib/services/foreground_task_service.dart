@@ -15,7 +15,8 @@ class SpotiLoopTaskHandler extends TaskHandler {
 
   @override
   void onRepeatEvent(DateTime timestamp) {
-    // Keep-alive heartbeat tick
+    // Send regular heartbeat to main isolate to keep timer execution active
+    FlutterForegroundTask.sendDataToMain({'action': 'heartbeat'});
   }
 
   @override
@@ -33,6 +34,7 @@ class SpotiLoopTaskHandler extends TaskHandler {
 
 class ForegroundTaskService {
   static void Function()? onStopLoopRequested;
+  static void Function()? onHeartbeat;
 
   static void initCommunicationPort() {
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
@@ -42,8 +44,12 @@ class ForegroundTaskService {
   }
 
   static void _onReceiveTaskData(Object data) {
-    if (data is Map && data['action'] == 'stop_loop') {
-      onStopLoopRequested?.call();
+    if (data is Map) {
+      if (data['action'] == 'stop_loop') {
+        onStopLoopRequested?.call();
+      } else if (data['action'] == 'heartbeat') {
+        onHeartbeat?.call();
+      }
     }
   }
 
@@ -81,7 +87,7 @@ class ForegroundTaskService {
           playSound: false,
         ),
         foregroundTaskOptions: ForegroundTaskOptions(
-          eventAction: ForegroundTaskEventAction.repeat(3000),
+          eventAction: ForegroundTaskEventAction.repeat(1000), // 1s background pulse
           autoRunOnBoot: false,
           autoRunOnMyPackageReplaced: false,
           allowWakeLock: true,

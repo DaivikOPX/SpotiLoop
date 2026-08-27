@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import 'package:audioplayers/audioplayers.dart';
 import '../models/spotify_track.dart';
-import '../models/loop_preset.dart';
 import 'spotify_api_service.dart';
 import 'storage_service.dart';
 import 'foreground_task_service.dart';
@@ -21,9 +19,6 @@ class LoopEngine extends ChangeNotifier {
   int _currentProgressMs = 0;
   DateTime _lastProgressSync = DateTime.now();
   bool _isPlaying = false;
-
-  // Background Audio Session Keeper to prevent Android Doze Mode
-  final AudioPlayer _bgAudioKeeper = AudioPlayer();
 
   // High-frequency Progress Notifier (prevents entire UI from rebuilding on every tick)
   final ValueNotifier<int> progressNotifier = ValueNotifier<int>(0);
@@ -56,19 +51,19 @@ class LoopEngine extends ChangeNotifier {
   }
 
   LoopEngine(this._apiService, this._storage) {
-    _initBackgroundKeeper();
     _startTimers();
+
+    // Foreground service control & heartbeat integration
     ForegroundTaskService.onStopLoopRequested = () {
       if (_isLoopActive) {
         _deactivateLooping();
         notifyListeners();
       }
     };
-  }
 
-  void _initBackgroundKeeper() {
-    _bgAudioKeeper.setReleaseMode(ReleaseMode.loop);
-    _bgAudioKeeper.setVolume(0.00001); // Inaudible background keep-alive signal
+    ForegroundTaskService.onHeartbeat = () {
+      _onPrecisionTick();
+    };
   }
 
   void _startTimers() {
@@ -88,20 +83,14 @@ class LoopEngine extends ChangeNotifier {
     _apiSyncTimer?.cancel();
     progressNotifier.dispose();
     WakelockPlus.disable().catchError((_) {});
-    _bgAudioKeeper.stop().catchError((_) {});
-    _bgAudioKeeper.dispose();
     ForegroundTaskService.stop();
     super.dispose();
   }
 
   Future<void> syncWithSpotify() async {
     final track = await _apiService.getPlaybackState();
+    // Resilient network handling: Never cancel playback state on transient null/timeout
     if (track == null) {
-      if (_currentTrack != null) {
-        _currentTrack = null;
-        _isPlaying = false;
-        notifyListeners();
-      }
       return;
     }
 
@@ -128,28 +117,14 @@ class LoopEngine extends ChangeNotifier {
 
     if (isNewTrack && track.id.isNotEmpty) {
       _loopCount = 0;
-      _autoLoadPresetForTrack(track.id);
     }
 
     notifyListeners();
   }
 
-  void _autoLoadPresetForTrack(String trackId) {
-    final presets = _storage.getPresets();
-    final match = presets.where((p) => p.trackId == trackId).firstOrNull;
-    if (match != null) {
-      _startMarkerMs = match.startMs;
-      _endMarkerMs = match.endMs;
-      if (_storage.getAutoLoopOnSongChange()) {
-        _activateLooping();
-      }
-    }
-  }
-
   void _activateLooping() {
     _isLoopActive = true;
     WakelockPlus.enable().catchError((_) {});
-    _bgAudioKeeper.play(AssetSource('silence.wav')).catchError((_) {});
     
     final trackName = _currentTrack != null ? _currentTrack!.title : 'Music';
     final loopSpan = _startMarkerMs != null && _endMarkerMs != null
@@ -164,7 +139,6 @@ class LoopEngine extends ChangeNotifier {
   void _deactivateLooping() {
     _isLoopActive = false;
     WakelockPlus.disable().catchError((_) {});
-    _bgAudioKeeper.stop().catchError((_) {});
     ForegroundTaskService.stop();
   }
 
@@ -315,7 +289,12 @@ class LoopEngine extends ChangeNotifier {
     
     if (!_isLoopActive) {
       _activateLooping();
-      if (_startMarkerMs != null) jumpToA();
+      // Only seek to Point A if we are currently BEFORE Point A or AFTER Point B
+      // If song is ALREADY playing inside the loop range, do not interrupt or pause!
+      final currentPos = liveProgressMs;
+      if (_startMarkerMs != null && (currentPos < _startMarkerMs! || (_endMarkerMs != null && currentPos >= _endMarkerMs!))) {
+        jumpToA();
+      }
     } else {
       _deactivateLooping();
     }
@@ -370,33 +349,6 @@ class LoopEngine extends ChangeNotifier {
     await _apiService.previous();
     await Future.delayed(const Duration(milliseconds: 400));
     await syncWithSpotify();
-  }
-
-  // Preset management
-  Future<void> saveCurrentAsPreset(String name) async {
-    if (_currentTrack == null || _startMarkerMs == null || _endMarkerMs == null) return;
-
-    final preset = LoopPreset(
-      id: '${_currentTrack!.id}_${DateTime.now().millisecondsSinceEpoch}',
-      trackId: _currentTrack!.id,
-      trackTitle: _currentTrack!.title,
-      trackArtist: _currentTrack!.artist,
-      name: name.trim().isEmpty ? 'Loop (${formatTime(_startMarkerMs!)} - ${formatTime(_endMarkerMs!)})' : name.trim(),
-      startMs: _startMarkerMs!,
-      endMs: _endMarkerMs!,
-      createdAt: DateTime.now(),
-    );
-
-    await _storage.savePreset(preset);
-    notifyListeners();
-  }
-
-  void applyPreset(LoopPreset preset) {
-    _startMarkerMs = preset.startMs;
-    _endMarkerMs = preset.endMs;
-    _activateLooping();
-    jumpToA();
-    notifyListeners();
   }
 
   static String formatTime(int ms) {
