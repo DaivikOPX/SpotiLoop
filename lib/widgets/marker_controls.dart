@@ -38,7 +38,6 @@ class _MarkerControlsState extends State<MarkerControls> {
 
   void _onFocusAChanged() {
     if (!_focusNodeA.hasFocus) {
-      // Re-format on blur if valid
       if (widget.engine.startMarkerMs != null) {
         _controllerA.text = LoopEngine.formatTime(widget.engine.startMarkerMs!);
       }
@@ -47,7 +46,6 @@ class _MarkerControlsState extends State<MarkerControls> {
 
   void _onFocusBChanged() {
     if (!_focusNodeB.hasFocus) {
-      // Re-format on blur if valid
       if (widget.engine.endMarkerMs != null) {
         _controllerB.text = LoopEngine.formatTime(widget.engine.endMarkerMs!);
       }
@@ -399,16 +397,20 @@ class _MarkerControlsState extends State<MarkerControls> {
           ),
           const SizedBox(height: 8),
 
-          // 4-Segment Micro-Nudge Row (Equally Spaced)
+          // Clean Micro-Nudge Grid (2x2 Matrix with large touch targets and no text wrapping)
           Row(
             children: [
-              _buildNudgeBtn('-1s', () => onNudge(-1000)),
-              const SizedBox(width: 4),
+              _buildNudgeBtn('-1.0s', () => onNudge(-1000)),
+              const SizedBox(width: 5),
+              _buildNudgeBtn('+1.0s', () => onNudge(1000)),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Row(
+            children: [
               _buildNudgeBtn('-0.1s', () => onNudge(-100)),
-              const SizedBox(width: 4),
+              const SizedBox(width: 5),
               _buildNudgeBtn('+0.1s', () => onNudge(100)),
-              const SizedBox(width: 4),
-              _buildNudgeBtn('+1s', () => onNudge(1000)),
             ],
           ),
         ],
@@ -422,22 +424,30 @@ class _MarkerControlsState extends State<MarkerControls> {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 5),
+            height: 28,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: const Color(0xFF1C1E2B),
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(color: const Color(0xFF2B2E3E)),
             ),
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFFD0D0E0),
-                fontFamily: 'monospace',
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFD0D0E0),
+                    fontFamily: 'monospace',
+                  ),
+                ),
               ),
             ),
           ),
