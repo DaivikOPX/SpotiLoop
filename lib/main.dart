@@ -5,15 +5,20 @@ import 'services/loop_engine.dart';
 import 'services/spotify_api_service.dart';
 import 'services/spotify_auth_service.dart';
 import 'services/storage_service.dart';
+import 'services/foreground_task_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  ForegroundTaskService.initCommunicationPort();
 
   // Initialize persistent storage and services
   final storage = await StorageService.init();
   final authService = SpotifyAuthService(storage);
   final apiService = SpotifyApiService(authService);
   final loopEngine = LoopEngine(apiService, storage);
+
+  // Initialize foreground service & permissions on Android
+  await ForegroundTaskService.initService();
 
   // Automatically trigger playback sync whenever authentication state transitions to logged in
   authService.addListener(() {
