@@ -58,6 +58,12 @@ class LoopEngine extends ChangeNotifier {
   LoopEngine(this._apiService, this._storage) {
     _initBackgroundKeeper();
     _startTimers();
+    ForegroundTaskService.onStopLoopRequested = () {
+      if (_isLoopActive) {
+        _deactivateLooping();
+        notifyListeners();
+      }
+    };
   }
 
   void _initBackgroundKeeper() {

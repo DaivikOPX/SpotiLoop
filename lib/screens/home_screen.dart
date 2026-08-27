@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import '../services/loop_engine.dart';
 import '../services/spotify_auth_service.dart';
 import '../services/storage_service.dart';
+import '../services/foreground_task_service.dart';
 import '../widgets/track_header.dart';
 import '../widgets/loop_range_slider.dart';
 import '../widgets/marker_controls.dart';
+import '../widgets/preset_list_sheet.dart';
 
 class HomeScreen extends StatelessWidget {
   final LoopEngine engine;
@@ -62,6 +64,11 @@ class HomeScreen extends StatelessWidget {
             actions: isAuth
                 ? [
                     IconButton(
+                      icon: const Icon(Icons.bookmark_border_rounded, color: Colors.white70, size: 22),
+                      tooltip: 'Saved Presets',
+                      onPressed: () => _openPresetSheet(context),
+                    ),
+                    IconButton(
                       icon: const Icon(Icons.logout_rounded, color: Colors.white60, size: 20),
                       tooltip: 'Disconnect Spotify',
                       onPressed: () async {
@@ -80,6 +87,9 @@ class HomeScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        // Background Battery Optimization Notice (if not yet granted on Android)
+                        _buildBatteryOptimizationBanner(),
+
                         // 1. Now Playing Track Card
                         TrackHeader(
                           track: engine.currentTrack,
@@ -106,6 +116,69 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
         );
+      },
+    );
+  }
+
+  Widget _buildBatteryOptimizationBanner() {
+    return FutureBuilder<bool>(
+      future: ForegroundTaskService.isBatteryOptimizationIgnored(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.data == false) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1B150F),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFF5A3E1B)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.bolt_rounded, color: Color(0xFFFFB74D), size: 22),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Enable Background Execution',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFFFFB74D),
+                        ),
+                      ),
+                      Text(
+                        'Allows uninterrupted looping when screen is locked',
+                        style: TextStyle(fontSize: 11, color: Colors.white70),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: () async {
+                    await ForegroundTaskService.requestIgnoreBatteryOptimization();
+                  },
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFB74D).withOpacity(0.18),
+                    foregroundColor: const Color(0xFFFFB74D),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text(
+                    'Allow ➔',
+                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        return const SizedBox.shrink();
       },
     );
   }
@@ -159,16 +232,13 @@ class HomeScreen extends StatelessWidget {
                     color: isActive ? const Color(0xFF00E676) : Colors.white,
                   ),
                 ),
-                const SizedBox(height: 2),
                 Text(
                   isActive
-                      ? 'Looping: ${LoopEngine.formatTime(engine.startMarkerMs ?? 0)} ➔ ${LoopEngine.formatTime(engine.endMarkerMs ?? 0)} (${engine.loopCount}x)'
-                      : 'Tap switch to start continuous loop',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    color: isActive ? Colors.white70 : Colors.white54,
+                      ? 'Looping: ${LoopEngine.formatTime(engine.startMarkerMs ?? 0)} ➔ ${LoopEngine.formatTime(engine.endMarkerMs ?? 0)} (${engine.loopCount}x) • Background active'
+                      : 'Tap switch to start continuous A-B loop playback',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.white54,
                   ),
                 ),
               ],
@@ -177,9 +247,9 @@ class HomeScreen extends StatelessWidget {
           Switch(
             value: isActive,
             activeColor: const Color(0xFF1DB954),
-            activeTrackColor: const Color(0xFF1DB954).withOpacity(0.35),
-            inactiveThumbColor: Colors.white60,
-            inactiveTrackColor: const Color(0xFF222432),
+            activeTrackColor: const Color(0xFF1DB954).withOpacity(0.4),
+            inactiveThumbColor: Colors.white54,
+            inactiveTrackColor: Colors.white12,
             onChanged: (_) => engine.toggleLoop(),
           ),
         ],
@@ -188,17 +258,15 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildPlaybackControls(BuildContext context) {
-    final isPlaying = engine.isPlaying;
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
         color: const Color(0xFF14151E),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFF232532)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withOpacity(0.4),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -208,38 +276,29 @@ class HomeScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           IconButton(
-            icon: const Icon(Icons.skip_previous_rounded, size: 28, color: Colors.white),
-            tooltip: 'Previous Track',
+            icon: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 30),
             onPressed: () => engine.previous(),
+            tooltip: 'Previous Track',
           ),
           Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.2),
-                  blurRadius: 12,
-                  spreadRadius: 1,
-                ),
-              ],
             ),
             child: IconButton(
               icon: Icon(
-                isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                size: 30,
+                engine.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                 color: Colors.black,
+                size: 32,
               ),
-              tooltip: isPlaying ? 'Pause' : 'Play',
               onPressed: () => engine.togglePlayPause(),
+              tooltip: engine.isPlaying ? 'Pause' : 'Play',
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.skip_next_rounded, size: 28, color: Colors.white),
-            tooltip: 'Next Track',
+            icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 30),
             onPressed: () => engine.next(),
+            tooltip: 'Next Track',
           ),
         ],
       ),
@@ -247,212 +306,80 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildConnectPrompt(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Hero Pill
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1DB954).withOpacity(0.12),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFF1DB954).withOpacity(0.35)),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '✦ ',
-                  style: TextStyle(color: Color(0xFF1DB954), fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  'Precision Spotify Audio Looper',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF1DB954),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-
-          // Title
-          const Text(
-            'Loop Every Riff, Beat & Solo with Millisecond Precision',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-              letterSpacing: -0.6,
-              height: 1.22,
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // Description
-          const Text(
-            'Seamlessly set custom A-B repeat zones with sub-second accuracy, zero drift, and instant Spotify Connect sync. Perfect for guitarists, dancers, transcribers, and music practice.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13.5,
-              color: Colors.white70,
-              height: 1.45,
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Error Banner if token exchange failed
-          if (authService.authError != null) ...[
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: const Color(0xFFFF5252).withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFF5252).withOpacity(0.4)),
+                color: const Color(0xFF1DB954).withOpacity(0.12),
+                shape: BoxShape.circle,
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.error_outline_rounded, color: Color(0xFFFF5252), size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      authService.authError!,
-                      style: const TextStyle(fontSize: 12.5, color: Color(0xFFFF5252), fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
+              child: const Icon(
+                Icons.all_inclusive_rounded,
+                size: 72,
+                color: Color(0xFF1DB954),
               ),
             ),
-            const SizedBox(height: 16),
-          ],
-
-          // Primary Launch Button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: authService.isAuthenticating
-                  ? null
-                  : () async {
-                      final ok = await authService.startLogin();
-                      if (!ok && context.mounted && authService.authError != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(authService.authError!),
-                            backgroundColor: const Color(0xFFFF5252),
-                          ),
-                        );
-                      }
-                    },
+            const SizedBox(height: 28),
+            const Text(
+              'Welcome to Spoti Loop',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Connect your Spotify account to start looping guitar solos, riffs, beats, and song sections with millisecond precision.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white60,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: () => authService.login(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1DB954),
                 foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
                 elevation: 6,
-                shadowColor: const Color(0xFF1DB954).withOpacity(0.4),
               ),
-              icon: authService.isAuthenticating
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black),
-                    )
-                  : const Icon(Icons.play_circle_fill_rounded, size: 22),
-              label: Text(
-                authService.isAuthenticating ? 'Connecting to Spotify...' : 'Authorize with Spotify',
-                style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w900),
+              icon: const Icon(Icons.login_rounded, size: 20),
+              label: const Text(
+                'Authorize with Spotify',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 22),
-
-          // 2x2 Bento Features (Matching Landing Page Exactly)
-          Row(
-            children: [
-              Expanded(
-                child: _buildBentoCard(
-                  icon: '🎯',
-                  title: 'Sub-Second Nudges',
-                  desc: '±50ms & ±100ms micro-steps for exact beats.',
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildBentoCard(
-                  icon: '⚡',
-                  title: 'Zero Drift',
-                  desc: 'Absolute timeline anchoring stays on beat.',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _buildBentoCard(
-                  icon: '🎛️',
-                  title: 'Live Scrubbing',
-                  desc: 'Smooth dragging along timeline & quick seeks.',
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildBentoCard(
-                  icon: '🎧',
-                  title: 'Spotify Connect',
-                  desc: 'Seamless sync across Phone, PC, Mac or TV.',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildBentoCard({
-    required String icon,
-    required String title,
-    required String desc,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF14151E),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF232532)),
+  void _openPresetSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF14151E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(icon, style: const TextStyle(fontSize: 18)),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            desc,
-            style: const TextStyle(
-              fontSize: 11,
-              color: Colors.white60,
-              height: 1.35,
-            ),
-          ),
-        ],
-      ),
+      builder: (_) => PresetListSheet(engine: engine, storage: storage),
     );
   }
 }
