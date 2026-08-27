@@ -75,9 +75,6 @@ class ForegroundTaskService {
           priority: NotificationPriority.DEFAULT,
           onlyAlertOnce: true,
           showWhen: true,
-          buttons: [
-            const NotificationButton(id: 'btn_stop_loop', text: '⏹ Stop Loop'),
-          ],
         ),
         iosNotificationOptions: const IOSNotificationOptions(
           showNotification: false,
@@ -127,6 +124,9 @@ class ForegroundTaskService {
           serviceId: 256,
           notificationTitle: title,
           notificationText: text,
+          notificationButtons: [
+            const NotificationButton(id: 'btn_stop_loop', text: '⏹ Stop Loop'),
+          ],
           callback: startForegroundCallback,
         );
       }
