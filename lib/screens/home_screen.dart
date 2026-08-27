@@ -6,7 +6,6 @@ import '../services/foreground_task_service.dart';
 import '../widgets/track_header.dart';
 import '../widgets/loop_range_slider.dart';
 import '../widgets/marker_controls.dart';
-import '../widgets/preset_list_sheet.dart';
 
 class HomeScreen extends StatelessWidget {
   final LoopEngine engine;
@@ -63,11 +62,6 @@ class HomeScreen extends StatelessWidget {
             ),
             actions: isAuth
                 ? [
-                    IconButton(
-                      icon: const Icon(Icons.bookmark_border_rounded, color: Colors.white70, size: 22),
-                      tooltip: 'Saved Presets',
-                      onPressed: () => _openPresetSheet(context),
-                    ),
                     IconButton(
                       icon: const Icon(Icons.logout_rounded, color: Colors.white60, size: 20),
                       tooltip: 'Disconnect Spotify',
@@ -369,17 +363,6 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-
-  void _openPresetSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF14151E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) => PresetListSheet(engine: engine, storage: storage),
     );
   }
 }
