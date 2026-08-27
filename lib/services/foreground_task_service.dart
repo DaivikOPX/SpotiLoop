@@ -9,19 +9,41 @@ void startForegroundCallback() {
 
 class SpotiLoopTaskHandler extends TaskHandler {
   @override
-  Future<void> onStart(DateTime timestamp, TaskStarter starter) async {}
+  Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
+    debugPrint('Foreground Task Started: ${starter.name}');
+  }
 
   @override
-  void onRepeatEvent(DateTime timestamp) {}
+  void onRepeatEvent(DateTime timestamp) {
+    // Keep-alive heartbeat tick
+  }
 
   @override
-  Future<void> onDestroy(DateTime timestamp) async {}
+  Future<void> onDestroy(DateTime timestamp) async {
+    debugPrint('Foreground Task Destroyed');
+  }
+
+  @override
+  void onNotificationButtonPressed(String id) {
+    if (id == 'btn_stop_loop') {
+      FlutterForegroundTask.sendDataToMain({'action': 'stop_loop'});
+    }
+  }
 }
 
 class ForegroundTaskService {
+  static void Function()? onStopLoopRequested;
+
   static void initCommunicationPort() {
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       FlutterForegroundTask.initCommunicationPort();
+      FlutterForegroundTask.addTaskDataCallback(_onReceiveTaskData);
+    }
+  }
+
+  static void _onReceiveTaskData(Object data) {
+    if (data is Map && data['action'] == 'stop_loop') {
+      onStopLoopRequested?.call();
     }
   }
 
@@ -29,33 +51,40 @@ class ForegroundTaskService {
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return;
 
     try {
-      // Request notification permission on Android 13+
+      // 1. Request Notification Permission on Android 13+ (Required for Foreground Service)
       final notificationPermission = await FlutterForegroundTask.checkNotificationPermission();
       if (notificationPermission != NotificationPermission.granted) {
         await FlutterForegroundTask.requestNotificationPermission();
       }
 
+      // 2. Request Battery Optimization Exemption (Immunity from Android Doze Mode)
       if (Platform.isAndroid) {
-        if (!await FlutterForegroundTask.isIgnoringBatteryOptimizations) {
+        final isIgnoring = await FlutterForegroundTask.isIgnoringBatteryOptimizations;
+        if (!isIgnoring) {
           await FlutterForegroundTask.requestIgnoreBatteryOptimization();
         }
       }
 
+      // 3. Initialize Foreground Service with High-Priority WakeLock & WifiLock
       FlutterForegroundTask.init(
         androidNotificationOptions: AndroidNotificationOptions(
-          channelId: 'spotiloop_foreground_service',
-          channelName: 'SpotiLoop Active Looper',
-          channelDescription: 'Maintains background precision looping and Spotify Connect sync.',
-          channelImportance: NotificationChannelImportance.LOW,
-          priority: NotificationPriority.LOW,
+          channelId: 'spotiloop_looper_channel',
+          channelName: 'SpotiLoop Active Playback',
+          channelDescription: 'Keeps audio looper active when screen is locked or in background.',
+          channelImportance: NotificationChannelImportance.DEFAULT,
+          priority: NotificationPriority.DEFAULT,
           onlyAlertOnce: true,
+          showWhen: true,
+          buttons: [
+            const NotificationButton(id: 'btn_stop_loop', text: '⏹ Stop Loop'),
+          ],
         ),
         iosNotificationOptions: const IOSNotificationOptions(
           showNotification: false,
           playSound: false,
         ),
         foregroundTaskOptions: ForegroundTaskOptions(
-          eventAction: ForegroundTaskEventAction.repeat(5000),
+          eventAction: ForegroundTaskEventAction.repeat(3000),
           autoRunOnBoot: false,
           autoRunOnMyPackageReplaced: false,
           allowWakeLock: true,
@@ -64,6 +93,23 @@ class ForegroundTaskService {
       );
     } catch (e) {
       debugPrint('Foreground task init error: $e');
+    }
+  }
+
+  static Future<bool> isBatteryOptimizationIgnored() async {
+    if (!kIsWeb && Platform.isAndroid) {
+      try {
+        return await FlutterForegroundTask.isIgnoringBatteryOptimizations;
+      } catch (_) {}
+    }
+    return true;
+  }
+
+  static Future<void> requestIgnoreBatteryOptimization() async {
+    if (!kIsWeb && Platform.isAndroid) {
+      try {
+        await FlutterForegroundTask.requestIgnoreBatteryOptimization();
+      } catch (_) {}
     }
   }
 
