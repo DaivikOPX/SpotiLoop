@@ -6,6 +6,7 @@ import '../models/spotify_track.dart';
 import '../models/loop_preset.dart';
 import 'spotify_api_service.dart';
 import 'storage_service.dart';
+import 'foreground_task_service.dart';
 
 class LoopEngine extends ChangeNotifier {
   final SpotifyApiService _apiService;
@@ -83,6 +84,7 @@ class LoopEngine extends ChangeNotifier {
     WakelockPlus.disable().catchError((_) {});
     _bgAudioKeeper.stop().catchError((_) {});
     _bgAudioKeeper.dispose();
+    ForegroundTaskService.stop();
     super.dispose();
   }
 
@@ -142,12 +144,22 @@ class LoopEngine extends ChangeNotifier {
     _isLoopActive = true;
     WakelockPlus.enable().catchError((_) {});
     _bgAudioKeeper.play(AssetSource('silence.wav')).catchError((_) {});
+    
+    final trackName = _currentTrack != null ? _currentTrack!.title : 'Music';
+    final loopSpan = _startMarkerMs != null && _endMarkerMs != null
+        ? '${formatTime(_startMarkerMs!)} ➔ ${formatTime(_endMarkerMs!)}'
+        : 'Active';
+    ForegroundTaskService.start(
+      title: '🔁 SpotiLoop • $trackName',
+      text: 'Looping: $loopSpan',
+    );
   }
 
   void _deactivateLooping() {
     _isLoopActive = false;
     WakelockPlus.disable().catchError((_) {});
     _bgAudioKeeper.stop().catchError((_) {});
+    ForegroundTaskService.stop();
   }
 
   void _onPrecisionTick() {
@@ -180,6 +192,14 @@ class LoopEngine extends ChangeNotifier {
 
           // Dispatch seek command to Spotify Connect
           _apiService.seekTo(_startMarkerMs!);
+
+          // Update foreground notification status
+          final trackName = _currentTrack != null ? _currentTrack!.title : 'Music';
+          ForegroundTaskService.update(
+            title: '🔁 SpotiLoop • $trackName (${_loopCount}x)',
+            text: 'Looping: ${formatTime(_startMarkerMs!)} ➔ ${formatTime(_endMarkerMs!)}',
+          );
+
           notifyListeners();
         }
       }
