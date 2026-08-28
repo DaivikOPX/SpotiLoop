@@ -9,6 +9,9 @@ class SpotifyApiService {
 
   SpotifyApiService(this._authService);
 
+  SpotifyAuthService get authService => _authService;
+  Future<String?> getAccessToken() => _authService.getValidAccessToken();
+
   Future<Map<String, String>> _getHeaders({bool forceRefresh = false}) async {
     final token = await _authService.getValidAccessToken(forceRefresh: forceRefresh);
     if (token == null) {

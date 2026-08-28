@@ -53,7 +53,7 @@ class LoopEngine extends ChangeNotifier {
   LoopEngine(this._apiService, this._storage) {
     _startTimers();
 
-    // Foreground service control & heartbeat integration
+    // Foreground service control & background callback integration
     ForegroundTaskService.onStopLoopRequested = () {
       if (_isLoopActive) {
         _deactivateLooping();
@@ -61,13 +61,18 @@ class LoopEngine extends ChangeNotifier {
       }
     };
 
-    ForegroundTaskService.onHeartbeat = () {
-      _onPrecisionTick();
+    ForegroundTaskService.onBackgroundLoopTriggered = (count, pos) {
+      _loopCount = count;
+      _currentProgressMs = pos;
+      _lastProgressSync = DateTime.now();
+      progressNotifier.value = pos;
+      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1800));
+      notifyListeners();
     };
   }
 
   void _startTimers() {
-    // 35ms High-precision loop tick (~30 FPS)
+    // 35ms High-precision loop tick (~30 FPS) for UI responsiveness
     _precisionTimer = Timer.periodic(const Duration(milliseconds: 35), (_) => _onPrecisionTick());
 
     // 1.5s Background Spotify Connect sync
@@ -105,6 +110,7 @@ class LoopEngine extends ChangeNotifier {
       _currentProgressMs = track.progressMs;
       _lastProgressSync = now;
       progressNotifier.value = _currentProgressMs;
+      ForegroundTaskService.syncProgressToTask(_currentProgressMs);
     } else if (now.isAfter(_seekLockoutUntil)) {
       final currentEst = liveProgressMs;
       final drift = (currentEst - track.progressMs).abs();
@@ -112,28 +118,51 @@ class LoopEngine extends ChangeNotifier {
         _currentProgressMs = track.progressMs;
         _lastProgressSync = now;
         progressNotifier.value = _currentProgressMs;
+        ForegroundTaskService.syncProgressToTask(_currentProgressMs);
       }
     }
 
     if (isNewTrack && track.id.isNotEmpty) {
       _loopCount = 0;
+      if (_isLoopActive) {
+        _syncLoopTask();
+      }
     }
 
     notifyListeners();
   }
 
+  Future<void> _syncLoopTask({bool start = false}) async {
+    if (!_isLoopActive) return;
+    final token = await _apiService.getAccessToken();
+    final title = _currentTrack?.title ?? 'Music';
+    final offset = _storage.getSeekOffsetMs() > 0 ? _storage.getSeekOffsetMs() : 120;
+
+    if (start) {
+      await ForegroundTaskService.startLoopTask(
+        startMs: _startMarkerMs,
+        endMs: _endMarkerMs,
+        accessToken: token,
+        trackTitle: title,
+        currentProgressMs: _currentProgressMs,
+        seekOffsetMs: offset,
+      );
+    } else {
+      ForegroundTaskService.updateLoopParams(
+        startMs: _startMarkerMs,
+        endMs: _endMarkerMs,
+        accessToken: token,
+        trackTitle: title,
+        currentProgressMs: _currentProgressMs,
+        seekOffsetMs: offset,
+      );
+    }
+  }
+
   void _activateLooping() {
     _isLoopActive = true;
     WakelockPlus.enable().catchError((_) {});
-    
-    final trackName = _currentTrack != null ? _currentTrack!.title : 'Music';
-    final loopSpan = _startMarkerMs != null && _endMarkerMs != null
-        ? '${formatTime(_startMarkerMs!)} ➔ ${formatTime(_endMarkerMs!)}'
-        : 'Active';
-    ForegroundTaskService.start(
-      title: '🔁 SpotiLoop • $trackName',
-      text: 'Looping: $loopSpan',
-    );
+    _syncLoopTask(start: true);
   }
 
   void _deactivateLooping() {
@@ -153,14 +182,14 @@ class LoopEngine extends ChangeNotifier {
     final currentPos = (maxDuration > 0 && estimated > maxDuration) ? maxDuration : estimated;
     progressNotifier.value = currentPos;
 
-    // Loop trigger check
+    // Loop trigger check (Foreground UI execution)
     if (_isLoopActive && _startMarkerMs != null && _endMarkerMs != null && _endMarkerMs! > _startMarkerMs!) {
       final offset = _storage.getSeekOffsetMs() > 0 ? _storage.getSeekOffsetMs() : 120; // 120ms lead offset
       final triggerPoint = _endMarkerMs! - offset;
 
       if (currentPos >= triggerPoint) {
-        // Prevent rapid duplicate seeks within 300ms
-        if (now.difference(_lastSeekDispatched).inMilliseconds > 300) {
+        // Prevent rapid duplicate seeks within 350ms
+        if (now.difference(_lastSeekDispatched).inMilliseconds > 350) {
           _lastSeekDispatched = now;
           _loopCount++;
 
@@ -172,13 +201,7 @@ class LoopEngine extends ChangeNotifier {
 
           // Dispatch seek command to Spotify Connect
           _apiService.seekTo(_startMarkerMs!);
-
-          // Update foreground notification status
-          final trackName = _currentTrack != null ? _currentTrack!.title : 'Music';
-          ForegroundTaskService.update(
-            title: '🔁 SpotiLoop • $trackName (${_loopCount}x)',
-            text: 'Looping: ${formatTime(_startMarkerMs!)} ➔ ${formatTime(_endMarkerMs!)}',
-          );
+          _syncLoopTask();
 
           notifyListeners();
         }
@@ -202,6 +225,7 @@ class LoopEngine extends ChangeNotifier {
     } else {
       _startMarkerMs = pos;
     }
+    _syncLoopTask();
     notifyListeners();
   }
 
@@ -212,6 +236,7 @@ class LoopEngine extends ChangeNotifier {
     } else {
       _endMarkerMs = pos;
     }
+    _syncLoopTask();
     notifyListeners();
   }
 
@@ -222,6 +247,7 @@ class LoopEngine extends ChangeNotifier {
       final max = _endMarkerMs ?? (durationMs > 0 ? durationMs : 3600000);
       _startMarkerMs = ms.clamp(0, max);
     }
+    _syncLoopTask();
     notifyListeners();
   }
 
@@ -233,6 +259,7 @@ class LoopEngine extends ChangeNotifier {
       final max = durationMs > 0 ? durationMs : 3600000;
       _endMarkerMs = ms.clamp(min, max);
     }
+    _syncLoopTask();
     notifyListeners();
   }
 
@@ -243,6 +270,7 @@ class LoopEngine extends ChangeNotifier {
     final target = _startMarkerMs! + deltaMs;
     final max = (_endMarkerMs != null) ? _endMarkerMs! - 100 : (durationMs > 0 ? durationMs : 3600000);
     _startMarkerMs = target.clamp(0, max > 0 ? max : 3600000);
+    _syncLoopTask();
     notifyListeners();
   }
 
@@ -254,6 +282,7 @@ class LoopEngine extends ChangeNotifier {
     final min = (_startMarkerMs != null) ? _startMarkerMs! + 100 : 0;
     final max = durationMs > 0 ? durationMs : 3600000;
     _endMarkerMs = target.clamp(min, max);
+    _syncLoopTask();
     notifyListeners();
   }
 
@@ -264,6 +293,7 @@ class LoopEngine extends ChangeNotifier {
       progressNotifier.value = _startMarkerMs!;
       _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1800));
       _apiService.seekTo(_startMarkerMs!);
+      _syncLoopTask();
       notifyListeners();
     }
   }
@@ -275,6 +305,7 @@ class LoopEngine extends ChangeNotifier {
       progressNotifier.value = _endMarkerMs!;
       _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1800));
       _apiService.seekTo(_endMarkerMs!);
+      _syncLoopTask();
       notifyListeners();
     }
   }
@@ -335,6 +366,7 @@ class LoopEngine extends ChangeNotifier {
     _lastProgressSync = now;
     progressNotifier.value = target;
     _seekLockoutUntil = now.add(const Duration(milliseconds: 1800));
+    _syncLoopTask();
     notifyListeners();
     await _apiService.seekTo(target);
   }

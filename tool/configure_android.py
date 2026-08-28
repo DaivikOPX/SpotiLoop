@@ -26,14 +26,18 @@ def configure_android():
             content = content.replace('<application', perm_block)
 
         service_tag = '''
-        <!-- Flutter Foreground Service for Uninterrupted Looping -->
+        <!-- Flutter Foreground Service: Runs continuously while app is in Recents or locked, stops when swiped away from Recents -->
         <service
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
             android:foregroundServiceType="mediaPlayback|dataSync"
+            android:stopWithTask="true"
             android:exported="false" />
         '''
         if 'com.pravera.flutter_foreground_task' not in content:
             content = content.replace('</application>', service_tag + '\n    </application>')
+        else:
+            # Ensure android:stopWithTask="true" is present
+            content = content.replace('android:exported="false" />', 'android:stopWithTask="true"\n            android:exported="false" />')
 
         deep_link = '''
               <!-- Spotify OAuth PKCE Deep Link Callback -->
@@ -50,7 +54,7 @@ def configure_android():
 
         with open(manifest_path, 'w', encoding='utf-8') as f:
             f.write(content)
-        print("Updated AndroidManifest.xml successfully with Foreground Service.")
+        print("Updated AndroidManifest.xml successfully with stopWithTask Foreground Service.")
 
     # 2. gradle-wrapper.properties (Update to Gradle 8.4)
     gradle_wrapper = 'android/gradle/wrapper/gradle-wrapper.properties'
