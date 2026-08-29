@@ -20,7 +20,12 @@ class SpotiLoopTaskHandler extends TaskHandler {
 
   int _currentPos = 0;
   DateTime _lastSyncTime = DateTime.now();
-  Timer? _bgTickTimer;
+  
+  // Exact Target-Time Event Timer (survives Android CPU throttling)
+  Timer? _exactLoopTimer;
+  // High-resolution UI progress ticker
+  Timer? _highResTicker;
+  
   DateTime _lastSeekDispatched = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _seekLockoutUntil = DateTime.fromMillisecondsSinceEpoch(0);
   http.Client? _client;
@@ -28,51 +33,81 @@ class SpotiLoopTaskHandler extends TaskHandler {
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
     _client = http.Client();
-    _startBgTicker();
+    _startBackgroundTimers();
   }
 
-  void _startBgTicker() {
-    _bgTickTimer?.cancel();
-    // 40ms High-Precision background loop ticker inside Background Service Isolate (~25 FPS)
-    _bgTickTimer = Timer.periodic(const Duration(milliseconds: 40), (_) => _onBgTick());
+  void _startBackgroundTimers() {
+    _highResTicker?.cancel();
+    _highResTicker = Timer.periodic(const Duration(milliseconds: 50), (_) => _checkProgressTick());
+    _scheduleNextLoopTarget();
   }
 
-  void _onBgTick() {
+  void _scheduleNextLoopTarget() {
+    _exactLoopTimer?.cancel();
     if (!_isLooping || _startMs == null || _endMs == null || _endMs! <= _startMs!) return;
 
     final now = DateTime.now();
     final elapsed = now.difference(_lastSyncTime).inMilliseconds;
-    final pos = _currentPos + elapsed;
+    final currentEstimated = _currentPos + elapsed;
 
     final triggerPoint = _endMs! - _seekOffsetMs;
-    if (pos >= triggerPoint && now.isAfter(_seekLockoutUntil)) {
-      if (now.difference(_lastSeekDispatched).inMilliseconds > 400) {
-        _lastSeekDispatched = now;
-        _seekLockoutUntil = now.add(const Duration(milliseconds: 2000));
-        _loopCount++;
+    final remainingMs = triggerPoint - currentEstimated;
 
-        // Optimistically snap local background time back to Point A
-        _currentPos = _startMs!;
-        _lastSyncTime = now;
-
-        // Perform HTTP seek directly from Background Service Isolate
-        _dispatchBackgroundSeek(_startMs!);
-
-        // Update Notification Bar
-        final span = '${_formatTime(_startMs!)} ➔ ${_formatTime(_endMs!)}';
-        FlutterForegroundTask.updateService(
-          notificationTitle: '🔁 SpotiLoop • $_trackTitle (${_loopCount}x)',
-          notificationText: 'Looping: $span (Background Active)',
-        );
-
-        // Notify Main UI Isolate
-        FlutterForegroundTask.sendDataToMain({
-          'action': 'bg_loop_triggered',
-          'loopCount': _loopCount,
-          'pos': _startMs,
-        });
-      }
+    if (remainingMs <= 0) {
+      _triggerLoopSeek();
+    } else {
+      _exactLoopTimer = Timer(Duration(milliseconds: remainingMs), () {
+        _triggerLoopSeek();
+      });
     }
+  }
+
+  void _checkProgressTick() {
+    if (!_isLooping || _startMs == null || _endMs == null || _endMs! <= _startMs!) return;
+
+    final now = DateTime.now();
+    final elapsed = now.difference(_lastSyncTime).inMilliseconds;
+    final currentEstimated = _currentPos + elapsed;
+
+    final triggerPoint = _endMs! - _seekOffsetMs;
+    if (currentEstimated >= triggerPoint && now.isAfter(_seekLockoutUntil)) {
+      _triggerLoopSeek();
+    }
+  }
+
+  void _triggerLoopSeek() {
+    if (!_isLooping || _startMs == null || _endMs == null || _endMs! <= _startMs!) return;
+
+    final now = DateTime.now();
+    if (now.difference(_lastSeekDispatched).inMilliseconds < 400) return;
+
+    _lastSeekDispatched = now;
+    _seekLockoutUntil = now.add(const Duration(milliseconds: 1800));
+    _loopCount++;
+
+    // 1. Instantly reset local clock to Point A
+    _currentPos = _startMs!;
+    _lastSyncTime = now;
+
+    // 2. Dispatch HTTP seek command to Spotify
+    _dispatchBackgroundSeek(_startMs!);
+
+    // 3. Update persistent notification in status bar
+    final span = '${_formatTime(_startMs!)} ➔ ${_formatTime(_endMs!)}';
+    FlutterForegroundTask.updateService(
+      notificationTitle: '🔁 SpotiLoop • $_trackTitle (${_loopCount}x)',
+      notificationText: 'Looping: $span (Background Active)',
+    );
+
+    // 4. Send event to main Flutter UI
+    FlutterForegroundTask.sendDataToMain({
+      'action': 'bg_loop_triggered',
+      'loopCount': _loopCount,
+      'pos': _startMs,
+    });
+
+    // 5. Schedule the next exact loop arrival
+    _scheduleNextLoopTarget();
   }
 
   Future<void> _dispatchBackgroundSeek(int positionMs) async {
@@ -86,8 +121,8 @@ class SpotiLoopTaskHandler extends TaskHandler {
           'Authorization': 'Bearer $_accessToken',
           'Content-Length': '0',
         },
-      ).timeout(const Duration(milliseconds: 3000));
-      debugPrint('Background seek dispatched -> Status: ${res.statusCode}');
+      ).timeout(const Duration(milliseconds: 2800));
+      debugPrint('Background seek -> Status: ${res.statusCode}');
     } catch (e) {
       debugPrint('Background seek network error: $e');
     }
@@ -95,9 +130,18 @@ class SpotiLoopTaskHandler extends TaskHandler {
 
   @override
   void onRepeatEvent(DateTime timestamp) {
-    // 1-second pulse from Android foreground service
+    // 1-second native Android OS watchdog pulse
     if (_isLooping && _startMs != null && _endMs != null) {
-      _onBgTick();
+      final now = DateTime.now();
+      final elapsed = now.difference(_lastSyncTime).inMilliseconds;
+      final currentEstimated = _currentPos + elapsed;
+      final triggerPoint = _endMs! - _seekOffsetMs;
+
+      if (currentEstimated >= triggerPoint && now.isAfter(_seekLockoutUntil)) {
+        _triggerLoopSeek();
+      } else if (_exactLoopTimer == null || !_exactLoopTimer!.isActive) {
+        _scheduleNextLoopTarget();
+      }
     }
   }
 
@@ -114,20 +158,25 @@ class SpotiLoopTaskHandler extends TaskHandler {
         _currentPos = (data['currentProgressMs'] as int?) ?? (_startMs ?? 0);
         _lastSyncTime = DateTime.now();
         _isLooping = true;
+        _scheduleNextLoopTarget();
       } else if (action == 'sync_progress') {
         if (DateTime.now().isAfter(_seekLockoutUntil)) {
           _currentPos = (data['currentProgressMs'] as int?) ?? _currentPos;
           _lastSyncTime = DateTime.now();
+          _scheduleNextLoopTarget();
         }
       } else if (action == 'stop_loop') {
         _isLooping = false;
+        _exactLoopTimer?.cancel();
+        _highResTicker?.cancel();
       }
     }
   }
 
   @override
   Future<void> onDestroy(DateTime timestamp) async {
-    _bgTickTimer?.cancel();
+    _exactLoopTimer?.cancel();
+    _highResTicker?.cancel();
     _isLooping = false;
     _client?.close();
     _client = null;
@@ -137,7 +186,8 @@ class SpotiLoopTaskHandler extends TaskHandler {
   void onNotificationButtonPressed(String id) {
     if (id == 'btn_stop_loop') {
       _isLooping = false;
-      _bgTickTimer?.cancel();
+      _exactLoopTimer?.cancel();
+      _highResTicker?.cancel();
       _client?.close();
       _client = null;
       FlutterForegroundTask.sendDataToMain({'action': 'stop_loop'});
@@ -181,13 +231,13 @@ class ForegroundTaskService {
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return;
 
     try {
-      // 1. Request Notification Permission on Android 13+ (Required for Foreground Service)
+      // 1. Request Notification Permission on Android 13+
       final notificationPermission = await FlutterForegroundTask.checkNotificationPermission();
       if (notificationPermission != NotificationPermission.granted) {
         await FlutterForegroundTask.requestNotificationPermission();
       }
 
-      // 2. Request Battery Optimization Exemption (Immunity from Android Doze Mode)
+      // 2. Request Battery Optimization Exemption
       if (Platform.isAndroid) {
         final isIgnoring = await FlutterForegroundTask.isIgnoringBatteryOptimizations;
         if (!isIgnoring) {
@@ -211,7 +261,7 @@ class ForegroundTaskService {
           playSound: false,
         ),
         foregroundTaskOptions: ForegroundTaskOptions(
-          eventAction: ForegroundTaskEventAction.repeat(1000), // 1s background pulse
+          eventAction: ForegroundTaskEventAction.repeat(1000), // 1s native OS pulse
           autoRunOnBoot: false,
           autoRunOnMyPackageReplaced: false,
           allowWakeLock: true,

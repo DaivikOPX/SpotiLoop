@@ -99,7 +99,11 @@ class LoopEngine extends ChangeNotifier {
       return;
     }
 
-    final isNewTrack = _currentTrack?.id != track.id;
+    final isNewTrack = _currentTrack != null &&
+        _currentTrack!.id.isNotEmpty &&
+        track.id.isNotEmpty &&
+        _currentTrack!.id != track.id;
+
     _currentTrack = track;
     _isPlaying = track.isPlaying;
 
