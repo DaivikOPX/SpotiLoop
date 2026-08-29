@@ -66,7 +66,7 @@ class LoopEngine extends ChangeNotifier {
       _currentProgressMs = pos;
       _lastProgressSync = DateTime.now();
       progressNotifier.value = pos;
-      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1800));
+      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 2000));
       notifyListeners();
     };
   }
@@ -105,13 +105,21 @@ class LoopEngine extends ChangeNotifier {
 
     final now = DateTime.now();
 
-    // Anti-jitter: If playing, only snap if real drift is significant (> 1.2s)
-    if (isNewTrack || !track.isPlaying) {
+    if (isNewTrack) {
+      // Song changed! Do NOT apply old loop to next song!
+      _startMarkerMs = null;
+      _endMarkerMs = null;
+      _deactivateLooping();
+      _loopCount = 0;
       _currentProgressMs = track.progressMs;
       _lastProgressSync = now;
       progressNotifier.value = _currentProgressMs;
-      ForegroundTaskService.syncProgressToTask(_currentProgressMs);
-    } else if (now.isAfter(_seekLockoutUntil)) {
+    } else if (!track.isPlaying) {
+      _currentProgressMs = track.progressMs;
+      _lastProgressSync = now;
+      progressNotifier.value = _currentProgressMs;
+    } else if (!_isLoopActive && now.isAfter(_seekLockoutUntil)) {
+      // Only snap to Spotify API clock if loop is NOT currently active and not in seek cooldown
       final currentEst = liveProgressMs;
       final drift = (currentEst - track.progressMs).abs();
       if (drift > 1200) {
@@ -119,13 +127,6 @@ class LoopEngine extends ChangeNotifier {
         _lastProgressSync = now;
         progressNotifier.value = _currentProgressMs;
         ForegroundTaskService.syncProgressToTask(_currentProgressMs);
-      }
-    }
-
-    if (isNewTrack && track.id.isNotEmpty) {
-      _loopCount = 0;
-      if (_isLoopActive) {
-        _syncLoopTask();
       }
     }
 
@@ -187,17 +188,17 @@ class LoopEngine extends ChangeNotifier {
       final offset = _storage.getSeekOffsetMs() > 0 ? _storage.getSeekOffsetMs() : 120; // 120ms lead offset
       final triggerPoint = _endMarkerMs! - offset;
 
-      if (currentPos >= triggerPoint) {
-        // Prevent rapid duplicate seeks within 350ms
-        if (now.difference(_lastSeekDispatched).inMilliseconds > 350) {
+      if (currentPos >= triggerPoint && now.isAfter(_seekLockoutUntil)) {
+        // Prevent rapid duplicate seeks within 400ms
+        if (now.difference(_lastSeekDispatched).inMilliseconds > 400) {
           _lastSeekDispatched = now;
+          _seekLockoutUntil = now.add(const Duration(milliseconds: 2000));
           _loopCount++;
 
           // Optimistically reset local timer back to Point A immediately
           _currentProgressMs = _startMarkerMs!;
           _lastProgressSync = now;
           progressNotifier.value = _startMarkerMs!;
-          _seekLockoutUntil = now.add(const Duration(milliseconds: 1800));
 
           // Dispatch seek command to Spotify Connect
           _apiService.seekTo(_startMarkerMs!);
@@ -291,7 +292,7 @@ class LoopEngine extends ChangeNotifier {
       _currentProgressMs = _startMarkerMs!;
       _lastProgressSync = DateTime.now();
       progressNotifier.value = _startMarkerMs!;
-      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1800));
+      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 2000));
       _apiService.seekTo(_startMarkerMs!);
       _syncLoopTask();
       notifyListeners();
@@ -303,7 +304,7 @@ class LoopEngine extends ChangeNotifier {
       _currentProgressMs = _endMarkerMs!;
       _lastProgressSync = DateTime.now();
       progressNotifier.value = _endMarkerMs!;
-      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1800));
+      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 2000));
       _apiService.seekTo(_endMarkerMs!);
       _syncLoopTask();
       notifyListeners();
@@ -365,7 +366,7 @@ class LoopEngine extends ChangeNotifier {
     final now = DateTime.now();
     _lastProgressSync = now;
     progressNotifier.value = target;
-    _seekLockoutUntil = now.add(const Duration(milliseconds: 1800));
+    _seekLockoutUntil = now.add(const Duration(milliseconds: 2000));
     _syncLoopTask();
     notifyListeners();
     await _apiService.seekTo(target);
