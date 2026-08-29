@@ -22,16 +22,19 @@ class SpotiLoopTaskHandler extends TaskHandler {
   DateTime _lastSyncTime = DateTime.now();
   Timer? _bgTickTimer;
   DateTime _lastSeekDispatched = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime _seekLockoutUntil = DateTime.fromMillisecondsSinceEpoch(0);
+  http.Client? _client;
 
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
+    _client = http.Client();
     _startBgTicker();
   }
 
   void _startBgTicker() {
     _bgTickTimer?.cancel();
-    // 50ms High-Precision background loop ticker inside the Background Service Isolate
-    _bgTickTimer = Timer.periodic(const Duration(milliseconds: 50), (_) => _onBgTick());
+    // 40ms High-Precision background loop ticker inside Background Service Isolate (~25 FPS)
+    _bgTickTimer = Timer.periodic(const Duration(milliseconds: 40), (_) => _onBgTick());
   }
 
   void _onBgTick() {
@@ -42,12 +45,13 @@ class SpotiLoopTaskHandler extends TaskHandler {
     final pos = _currentPos + elapsed;
 
     final triggerPoint = _endMs! - _seekOffsetMs;
-    if (pos >= triggerPoint) {
-      if (now.difference(_lastSeekDispatched).inMilliseconds > 350) {
+    if (pos >= triggerPoint && now.isAfter(_seekLockoutUntil)) {
+      if (now.difference(_lastSeekDispatched).inMilliseconds > 400) {
         _lastSeekDispatched = now;
+        _seekLockoutUntil = now.add(const Duration(milliseconds: 2000));
         _loopCount++;
 
-        // Optimistically snap local time back to Point A
+        // Optimistically snap local background time back to Point A
         _currentPos = _startMs!;
         _lastSyncTime = now;
 
@@ -74,14 +78,16 @@ class SpotiLoopTaskHandler extends TaskHandler {
   Future<void> _dispatchBackgroundSeek(int positionMs) async {
     if (_accessToken == null || _accessToken!.isEmpty) return;
     try {
+      _client ??= http.Client();
       final uri = Uri.parse('https://api.spotify.com/v1/me/player/seek?position_ms=$positionMs');
-      await http.put(
+      final res = await _client!.put(
         uri,
         headers: {
           'Authorization': 'Bearer $_accessToken',
           'Content-Length': '0',
         },
-      ).timeout(const Duration(milliseconds: 2500));
+      ).timeout(const Duration(milliseconds: 3000));
+      debugPrint('Background seek dispatched -> Status: ${res.statusCode}');
     } catch (e) {
       debugPrint('Background seek network error: $e');
     }
@@ -89,7 +95,7 @@ class SpotiLoopTaskHandler extends TaskHandler {
 
   @override
   void onRepeatEvent(DateTime timestamp) {
-    // Regular pulse to ensure foreground service stays active
+    // 1-second pulse from Android foreground service
     if (_isLooping && _startMs != null && _endMs != null) {
       _onBgTick();
     }
@@ -109,8 +115,10 @@ class SpotiLoopTaskHandler extends TaskHandler {
         _lastSyncTime = DateTime.now();
         _isLooping = true;
       } else if (action == 'sync_progress') {
-        _currentPos = (data['currentProgressMs'] as int?) ?? _currentPos;
-        _lastSyncTime = DateTime.now();
+        if (DateTime.now().isAfter(_seekLockoutUntil)) {
+          _currentPos = (data['currentProgressMs'] as int?) ?? _currentPos;
+          _lastSyncTime = DateTime.now();
+        }
       } else if (action == 'stop_loop') {
         _isLooping = false;
       }
@@ -121,6 +129,8 @@ class SpotiLoopTaskHandler extends TaskHandler {
   Future<void> onDestroy(DateTime timestamp) async {
     _bgTickTimer?.cancel();
     _isLooping = false;
+    _client?.close();
+    _client = null;
   }
 
   @override
@@ -128,6 +138,8 @@ class SpotiLoopTaskHandler extends TaskHandler {
     if (id == 'btn_stop_loop') {
       _isLooping = false;
       _bgTickTimer?.cancel();
+      _client?.close();
+      _client = null;
       FlutterForegroundTask.sendDataToMain({'action': 'stop_loop'});
       FlutterForegroundTask.stopService();
     }
