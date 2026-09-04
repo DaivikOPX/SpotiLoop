@@ -1448,25 +1448,58 @@
 
   async function syncPlaybackState() {
     if (!accessToken || isScrubbing) return;
+    const fetchStart = Date.now();
     try {
       const res = await spotifyFetch('me/player');
+      const fetchEnd = Date.now();
       if (res && res.status === 200) {
         const data = await res.json();
         if (data && data.item) {
-          const isNewTrack = !currentTrack || currentTrack.id !== data.item.id;
+          const isNewTrack = !currentTrack || (currentTrack.id && data.item.id && currentTrack.id !== data.item.id);
           currentTrack = data.item;
           durationMs = data.item.duration_ms || 0;
           isPlaying = data.is_playing;
           activeDeviceId = data.device ? data.device.id : null;
 
-          if (isNewTrack || Date.now() > seekLockoutUntil) {
-            const apiProgress = data.progress_ms || 0;
+          const now = Date.now();
+          const rtt = fetchEnd - fetchStart;
+          const oneWayLatency = Math.round(rtt / 2);
+
+          // Latency compensation: Spotify records progress at data.timestamp
+          let compensatedProgress = data.progress_ms || 0;
+          if (data.is_playing) {
+            if (data.timestamp && Math.abs(now - data.timestamp) < 8000) {
+              compensatedProgress += Math.max(0, now - data.timestamp);
+            } else {
+              compensatedProgress += oneWayLatency;
+            }
+          }
+
+          if (isNewTrack) {
+            // New track: clean reset loop markers
+            pointA = null;
+            pointB = null;
+            isLoopActive = false;
+            loopCount = 0;
+            updateTimelineLoopZone();
+            const card = document.getElementById('loopToggleCard');
+            if (card) card.classList.remove('active');
+            document.getElementById('loopSubtext').textContent = 'Click to start looping between Point A and Point B';
+            document.getElementById('inputA').value = '';
+            document.getElementById('inputB').value = '';
+
+            lastProgressMs = compensatedProgress;
+            lastSyncTime = now;
+          } else if (!isPlaying) {
+            lastProgressMs = data.progress_ms || 0;
+            lastSyncTime = now;
+          } else if (!isLoopActive && now > seekLockoutUntil) {
+            // Only synchronize with Spotify REST clock when loop is NOT active
             const currentEst = getEstimatedProgress();
-            
-            // Only snap if drift > 1.2s or track changed or paused
-            if (isNewTrack || !isPlaying || Math.abs(currentEst - apiProgress) > 1200) {
-              lastProgressMs = apiProgress;
-              lastSyncTime = Date.now();
+            const drift = Math.abs(currentEst - compensatedProgress);
+            if (drift > 800) {
+              lastProgressMs = compensatedProgress;
+              lastSyncTime = now;
             }
           }
 
@@ -1483,14 +1516,6 @@
 
           document.getElementById('totalTimeReadout').textContent = formatTime(durationMs);
           updatePlayIcon(isPlaying);
-
-          // If loop is active and track overshot Point B while tab was asleep
-          const pos = getEstimatedProgress();
-          if (isLoopActive && pointA !== null && pointB !== null && pos >= (pointB - seekLeadOffsetMs)) {
-            lastProgressMs = pointA;
-            lastSyncTime = Date.now();
-            await spotifySeek(pointA);
-          }
         }
       }
     } catch (e) {
@@ -1530,10 +1555,12 @@
 
     if (isLoopActive && pointA !== null && pointB !== null && pointB > pointA && !isScrubbing) {
       const pos = getEstimatedProgress();
-      if (pos >= (pointB - seekLeadOffsetMs)) {
+      const triggerPoint = pointB - seekLeadOffsetMs;
+      if (pos >= triggerPoint) {
         const now = Date.now();
-        if (now - lastSeekDispatchedTime > 300) {
+        if (now - lastSeekDispatchedTime > 400) {
           lastSeekDispatchedTime = now;
+          seekLockoutUntil = now + 2000;
           loopCount++;
           document.getElementById('loopSubtext').textContent = `Looping: ${formatTime(pointA)} ➔ ${formatTime(pointB)} (${loopCount}x)`;
           
@@ -1550,9 +1577,10 @@
 
   async function spotifySeek(positionMs) {
     if (!accessToken) return;
-    seekLockoutUntil = Date.now() + 1500;
-    lastProgressMs = positionMs;
-    lastSyncTime = Date.now();
+    const now = Date.now();
+    seekLockoutUntil = now + 2000;
+    lastProgressMs = Math.floor(positionMs);
+    lastSyncTime = now;
     renderTimelineVisuals();
 
     try {
@@ -1603,28 +1631,28 @@
 
   // Markers
   function setPointAToCurrent() {
-    pointA = getEstimatedProgress();
+    pointA = Math.floor(getEstimatedProgress());
     document.getElementById('inputA').value = formatTime(pointA);
     updateTimelineLoopZone();
     showToast(`🚩 Point A set to ${formatTime(pointA)}`);
   }
 
   function setPointBToCurrent() {
-    pointB = getEstimatedProgress();
+    pointB = Math.floor(getEstimatedProgress());
     document.getElementById('inputB').value = formatTime(pointB);
     updateTimelineLoopZone();
     showToast(`🏁 Point B set to ${formatTime(pointB)}`);
   }
 
   function nudgeA(deltaMs) {
-    if (pointA === null) pointA = getEstimatedProgress();
+    if (pointA === null) pointA = Math.floor(getEstimatedProgress());
     pointA = Math.max(0, pointA + deltaMs);
     document.getElementById('inputA').value = formatTime(pointA);
     updateTimelineLoopZone();
   }
 
   function nudgeB(deltaMs) {
-    if (pointB === null) pointB = getEstimatedProgress();
+    if (pointB === null) pointB = Math.floor(getEstimatedProgress());
     pointB = Math.max(0, pointB + deltaMs);
     document.getElementById('inputB').value = formatTime(pointB);
     updateTimelineLoopZone();
@@ -1666,7 +1694,13 @@
       document.getElementById('loopSubtext').textContent = `Looping: ${formatTime(pointA)} ➔ ${formatTime(pointB)}`;
       showToast('🔁 Looping Active!');
       requestLoopWakeLock();
-      spotifySeek(pointA);
+      
+      // If currently playing outside the loop range, seek to Point A.
+      // If already playing inside the loop, let it continue playing smoothly to Point B!
+      const currentPos = getEstimatedProgress();
+      if (currentPos < pointA || currentPos >= pointB) {
+        spotifySeek(pointA);
+      }
     } else {
       card.classList.remove('active');
       document.getElementById('loopSubtext').textContent = 'Click to start looping between Point A and Point B';
