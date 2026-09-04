@@ -20,46 +20,20 @@ class SpotiLoopTaskHandler extends TaskHandler {
 
   int _currentPos = 0;
   DateTime _lastSyncTime = DateTime.now();
-  
-  // Exact Target-Time Event Timer (survives Android CPU throttling)
-  Timer? _exactLoopTimer;
-  // High-resolution UI progress ticker
-  Timer? _highResTicker;
-  
+  Timer? _ticker;
   DateTime _lastSeekDispatched = DateTime.fromMillisecondsSinceEpoch(0);
-  DateTime _seekLockoutUntil = DateTime.fromMillisecondsSinceEpoch(0);
   http.Client? _client;
 
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
     _client = http.Client();
-    _startBackgroundTimers();
+    _startTicker();
   }
 
-  void _startBackgroundTimers() {
-    _highResTicker?.cancel();
-    _highResTicker = Timer.periodic(const Duration(milliseconds: 50), (_) => _checkProgressTick());
-    _scheduleNextLoopTarget();
-  }
-
-  void _scheduleNextLoopTarget() {
-    _exactLoopTimer?.cancel();
-    if (!_isLooping || _startMs == null || _endMs == null || _endMs! <= _startMs!) return;
-
-    final now = DateTime.now();
-    final elapsed = now.difference(_lastSyncTime).inMilliseconds;
-    final currentEstimated = _currentPos + elapsed;
-
-    final triggerPoint = _endMs! - _seekOffsetMs;
-    final remainingMs = triggerPoint - currentEstimated;
-
-    if (remainingMs <= 0) {
-      _triggerLoopSeek();
-    } else {
-      _exactLoopTimer = Timer(Duration(milliseconds: remainingMs), () {
-        _triggerLoopSeek();
-      });
-    }
+  void _startTicker() {
+    _ticker?.cancel();
+    // 40ms high-precision ticker inside background service isolate (~25 ticks/sec)
+    _ticker = Timer.periodic(const Duration(milliseconds: 40), (_) => _checkProgressTick());
   }
 
   void _checkProgressTick() {
@@ -70,8 +44,10 @@ class SpotiLoopTaskHandler extends TaskHandler {
     final currentEstimated = _currentPos + elapsed;
 
     final triggerPoint = _endMs! - _seekOffsetMs;
-    if (currentEstimated >= triggerPoint && now.isAfter(_seekLockoutUntil)) {
-      _triggerLoopSeek();
+    if (currentEstimated >= triggerPoint) {
+      if (now.difference(_lastSeekDispatched).inMilliseconds > 400) {
+        _triggerLoopSeek();
+      }
     }
   }
 
@@ -79,35 +55,29 @@ class SpotiLoopTaskHandler extends TaskHandler {
     if (!_isLooping || _startMs == null || _endMs == null || _endMs! <= _startMs!) return;
 
     final now = DateTime.now();
-    if (now.difference(_lastSeekDispatched).inMilliseconds < 400) return;
-
     _lastSeekDispatched = now;
-    _seekLockoutUntil = now.add(const Duration(milliseconds: 1800));
     _loopCount++;
 
     // 1. Instantly reset local clock to Point A
     _currentPos = _startMs!;
     _lastSyncTime = now;
 
-    // 2. Dispatch HTTP seek command to Spotify
+    // 2. Dispatch seek command directly to Spotify Web API
     _dispatchBackgroundSeek(_startMs!);
 
-    // 3. Update persistent notification in status bar
+    // 3. Update persistent notification bar
     final span = '${_formatTime(_startMs!)} ➔ ${_formatTime(_endMs!)}';
     FlutterForegroundTask.updateService(
       notificationTitle: '🔁 SpotiLoop • $_trackTitle (${_loopCount}x)',
       notificationText: 'Looping: $span (Background Active)',
     );
 
-    // 4. Send event to main Flutter UI
+    // 4. Send progress & count to UI isolate
     FlutterForegroundTask.sendDataToMain({
       'action': 'bg_loop_triggered',
       'loopCount': _loopCount,
       'pos': _startMs,
     });
-
-    // 5. Schedule the next exact loop arrival
-    _scheduleNextLoopTarget();
   }
 
   Future<void> _dispatchBackgroundSeek(int positionMs) async {
@@ -121,8 +91,8 @@ class SpotiLoopTaskHandler extends TaskHandler {
           'Authorization': 'Bearer $_accessToken',
           'Content-Length': '0',
         },
-      ).timeout(const Duration(milliseconds: 2800));
-      debugPrint('Background seek -> Status: ${res.statusCode}');
+      ).timeout(const Duration(milliseconds: 2500));
+      debugPrint('Background seek ($positionMs ms) -> Status: ${res.statusCode}');
     } catch (e) {
       debugPrint('Background seek network error: $e');
     }
@@ -131,18 +101,7 @@ class SpotiLoopTaskHandler extends TaskHandler {
   @override
   void onRepeatEvent(DateTime timestamp) {
     // 1-second native Android OS watchdog pulse
-    if (_isLooping && _startMs != null && _endMs != null) {
-      final now = DateTime.now();
-      final elapsed = now.difference(_lastSyncTime).inMilliseconds;
-      final currentEstimated = _currentPos + elapsed;
-      final triggerPoint = _endMs! - _seekOffsetMs;
-
-      if (currentEstimated >= triggerPoint && now.isAfter(_seekLockoutUntil)) {
-        _triggerLoopSeek();
-      } else if (_exactLoopTimer == null || !_exactLoopTimer!.isActive) {
-        _scheduleNextLoopTarget();
-      }
-    }
+    _checkProgressTick();
   }
 
   @override
@@ -158,25 +117,22 @@ class SpotiLoopTaskHandler extends TaskHandler {
         _currentPos = (data['currentProgressMs'] as int?) ?? (_startMs ?? 0);
         _lastSyncTime = DateTime.now();
         _isLooping = true;
-        _scheduleNextLoopTarget();
       } else if (action == 'sync_progress') {
-        if (DateTime.now().isAfter(_seekLockoutUntil)) {
+        final now = DateTime.now();
+        if (now.difference(_lastSeekDispatched).inMilliseconds > 1800) {
           _currentPos = (data['currentProgressMs'] as int?) ?? _currentPos;
-          _lastSyncTime = DateTime.now();
-          _scheduleNextLoopTarget();
+          _lastSyncTime = now;
         }
       } else if (action == 'stop_loop') {
         _isLooping = false;
-        _exactLoopTimer?.cancel();
-        _highResTicker?.cancel();
+        _ticker?.cancel();
       }
     }
   }
 
   @override
   Future<void> onDestroy(DateTime timestamp) async {
-    _exactLoopTimer?.cancel();
-    _highResTicker?.cancel();
+    _ticker?.cancel();
     _isLooping = false;
     _client?.close();
     _client = null;
@@ -186,8 +142,7 @@ class SpotiLoopTaskHandler extends TaskHandler {
   void onNotificationButtonPressed(String id) {
     if (id == 'btn_stop_loop') {
       _isLooping = false;
-      _exactLoopTimer?.cancel();
-      _highResTicker?.cancel();
+      _ticker?.cancel();
       _client?.close();
       _client = null;
       FlutterForegroundTask.sendDataToMain({'action': 'stop_loop'});
