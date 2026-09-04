@@ -537,6 +537,54 @@
     }
     .quick-seek-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
 
+    /* Audio & Bluetooth Sync Calibration Panel */
+    .sync-calibration-panel {
+      background: var(--card-inner);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .calibration-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+    .offset-badge {
+      background: rgba(29, 185, 84, 0.15);
+      border: 1px solid rgba(29, 185, 84, 0.35);
+      color: var(--spotify-green);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+    .calibration-controls {
+      display: flex;
+      gap: 6px;
+    }
+    .cal-btn {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 6px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cal-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .cal-btn.reset { color: #fff; font-weight: 800; }
+
     /* Dual Marker Stations */
     .marker-grid {
       display: grid;
@@ -1036,6 +1084,21 @@
           <button class="quick-seek-btn" onclick="quickSeek(1000)">+1s ▶</button>
           <button class="quick-seek-btn" onclick="quickSeek(5000)">+5s ⏭</button>
         </div>
+
+        <!-- Audio & Bluetooth Sync Calibration -->
+        <div class="sync-calibration-panel">
+          <div class="calibration-header">
+            <span>⚡ Audio / Bluetooth Sync Calibration</span>
+            <span id="offsetReadoutBadge" class="offset-badge">0ms</span>
+          </div>
+          <div class="calibration-controls">
+            <button class="cal-btn" onclick="adjustSyncOffset(-100)">-100ms</button>
+            <button class="cal-btn" onclick="adjustSyncOffset(-50)">-50ms</button>
+            <button class="cal-btn reset" onclick="resetSyncOffset()">Reset</button>
+            <button class="cal-btn" onclick="adjustSyncOffset(50)">+50ms</button>
+            <button class="cal-btn" onclick="adjustSyncOffset(100)">+100ms</button>
+          </div>
+        </div>
       </div>
 
       <!-- Dual Marker Master Stations -->
@@ -1439,11 +1502,43 @@
     return null;
   }
 
+  let userSyncOffsetMs = parseInt(localStorage.getItem('user_sync_offset_ms') || '0', 10);
+
+  function adjustSyncOffset(deltaMs) {
+    userSyncOffsetMs += deltaMs;
+    userSyncOffsetMs = Math.max(-3000, Math.min(3000, userSyncOffsetMs));
+    localStorage.setItem('user_sync_offset_ms', userSyncOffsetMs.toString());
+    updateOffsetBadge();
+    renderTimelineVisuals();
+    showToast(`⚡ Sync offset: ${userSyncOffsetMs >= 0 ? '+' : ''}${userSyncOffsetMs}ms`);
+  }
+
+  function resetSyncOffset() {
+    userSyncOffsetMs = 0;
+    localStorage.setItem('user_sync_offset_ms', '0');
+    updateOffsetBadge();
+    renderTimelineVisuals();
+    showToast('Sync offset reset to 0ms');
+  }
+
+  function updateOffsetBadge() {
+    const badge = document.getElementById('offsetReadoutBadge');
+    if (badge) {
+      badge.textContent = `${userSyncOffsetMs >= 0 ? '+' : ''}${userSyncOffsetMs}ms`;
+      if (userSyncOffsetMs !== 0) {
+        badge.style.color = 'var(--spotify-green)';
+        badge.style.borderColor = 'rgba(29, 185, 84, 0.4)';
+      } else {
+        badge.style.color = 'var(--text-muted)';
+        badge.style.borderColor = 'var(--card-border)';
+      }
+    }
+  }
+
   function getEstimatedProgress() {
     if (isScrubbing) return lastProgressMs;
-    if (!isPlaying) return lastProgressMs;
-    const elapsed = Date.now() - lastSyncTime;
-    return Math.min(durationMs, lastProgressMs + elapsed);
+    const baseProgress = !isPlaying ? lastProgressMs : (lastProgressMs + (Date.now() - lastSyncTime));
+    return Math.min(durationMs, Math.max(0, baseProgress + userSyncOffsetMs));
   }
 
   async function syncPlaybackState() {
@@ -1462,18 +1557,12 @@
           activeDeviceId = data.device ? data.device.id : null;
 
           const now = Date.now();
-          const rtt = fetchEnd - fetchStart;
+          // Network one-way latency safely measured using LOCAL clock only
+          const rtt = Math.max(0, fetchEnd - fetchStart);
           const oneWayLatency = Math.round(rtt / 2);
 
-          // Latency compensation: Spotify records progress at data.timestamp
-          let compensatedProgress = data.progress_ms || 0;
-          if (data.is_playing) {
-            if (data.timestamp && Math.abs(now - data.timestamp) < 8000) {
-              compensatedProgress += Math.max(0, now - data.timestamp);
-            } else {
-              compensatedProgress += oneWayLatency;
-            }
-          }
+          // Compensate for network transit time
+          const compensatedProgress = (data.progress_ms || 0) + (data.is_playing ? oneWayLatency : 0);
 
           if (isNewTrack) {
             // New track: clean reset loop markers
@@ -1494,10 +1583,13 @@
             lastProgressMs = data.progress_ms || 0;
             lastSyncTime = now;
           } else if (!isLoopActive && now > seekLockoutUntil) {
-            // Only synchronize with Spotify REST clock when loop is NOT active
-            const currentEst = getEstimatedProgress();
-            const drift = Math.abs(currentEst - compensatedProgress);
-            if (drift > 800) {
+            // Continuous monotonic progression: compare without user offset
+            const currentEstRaw = lastProgressMs + (now - lastSyncTime);
+            const drift = Math.abs(currentEstRaw - compensatedProgress);
+
+            // Only snap if drift is substantial (> 1800ms)
+            // Eliminates Spotify's 1-second API cache lag from jerking the timer backward
+            if (drift > 1800) {
               lastProgressMs = compensatedProgress;
               lastSyncTime = now;
             }
@@ -1827,6 +1919,7 @@
 
   // Initialization
   window.addEventListener('DOMContentLoaded', async () => {
+    updateOffsetBadge();
     await handleOAuthCallback();
     
     // Always start by default on the clean Landing Page
