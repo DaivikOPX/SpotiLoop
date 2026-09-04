@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../models/spotify_track.dart';
@@ -66,7 +67,7 @@ class LoopEngine extends ChangeNotifier {
       _currentProgressMs = pos;
       _lastProgressSync = DateTime.now();
       progressNotifier.value = pos;
-      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 2000));
+      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1800));
       notifyListeners();
     };
   }
@@ -187,27 +188,22 @@ class LoopEngine extends ChangeNotifier {
     final currentPos = (maxDuration > 0 && estimated > maxDuration) ? maxDuration : estimated;
     progressNotifier.value = currentPos;
 
-    // Loop trigger check (Foreground UI execution)
-    if (_isLoopActive && _startMarkerMs != null && _endMarkerMs != null && _endMarkerMs! > _startMarkerMs!) {
-      final offset = _storage.getSeekOffsetMs() > 0 ? _storage.getSeekOffsetMs() : 120; // 120ms lead offset
+    // On Web (where ForegroundService is absent), handle loop dispatch directly
+    if (kIsWeb && _isLoopActive && _startMarkerMs != null && _endMarkerMs != null && _endMarkerMs! > _startMarkerMs!) {
+      final offset = _storage.getSeekOffsetMs() > 0 ? _storage.getSeekOffsetMs() : 120;
       final triggerPoint = _endMarkerMs! - offset;
 
       if (currentPos >= triggerPoint && now.isAfter(_seekLockoutUntil)) {
-        // Prevent rapid duplicate seeks within 400ms
         if (now.difference(_lastSeekDispatched).inMilliseconds > 400) {
           _lastSeekDispatched = now;
-          _seekLockoutUntil = now.add(const Duration(milliseconds: 2000));
+          _seekLockoutUntil = now.add(const Duration(milliseconds: 1800));
           _loopCount++;
 
-          // Optimistically reset local timer back to Point A immediately
           _currentProgressMs = _startMarkerMs!;
           _lastProgressSync = now;
           progressNotifier.value = _startMarkerMs!;
 
-          // Dispatch seek command to Spotify Connect
           _apiService.seekTo(_startMarkerMs!);
-          _syncLoopTask();
-
           notifyListeners();
         }
       }
@@ -296,7 +292,7 @@ class LoopEngine extends ChangeNotifier {
       _currentProgressMs = _startMarkerMs!;
       _lastProgressSync = DateTime.now();
       progressNotifier.value = _startMarkerMs!;
-      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 2000));
+      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1800));
       _apiService.seekTo(_startMarkerMs!);
       _syncLoopTask();
       notifyListeners();
@@ -308,7 +304,7 @@ class LoopEngine extends ChangeNotifier {
       _currentProgressMs = _endMarkerMs!;
       _lastProgressSync = DateTime.now();
       progressNotifier.value = _endMarkerMs!;
-      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 2000));
+      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1800));
       _apiService.seekTo(_endMarkerMs!);
       _syncLoopTask();
       notifyListeners();
@@ -370,7 +366,7 @@ class LoopEngine extends ChangeNotifier {
     final now = DateTime.now();
     _lastProgressSync = now;
     progressNotifier.value = target;
-    _seekLockoutUntil = now.add(const Duration(milliseconds: 2000));
+    _seekLockoutUntil = now.add(const Duration(milliseconds: 1800));
     _syncLoopTask();
     notifyListeners();
     await _apiService.seekTo(target);
