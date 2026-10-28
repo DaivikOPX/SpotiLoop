@@ -96,7 +96,7 @@ class _MarkerControlsState extends State<MarkerControls> {
   }
 
   int? _parseTimeToMs(String text) {
-    final cleaned = text.trim().replaceAll(' ', '');
+    var cleaned = text.trim().replaceAll(' ', '').replaceAll(RegExp(r'[\.:,\s]+$'), '');
     if (cleaned.isEmpty) return null;
 
     if (cleaned.contains(':')) {
@@ -110,8 +110,6 @@ class _MarkerControlsState extends State<MarkerControls> {
       }
     }
 
-    // Strip trailing dots, colons, or whitespace e.g. "1.47." -> "1.47"
-    cleaned = cleaned.replaceAll(RegExp(r'[\.:,\s]+$'), '');
     if (cleaned.isEmpty) return null;
 
     if (cleaned.contains('.')) {
