@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import '../models/loop_preset.dart';
 import '../models/spotify_track.dart';
 import 'spotify_api_service.dart';
 import 'storage_service.dart';
@@ -338,6 +338,34 @@ class LoopEngine extends ChangeNotifier {
     _endMarkerMs = null;
     _deactivateLooping();
     _loopCount = 0;
+    notifyListeners();
+  }
+
+  // Preset passthroughs (used by PresetListSheet)
+  Future<void> saveCurrentAsPreset(String name) async {
+    final track = _currentTrack;
+    if (track == null) {
+      throw StateError('No Spotify track loaded yet');
+    }
+    final preset = LoopPreset(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      trackId: track.id,
+      trackTitle: track.title,
+      trackArtist: track.artist,
+      name: name.trim().isEmpty ? 'Custom Loop' : name.trim(),
+      startMs: _startMarkerMs ?? 0,
+      endMs: _endMarkerMs ?? (_startMarkerMs ?? 0) + 1000,
+      createdAt: DateTime.now(),
+    );
+    await _storage.savePreset(preset);
+    _syncLoopTask();
+  }
+
+  void applyPreset(LoopPreset preset) {
+    _startMarkerMs = preset.startMs;
+    _endMarkerMs = preset.endMs;
+    _loopCount = 0;
+    _syncLoopTask();
     notifyListeners();
   }
 
