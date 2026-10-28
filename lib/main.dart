@@ -59,7 +59,6 @@ class SpotiLoopApp extends StatelessWidget {
           primary: Color(0xFF1DB954),
           secondary: Color(0xFF1ED760),
           surface: Color(0xFF15151C),
-          background: Color(0xFF070709),
         ),
         fontFamily: 'Segoe UI',
         useMaterial3: true,

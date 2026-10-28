@@ -459,6 +459,42 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
+                if (authService.authError != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2A1114),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFFF5252).withOpacity(0.5)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline_rounded, color: Color(0xFFFF5252), size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            authService.authError!,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFFFF8A80),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (authService.isAuthenticating)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 4),
+                    child: LinearProgressIndicator(
+                      color: Color(0xFF1DB954),
+                      backgroundColor: Color(0xFF1B2B22),
+                    ),
+                  ),
                 const Text(
                   'Secured with Spotify OAuth 2.0 PKCE • No login credentials stored',
                   textAlign: TextAlign.center,

@@ -14,6 +14,7 @@ class SpotifyAuthService extends ChangeNotifier {
   final AppLinks _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSubscription;
   HttpServer? _localServer;
+  String? _lastExchangedCode;
 
   String? _currentCodeVerifier;
   bool _isAuthenticating = false;
@@ -229,13 +230,18 @@ class SpotifyAuthService extends ChangeNotifier {
   }
 
   Future<void> _handleAuthCode(String code) async {
+    // getInitialLink/getLatestLink/uriLinkStream can all deliver the same deep
+    // link; only exchange each authorization code once.
+    if (_lastExchangedCode == code) return;
+    _lastExchangedCode = code;
+
     _authError = null;
     _isAuthenticating = true;
     notifyListeners();
 
     final clientId = _storage.getClientId();
     final verifier = _storage.getCodeVerifier() ?? _currentCodeVerifier;
-    if (clientId == null || verifier == null) {
+    if (clientId.isEmpty || verifier == null) {
       _authError = 'Missing Spotify client credentials or verifier';
       _isAuthenticating = false;
       notifyListeners();
@@ -289,7 +295,7 @@ class SpotifyAuthService extends ChangeNotifier {
 
     final needsRefresh = forceRefresh || token == null || expiry == null || DateTime.now().isAfter(expiry);
 
-    if (needsRefresh && refreshToken != null && clientId != null) {
+    if (needsRefresh && refreshToken != null) {
       try {
         final response = await http.post(
           Uri.parse('https://accounts.spotify.com/api/token'),

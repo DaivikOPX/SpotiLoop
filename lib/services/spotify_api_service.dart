@@ -12,6 +12,45 @@ class SpotifyApiService {
   SpotifyAuthService get authService => _authService;
   Future<String?> getAccessToken() => _authService.getValidAccessToken();
 
+  /// Finds a non-restricted Spotify Connect device to transfer playback to.
+  Future<String?> _firstAvailableDeviceId() async {
+    try {
+      final headers = await _getHeaders();
+      final res = await http.get(
+        Uri.parse('https://api.spotify.com/v1/me/player/devices'),
+        headers: headers,
+      );
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        final devices = data['devices'] as List<dynamic>? ?? [];
+        for (final d in devices) {
+          if (d is Map<String, dynamic> && d['is_restricted'] != true) {
+            return d['id'] as String?;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Device listing error: $e');
+    }
+    return null;
+  }
+
+  /// Transfers playback to a device. Returns true on success.
+  Future<bool> _transferPlayback(String deviceId) async {
+    try {
+      final headers = await _getHeaders();
+      final res = await http.post(
+        Uri.parse('https://api.spotify.com/v1/me/player'),
+        headers: headers,
+        body: jsonEncode({'device_ids': [deviceId]}),
+      );
+      return res.statusCode == 204 || res.statusCode == 200;
+    } catch (e) {
+      debugPrint('Playback transfer error: $e');
+      return false;
+    }
+  }
+
   Future<Map<String, String>> _getHeaders({bool forceRefresh = false}) async {
     final token = await _authService.getValidAccessToken(forceRefresh: forceRefresh);
     if (token == null) {
@@ -72,7 +111,8 @@ class SpotifyApiService {
     return null;
   }
 
-  /// Sends a seek command to Spotify Connect
+  /// Sends a seek command to Spotify Connect. Falls back to an available
+  /// device when Spotify reports no active player (404).
   Future<bool> seekTo(int positionMs) async {
     try {
       var headers = await _getHeaders();
@@ -84,6 +124,17 @@ class SpotifyApiService {
         response = await http.put(url, headers: headers);
       }
 
+      if (response.statusCode == 404) {
+        final deviceId = await _firstAvailableDeviceId();
+        if (deviceId != null) {
+          await _transferPlayback(deviceId);
+          response = await http.put(
+            Uri.parse('https://api.spotify.com/v1/me/player/seek?position_ms=$positionMs&device_id=$deviceId'),
+            headers: headers,
+          );
+        }
+      }
+
       return response.statusCode == 204 || response.statusCode == 200;
     } catch (e) {
       debugPrint('SpotifyApiService seekTo error: $e');
@@ -91,7 +142,8 @@ class SpotifyApiService {
     }
   }
 
-  /// Resume playback
+  /// Resume playback. When no device is active (404), transfers playback to an
+  /// available Spotify Connect device first so the play button always works.
   Future<bool> play() async {
     try {
       var headers = await _getHeaders();
@@ -101,6 +153,17 @@ class SpotifyApiService {
       if (response.statusCode == 401) {
         headers = await _getHeaders(forceRefresh: true);
         response = await http.put(url, headers: headers);
+      }
+
+      if (response.statusCode == 404) {
+        final deviceId = await _firstAvailableDeviceId();
+        if (deviceId != null) {
+          await _transferPlayback(deviceId);
+          response = await http.put(
+            Uri.parse('https://api.spotify.com/v1/me/player/play?device_id=$deviceId'),
+            headers: headers,
+          );
+        }
       }
 
       return response.statusCode == 204 || response.statusCode == 200;

@@ -2,7 +2,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/loop_preset.dart';
 
 class StorageService {
-  static const String _keyClientId = 'spotify_client_id';
   static const String _keyAccessToken = 'spotify_access_token';
   static const String _keyRefreshToken = 'spotify_refresh_token';
   static const String _keyTokenExpiry = 'spotify_token_expiry';
