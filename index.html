@@ -1757,23 +1757,33 @@
         const now = Date.now();
         if (now - lastSeekDispatchedTime > 400) {
           lastSeekDispatchedTime = now;
-          seekLockoutUntil = now + 2000;
-          loopCount++;
-          document.getElementById('loopSubtext').textContent = `Looping: ${formatTime(pointA)} ➔ ${formatTime(pointB)} (${loopCount}x)`;
-          
-          // Instantly snap local dial back to Point A with zero visual latency
+
+          // Optimistically snap the dial to Point A while the seek commits
           lastProgressMs = pointA;
           lastSyncTime = now;
           renderTimelineVisuals();
 
-          await spotifySeek(pointA);
+          const ok = await spotifySeek(pointA);
+          if (ok) {
+            seekLockoutUntil = now + 2000;
+            loopCount++;
+            document.getElementById('loopSubtext').textContent = `Looping: ${formatTime(pointA)} ➔ ${formatTime(pointB)} (${loopCount}x)`;
+          } else {
+            // Seek did NOT land on Spotify's player. Revert the dial to the
+            // real position so it never lies, and retry on the next tick
+            // (spotifySeek already set a 2s lockout to avoid request spam).
+            lastProgressMs = Math.min(durationMs, Math.max(0, pos));
+            lastSyncTime = Date.now();
+            renderTimelineVisuals();
+            showToast('⚠️ Loop seek failed — Spotify did not jump. Retry…');
+          }
         }
       }
     }
   }
 
   async function spotifySeek(positionMs) {
-    if (!accessToken) return;
+    if (!accessToken) return false;
     const now = Date.now();
     seekLockoutUntil = now + 2000;
     lastProgressMs = Math.floor(positionMs);
@@ -1781,9 +1791,36 @@
     renderTimelineVisuals();
 
     try {
-      await spotifyFetch(`me/player/seek?position_ms=${Math.floor(positionMs)}`, { method: 'PUT' });
+      let endpoint = `me/player/seek?position_ms=${Math.floor(positionMs)}`;
+      // Target the known active device explicitly: Spotify's session device
+      // cache can go stale and silently drop device-less seeks, which made
+      // the dial snap while the music kept playing.
+      if (activeDeviceId) endpoint += `&device_id=${encodeURIComponent(activeDeviceId)}`;
+      let res = await spotifyFetch(endpoint, { method: 'PUT' });
+
+      // 404 = Spotify reports no active player. Find a device, transfer
+      // playback to it, and retry the seek against that device.
+      if (res && res.status === 404) {
+        const devRes = await spotifyFetch('me/player/devices');
+        if (devRes && devRes.ok) {
+          const devData = await devRes.json();
+          const target = (((devData.devices || []).find(d => !d.is_restricted)) || {}).id;
+          if (target) {
+            await spotifyFetch('me/player', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ device_ids: [target] })
+            });
+            activeDeviceId = target;
+            res = await spotifyFetch(`me/player/seek?position_ms=${Math.floor(positionMs)}&device_id=${encodeURIComponent(target)}`, { method: 'PUT' });
+          }
+        }
+      }
+
+      return !!(res && (res.status === 204 || res.status === 200));
     } catch (e) {
       console.error('Seek error:', e);
+      return false;
     }
   }
 
@@ -1802,12 +1839,12 @@
         lastProgressMs = getEstimatedProgress();
         lastSyncTime = Date.now();
         updatePlayIcon(false);
-        await spotifyFetch('me/player/pause', { method: 'PUT' });
+        await spotifyFetch('me/player/pause' + (activeDeviceId ? `?device_id=${encodeURIComponent(activeDeviceId)}` : ''), { method: 'PUT' });
       } else {
         isPlaying = true;
         lastSyncTime = Date.now();
         updatePlayIcon(true);
-        await spotifyFetch('me/player/play', { method: 'PUT' });
+        await spotifyFetch('me/player/play' + (activeDeviceId ? `?device_id=${encodeURIComponent(activeDeviceId)}` : ''), { method: 'PUT' });
       }
     } catch (e) {
       console.error('Toggle play error:', e);
@@ -1816,13 +1853,13 @@
 
   async function spotifyNext() {
     if (!accessToken) return;
-    await spotifyFetch('me/player/next', { method: 'POST' });
+    await spotifyFetch('me/player/next' + (activeDeviceId ? `?device_id=${encodeURIComponent(activeDeviceId)}` : ''), { method: 'POST' });
     setTimeout(syncPlaybackState, 300);
   }
 
   async function spotifyPrev() {
     if (!accessToken) return;
-    await spotifyFetch('me/player/previous', { method: 'POST' });
+    await spotifyFetch('me/player/previous' + (activeDeviceId ? `?device_id=${encodeURIComponent(activeDeviceId)}` : ''), { method: 'POST' });
     setTimeout(syncPlaybackState, 300);
   }
 
