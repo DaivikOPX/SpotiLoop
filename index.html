@@ -1221,7 +1221,13 @@
   let lastSeekDispatchedTime = 0;
   let seekLockoutUntil = 0;
 
-  // Background Web Audio Keep-Alive to prevent mobile Chrome tab freeze
+  // Background Web Audio Keep-Alive
+  // Chrome exempts tabs that are actively playing audio from background
+  // timer throttling. A near-silent signal (gain 0.00001) is NOT counted as
+  // audible, so timers were still being throttled to ~1/min when the tab was
+  // inactive, stalling the A-B loop ticker. We instead play a very quiet
+  // high-frequency tone (~17.5 kHz at low gain): inaudible to most adults,
+  // but it marks the tab as audible so timers keep real 50ms cadence.
   let audioKeepAliveCtx = null;
   function activateKeepAliveAudio() {
     try {
@@ -1231,7 +1237,8 @@
           audioKeepAliveCtx = new AudioCtx();
           const osc = audioKeepAliveCtx.createOscillator();
           const gain = audioKeepAliveCtx.createGain();
-          gain.gain.value = 0.00001; // Inaudible keep-alive signal
+          osc.frequency.value = 17500; // ~17.5 kHz: above most adults' hearing
+          gain.gain.value = 0.02;      // low but detected as real audio output
           osc.connect(gain);
           gain.connect(audioKeepAliveCtx.destination);
           osc.start();
@@ -1242,6 +1249,17 @@
       }
     } catch (e) {
       console.warn('Audio keep-alive warning:', e);
+    }
+  }
+
+  function stopKeepAliveAudio() {
+    try {
+      if (audioKeepAliveCtx) {
+        audioKeepAliveCtx.close().catch(() => {});
+        audioKeepAliveCtx = null;
+      }
+    } catch (e) {
+      console.warn('Audio keep-alive stop warning:', e);
     }
   }
 
@@ -1274,6 +1292,9 @@
   function showLandingView() {
     document.getElementById('landingHeroSection').style.display = 'flex';
     document.getElementById('studioConsoleSection').style.display = 'none';
+    // Leaving the studio: stop the audible keep-alive tone so the tab stops
+    // consuming audio output when the looper is not in use.
+    stopKeepAliveAudio();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -1614,7 +1635,7 @@
     return Math.min(durationMs, Math.max(0, baseProgress + userSyncOffsetMs));
   }
 
-  async function syncPlaybackState() {
+  async function syncPlaybackState(forceResync = false) {
     if (!accessToken || isScrubbing) return;
     const fetchStart = Date.now();
     try {
@@ -1658,12 +1679,23 @@
           } else if (!isLoopActive && now > seekLockoutUntil) {
             // Continuous monotonic progression: compare without user offset
             const currentEstRaw = lastProgressMs + (now - lastSyncTime);
-            const drift = Math.abs(currentEstRaw - compensatedProgress);
+            const driftSigned = compensatedProgress - currentEstRaw;
+            const drift = Math.abs(driftSigned);
 
-            // Only snap if drift is substantial (> 1800ms)
-            // Eliminates Spotify's 1-second API cache lag from jerking the timer backward
-            if (drift > 1800) {
+            // Spotify's API progress cache can lag ~1s, so tiny differences
+            // are noise. We tier the correction so the local clock converges
+            // smoothly to Spotify's truth instead of jumping around:
+            //   <= 300ms  -> ignore (transient cache/API lag)
+            //  <= 1800ms  -> ease up to 150ms per poll toward Spotify's clock
+            //   > 1800ms  -> hard snap (long background idle / stale estimate)
+            // forceResync (returning to the tab) snaps immediately so the
+            // display never banks a stale estimate and "loses" seconds.
+            if (drift > 1800 || forceResync) {
               lastProgressMs = compensatedProgress;
+              lastSyncTime = now;
+            } else if (drift > 300) {
+              const correction = Math.sign(driftSigned) * Math.min(drift, 150);
+              lastProgressMs += correction;
               lastSyncTime = now;
             }
           }
@@ -2016,7 +2048,9 @@
       if (audioKeepAliveCtx && audioKeepAliveCtx.state === 'suspended') {
         audioKeepAliveCtx.resume();
       }
-      await syncPlaybackState();
+      // Resync the local clock straight to Spotify's reported position so the
+      // count is correct the instant the tab becomes visible again.
+      await syncPlaybackState(true);
     }
   });
 
