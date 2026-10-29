@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
@@ -26,6 +27,7 @@ class SpotiLoopTaskHandler extends TaskHandler {
   DateTime _lastSyncTime = DateTime.now();
   Timer? _ticker;
   DateTime _lastSeekDispatched = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime _lastStallResyncAttempt = DateTime.fromMillisecondsSinceEpoch(0);
   http.Client? _client;
 
   @override
@@ -48,6 +50,19 @@ class SpotiLoopTaskHandler extends TaskHandler {
 
     final now = DateTime.now();
     final elapsed = now.difference(_lastSyncTime).inMilliseconds;
+
+    // WAKE-UP GUARD: if the CPU was deep-sleeping (screen off / Doze), the local
+    // clock jumps by the whole sleep gap the moment the first tick fires. Do NOT
+    // blindly seek from that stale estimate — re-anchor from Spotify first.
+    if (elapsed > 10000) {
+      if (now.difference(_lastStallResyncAttempt).inMilliseconds < 7000) {
+        return; // a resync attempt is already in flight/waiting
+      }
+      _lastStallResyncAttempt = now;
+      _resyncClockFromSpotify();
+      return;
+    }
+
     final currentEstimated = _currentPos + elapsed;
 
     final triggerPoint = _endMs! - _seekOffsetMs;
@@ -60,6 +75,7 @@ class SpotiLoopTaskHandler extends TaskHandler {
 
   void _triggerLoopSeek() {
     if (!_isLooping || _startMs == null || _endMs == null || _endMs! <= _startMs!) return;
+
 
     final now = DateTime.now();
     _lastSeekDispatched = now;
@@ -105,6 +121,33 @@ class SpotiLoopTaskHandler extends TaskHandler {
     }
   }
 
+  Future<void> _resyncClockFromSpotify() async {
+    if (_accessToken == null || _accessToken!.isEmpty) return;
+    try {
+      _client ??= http.Client();
+      final res = await _client!
+          .get(
+            Uri.parse('https://api.spotify.com/v1/me/player'),
+            headers: {'Authorization': 'Bearer $_accessToken'},
+          )
+          .timeout(const Duration(milliseconds: 2500));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        final progress = (body['progress_ms'] as int?) ?? _currentPos;
+        _isPlayingOnDevice = (body['is_playing'] as bool?) ?? _isPlayingOnDevice;
+        _currentPos = progress;
+        _lastSyncTime = DateTime.now();
+        // Keep the UI dial truthful after a wake-up too.
+        FlutterForegroundTask.sendDataToMain({
+          'action': 'bg_pos_resync',
+          'pos': _currentPos,
+        });
+      }
+    } catch (e) {
+      debugPrint('Stall resync error: $e');
+    }
+  }
+
   @override
   void onRepeatEvent(DateTime timestamp) {
     // 1-second native Android OS watchdog pulse
@@ -124,8 +167,7 @@ class SpotiLoopTaskHandler extends TaskHandler {
         _currentPos = (data['currentProgressMs'] as int?) ?? (_startMs ?? 0);
         _isPlayingOnDevice = (data['isPlaying'] as bool?) ?? true;
         _lastSyncTime = DateTime.now();
-        _isLooping = true;
-      } else if (action == 'sync_progress') {
+        _isLooping = true;      } else if (action == 'sync_progress') {
         final now = DateTime.now();
         _isPlayingOnDevice = (data['isPlaying'] as bool?) ?? _isPlayingOnDevice;
         // While paused, always trust the UI's frozen position so our clock goes
@@ -174,6 +216,7 @@ class SpotiLoopTaskHandler extends TaskHandler {
 class ForegroundTaskService {
   static void Function()? onStopLoopRequested;
   static void Function(int loopCount, int pos)? onBackgroundLoopTriggered;
+  static void Function(int pos)? onBackgroundProgressResync;
 
   static void initCommunicationPort() {
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
@@ -190,6 +233,9 @@ class ForegroundTaskService {
         final count = data['loopCount'] as int? ?? 0;
         final pos = data['pos'] as int? ?? 0;
         onBackgroundLoopTriggered?.call(count, pos);
+      } else if (data['action'] == 'bg_pos_resync') {
+        final pos = data['pos'] as int? ?? 0;
+        onBackgroundProgressResync?.call(pos);
       }
     }
   }
@@ -254,6 +300,24 @@ class ForegroundTaskService {
       try {
         await FlutterForegroundTask.requestIgnoreBatteryOptimization();
       } catch (_) {}
+    }
+  }
+
+  /// Called every time a loop activates: verifies the app is allowed to keep
+  /// the CPU awake with the screen off. Without this exemption Android Doze
+  /// (and aggressive OEM battery savers) can freeze the loop ticker until the
+  /// screen is turned back on.
+  static Future<bool> ensureBatteryOptimizationExemption() async {
+    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return true;
+    try {
+      final isIgnoring = await FlutterForegroundTask.isIgnoringBatteryOptimizations;
+      if (!isIgnoring) {
+        await FlutterForegroundTask.requestIgnoreBatteryOptimization();
+        return await FlutterForegroundTask.isIgnoringBatteryOptimizations;
+      }
+      return true;
+    } catch (_) {
+      return true;
     }
   }
 
