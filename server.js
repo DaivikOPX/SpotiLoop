@@ -30,7 +30,10 @@ function loadEnv() {
 loadEnv();
 
 const PORT = parseInt(process.env.PORT || '8888', 10);
-const HOST = process.env.HOST || '0.0.0.0';
+// SECURITY: bind to loopback by default so the server is never reachable from
+// other devices on your network. Set HOST explicitly to override.
+const HOST = process.env.HOST || '127.0.0.1';
+const NON_LOOPBACK_HOST = !['127.0.0.1', 'localhost', '::1'].includes(HOST);
 const HTML_FILE = path.join(__dirname, 'instant_looper.html');
 const SESSION_FILE = path.join(__dirname, '.spotify_session.json');
 
@@ -69,6 +72,7 @@ function loadSessionFromFile() {
       if (data.tokenExpiresAt) sharedState.tokenExpiresAt = data.tokenExpiresAt;
       if (data.seekLeadOffsetMs) sharedState.seekLeadOffsetMs = data.seekLeadOffsetMs;
       console.log('[Session] Loaded persistent Spotify session from .spotify_session.json');
+      try { fs.chmodSync(SESSION_FILE, 0o600); } catch (_) {}
       // Proactively refresh token if expired
       if (sharedState.refreshToken && Date.now() >= (sharedState.tokenExpiresAt - 60000)) {
         refreshSpotifyToken();
@@ -79,7 +83,7 @@ function loadSessionFromFile() {
   }
 }
 
-// Save session persistently
+// Save session persistently (owner-readable only — tokens at rest)
 function saveSessionToFile() {
   try {
     const data = {
@@ -89,7 +93,7 @@ function saveSessionToFile() {
       seekLeadOffsetMs: sharedState.seekLeadOffsetMs,
       savedAt: new Date().toISOString()
     };
-    fs.writeFileSync(SESSION_FILE, JSON.stringify(data, null, 2), 'utf8');
+    fs.writeFileSync(SESSION_FILE, JSON.stringify(data, null, 2), { encoding: 'utf8', mode: 0o600 });
   } catch (e) {
     console.error('[Session] Could not save .spotify_session.json:', e.message);
   }
@@ -299,6 +303,34 @@ setInterval(async () => {
   } catch (_) {}
 }, 2500);
 
+// Read a JSON request body with a hard size limit to prevent oversized-payload abuse.
+function readJsonBody(req, res, onSuccess) {
+  let body = '';
+  let oversized = false;
+  req.on('data', chunk => {
+    body += chunk;
+    if (body.length > 65536 && !oversized) {
+      oversized = true;
+      res.writeHead(413, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Payload too large' }));
+      req.destroy();
+      return;
+    }
+  });
+  req.on('end', () => {
+    if (oversized) return;
+    try {
+      onSuccess(JSON.parse(body || '{}'));
+    } catch (e) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Invalid payload' }));
+    }
+  });
+}
+
+const isNonEmptyStr = (v, maxLen) => typeof v === 'string' && v.length > 0 && v.length <= maxLen;
+const isFiniteNum = (v) => typeof v === 'number' && Number.isFinite(v);
+
 const server = http.createServer((req, res) => {
   const origin = req.headers.origin;
   const allowedOrigins = ['http://127.0.0.1:8888', 'http://localhost:8888'];
@@ -328,31 +360,29 @@ const server = http.createServer((req, res) => {
   }
 
   if (req.url === '/api/config' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', () => {
-      try {
-        const payload = JSON.parse(body);
-        if (payload.clientId) {
-          sharedState.clientId = payload.clientId.trim();
-        }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, clientId: sharedState.clientId }));
-      } catch (e) {
+    readJsonBody(req, res, payload => {
+      if (payload.clientId !== undefined && !isNonEmptyStr(payload.clientId, 128)) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid config payload' }));
+        res.end(JSON.stringify({ error: 'Invalid clientId' }));
+        return;
       }
+      if (isNonEmptyStr(payload.clientId, 128)) {
+        sharedState.clientId = payload.clientId.trim();
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, clientId: sharedState.clientId }));
     });
     return;
   }
 
   // API Endpoint: Get Current Session (Auto-Login on startup/refresh)
+  // SECURITY: tokens are never returned here. The server keeps them internally
+  // for its own API calls (seek/refresh) only. The browser UI stores its own
+  // tokens and talks to Spotify directly.
   if (req.url === '/api/session' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       isAuthenticated: !!sharedState.accessToken,
-      accessToken: sharedState.accessToken,
-      refreshToken: sharedState.refreshToken,
       tokenExpiresAt: sharedState.tokenExpiresAt,
       isIdle: sharedState.isIdle,
       isPlaying: sharedState.isPlaying,
@@ -365,62 +395,61 @@ const server = http.createServer((req, res) => {
 
   // API Endpoint: Sync Loop State from UI
   if (req.url === '/api/sync-state' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', () => {
-      try {
-        const payload = JSON.parse(body);
-        let tokensUpdated = false;
+    readJsonBody(req, res, payload => {
+      let tokensUpdated = false;
 
-        if (payload.accessToken && payload.accessToken !== sharedState.accessToken) {
-          sharedState.accessToken = payload.accessToken;
-          tokensUpdated = true;
-        }
-        if (payload.refreshToken && payload.refreshToken !== sharedState.refreshToken) {
-          sharedState.refreshToken = payload.refreshToken;
-          tokensUpdated = true;
-        }
-        if (payload.tokenExpiresAt) sharedState.tokenExpiresAt = payload.tokenExpiresAt;
-        if (payload.pointA !== undefined) sharedState.pointA = payload.pointA;
-        if (payload.pointB !== undefined) sharedState.pointB = payload.pointB;
-        if (payload.durationMs !== undefined) sharedState.durationMs = payload.durationMs;
-        if (payload.isLoopActive !== undefined) sharedState.isLoopActive = payload.isLoopActive;
-        if (payload.seekLeadOffsetMs !== undefined) sharedState.seekLeadOffsetMs = payload.seekLeadOffsetMs;
-        if (payload.isPlaying !== undefined) sharedState.isPlaying = payload.isPlaying;
-        if (payload.activeDeviceId) sharedState.activeDeviceId = payload.activeDeviceId;
-        if (payload.lastProgressMs !== undefined && Date.now() > sharedState.seekLockoutUntil) {
-          sharedState.lastProgressMs = payload.lastProgressMs;
-          sharedState.lastSyncTime = Date.now();
-        }
-
-        if (tokensUpdated) {
-          saveSessionToFile();
-        }
-
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ 
-          success: true, 
-          loopCount: sharedState.loopCount,
-          activeDevice: sharedState.activeDeviceName,
-          isIdle: sharedState.isIdle
-        }));
-      } catch (e) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid payload' }));
+      // SECURITY: strict type/length validation on all client-supplied fields.
+      if (isNonEmptyStr(payload.accessToken, 1024) && payload.accessToken !== sharedState.accessToken) {
+        sharedState.accessToken = payload.accessToken;
+        tokensUpdated = true;
       }
+      if (isNonEmptyStr(payload.refreshToken, 1024) && payload.refreshToken !== sharedState.refreshToken) {
+        sharedState.refreshToken = payload.refreshToken;
+        tokensUpdated = true;
+      }
+      if (payload.tokenExpiresAt !== undefined) {
+        if (!isFiniteNum(payload.tokenExpiresAt)) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid tokenExpiresAt' }));
+          return;
+        }
+        sharedState.tokenExpiresAt = payload.tokenExpiresAt;
+      }
+      if (payload.pointA !== undefined) sharedState.pointA = isFiniteNum(payload.pointA) ? Math.round(payload.pointA) : null;
+      if (payload.pointB !== undefined) sharedState.pointB = isFiniteNum(payload.pointB) ? Math.round(payload.pointB) : null;
+      if (payload.durationMs !== undefined && isFiniteNum(payload.durationMs)) sharedState.durationMs = payload.durationMs;
+      if (payload.isLoopActive !== undefined) sharedState.isLoopActive = payload.isLoopActive === true;
+      if (payload.seekLeadOffsetMs !== undefined && isFiniteNum(payload.seekLeadOffsetMs)) {
+        sharedState.seekLeadOffsetMs = Math.max(0, Math.min(Math.round(payload.seekLeadOffsetMs), 2000));
+      }
+      if (payload.isPlaying !== undefined) sharedState.isPlaying = payload.isPlaying === true;
+      if (payload.activeDeviceId && isNonEmptyStr(payload.activeDeviceId, 128)) sharedState.activeDeviceId = payload.activeDeviceId;
+      if (payload.lastProgressMs !== undefined && isFiniteNum(payload.lastProgressMs) && Date.now() > sharedState.seekLockoutUntil) {
+        sharedState.lastProgressMs = payload.lastProgressMs;
+        sharedState.lastSyncTime = Date.now();
+      }
+
+      if (tokensUpdated) {
+        saveSessionToFile();
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        success: true, 
+        loopCount: sharedState.loopCount,
+        activeDevice: sharedState.activeDeviceName,
+        isIdle: sharedState.isIdle
+      }));
     });
     return;
   }
 
   // API Endpoint: Manual Seek Trigger
   if (req.url === '/api/seek' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', async () => {
+    readJsonBody(req, res, async payload => {
       try {
-        const payload = JSON.parse(body);
         const ms = payload.positionMs;
-        if (ms !== undefined) {
+        if (ms !== undefined && isFiniteNum(ms)) {
           sharedState.lastProgressMs = ms;
           sharedState.lastSyncTime = Date.now();
           sharedState.seekLockoutUntil = Date.now() + 1200;
@@ -438,11 +467,8 @@ const server = http.createServer((req, res) => {
 
   // API Endpoint: Volume Control
   if (req.url === '/api/volume' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', async () => {
+    readJsonBody(req, res, async payload => {
       try {
-        const payload = JSON.parse(body);
         const percent = Math.max(0, Math.min(parseInt(payload.volumePercent, 10) || 0, 100));
         if (sharedState.accessToken) {
           await spotifyApiRequest('PUT', `/v1/me/player/volume?volume_percent=${percent}`, sharedState.accessToken);
@@ -505,5 +531,10 @@ server.listen(PORT, HOST, () => {
   console.log(` 🔁 SpotiLoop Pro Live at ${url}`);
   console.log(` 💾 Session persistence active (.spotify_session.json)`);
   console.log(` 🎧 204 Idle handling ready`);
+  console.log(` 🔒 Loopback-only listening (tokens never exposed via API)`);
+  if (NON_LOOPBACK_HOST) {
+    console.warn(` ⚠️ HOST=${HOST} — the server is reachable from OTHER DEVICES on your network.`);
+    console.warn(` ⚠️ Only do this if you trust everyone on that network.`);
+  }
   console.log(`========================================\n`);
 });
