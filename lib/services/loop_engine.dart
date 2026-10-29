@@ -123,6 +123,15 @@ class LoopEngine extends ChangeNotifier {
       _currentProgressMs = track.progressMs;
       _lastProgressSync = now;
       progressNotifier.value = _currentProgressMs;
+      // Playback was paused (e.g. another app such as Instagram Reels or YouTube
+      // Shorts stole audio focus). Tell the background task so it HOLDS position
+      // instead of blindly firing loop seeks against a player that is not moving.
+      ForegroundTaskService.syncProgressToTask(_currentProgressMs, isPlaying: false);
+    } else if (_isLoopActive) {
+      // Loop active & playing: forward our clock so the background task stays
+      // aligned — this also covers the moment playback RESUMES after the
+      // interruptions, so the task resumes triggering from the true position.
+      ForegroundTaskService.syncProgressToTask(liveProgressMs, isPlaying: true);
     } else if (!_isLoopActive && now.isAfter(_seekLockoutUntil)) {
       // Only snap to Spotify API clock if loop is NOT currently active and not in seek cooldown
       final currentEst = liveProgressMs;
@@ -152,6 +161,7 @@ class LoopEngine extends ChangeNotifier {
         trackTitle: title,
         currentProgressMs: _currentProgressMs,
         seekOffsetMs: offset,
+        isPlaying: _isPlaying,
       );
     } else {
       ForegroundTaskService.updateLoopParams(
@@ -161,6 +171,7 @@ class LoopEngine extends ChangeNotifier {
         trackTitle: title,
         currentProgressMs: _currentProgressMs,
         seekOffsetMs: offset,
+        isPlaying: _isPlaying,
       );
     }
   }

@@ -17,6 +17,10 @@ class SpotiLoopTaskHandler extends TaskHandler {
   int _seekOffsetMs = 120;
   bool _isLooping = false;
   int _loopCount = 0;
+  // Mirrors the real Spotify player state reported by the UI. While Spotify is
+  // paused (e.g. audio focus stolen by another app) the loop clock must NOT
+  // keep advancing or trigger seeks.
+  bool _isPlayingOnDevice = true;
 
   int _currentPos = 0;
   DateTime _lastSyncTime = DateTime.now();
@@ -38,6 +42,9 @@ class SpotiLoopTaskHandler extends TaskHandler {
 
   void _checkProgressTick() {
     if (!_isLooping || _startMs == null || _endMs == null || _endMs! <= _startMs!) return;
+    // Spotify paused (another app took audio focus): hold the frozen position
+    // and do not trigger any seek until playback resumes.
+    if (!_isPlayingOnDevice) return;
 
     final now = DateTime.now();
     final elapsed = now.difference(_lastSyncTime).inMilliseconds;
@@ -115,11 +122,16 @@ class SpotiLoopTaskHandler extends TaskHandler {
         _trackTitle = (data['trackTitle'] as String?) ?? _trackTitle;
         _seekOffsetMs = (data['seekOffsetMs'] as int?) ?? _seekOffsetMs;
         _currentPos = (data['currentProgressMs'] as int?) ?? (_startMs ?? 0);
+        _isPlayingOnDevice = (data['isPlaying'] as bool?) ?? true;
         _lastSyncTime = DateTime.now();
         _isLooping = true;
       } else if (action == 'sync_progress') {
         final now = DateTime.now();
-        if (now.difference(_lastSeekDispatched).inMilliseconds > 1800) {
+        _isPlayingOnDevice = (data['isPlaying'] as bool?) ?? _isPlayingOnDevice;
+        // While paused, always trust the UI's frozen position so our clock goes
+        // truly stale-proof during the interruption. While playing, keep the
+        // existing post-seek guard so a fresh loop clock isn't clobbered.
+        if (now.difference(_lastSeekDispatched).inMilliseconds > 1800 || !_isPlayingOnDevice) {
           _currentPos = (data['currentProgressMs'] as int?) ?? _currentPos;
           _lastSyncTime = now;
         }
@@ -252,6 +264,7 @@ class ForegroundTaskService {
     required String trackTitle,
     required int currentProgressMs,
     required int seekOffsetMs,
+    bool isPlaying = true,
   }) async {
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return;
 
@@ -287,6 +300,7 @@ class ForegroundTaskService {
         'trackTitle': trackTitle,
         'currentProgressMs': currentProgressMs,
         'seekOffsetMs': seekOffsetMs,
+        'isPlaying': isPlaying,
       });
     } catch (e) {
       debugPrint('Start loop task error: $e');
@@ -300,6 +314,7 @@ class ForegroundTaskService {
     required String trackTitle,
     required int currentProgressMs,
     required int seekOffsetMs,
+    bool isPlaying = true,
   }) {
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return;
     try {
@@ -311,18 +326,20 @@ class ForegroundTaskService {
         'trackTitle': trackTitle,
         'currentProgressMs': currentProgressMs,
         'seekOffsetMs': seekOffsetMs,
+        'isPlaying': isPlaying,
       });
     } catch (e) {
       debugPrint('Update loop params error: $e');
     }
   }
 
-  static void syncProgressToTask(int currentProgressMs) {
+  static void syncProgressToTask(int currentProgressMs, {bool isPlaying = true}) {
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return;
     try {
       FlutterForegroundTask.sendDataToTask({
         'action': 'sync_progress',
         'currentProgressMs': currentProgressMs,
+        'isPlaying': isPlaying,
       });
     } catch (e) {
       debugPrint('Sync progress error: $e');
