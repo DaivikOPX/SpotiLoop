@@ -70,6 +70,15 @@ class LoopEngine extends ChangeNotifier {
       _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1800));
       notifyListeners();
     };
+
+    ForegroundTaskService.onBackgroundProgressResync = (pos) {
+      // Background service re-anchored its clock after a CPU wake-up; mirror it
+      // so the dial shows Spotify's true position instead of a frozen estimate.
+      _currentProgressMs = pos;
+      _lastProgressSync = DateTime.now();
+      progressNotifier.value = pos;
+      notifyListeners();
+    };
   }
 
   void _startTimers() {
@@ -179,6 +188,9 @@ class LoopEngine extends ChangeNotifier {
   void _activateLooping() {
     _isLoopActive = true;
     WakelockPlus.enable().catchError((_) {});
+    // Screen-off looping needs the battery-optimization exemption; if it was
+    // denied before, surface the Android allow-dialog again on every new loop.
+    ForegroundTaskService.ensureBatteryOptimizationExemption();
     _syncLoopTask(start: true);
   }
 
