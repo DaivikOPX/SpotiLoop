@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'ui_theme.dart';
 
 import 'screens/home_screen.dart';
 import 'services/loop_engine.dart';
@@ -53,14 +54,13 @@ class SpotiLoopApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF070709),
-        primaryColor: const Color(0xFF1DB954),
+        scaffoldBackgroundColor: SpotiTheme.bg,
+        primaryColor: SpotiTheme.green,
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF1DB954),
-          secondary: Color(0xFF1ED760),
-          surface: Color(0xFF15151C),
+          primary: SpotiTheme.green,
+          secondary: SpotiTheme.green,
+          surface: SpotiTheme.surface1,
         ),
-        fontFamily: 'Segoe UI',
         useMaterial3: true,
       ),
       home: HomeScreen(

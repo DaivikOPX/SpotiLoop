@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/loop_engine.dart';
+import '../ui_theme.dart';
 
 class LoopRangeSlider extends StatefulWidget {
   final LoopEngine engine;
@@ -28,15 +29,14 @@ class _LoopRangeSliderState extends State<LoopRangeSlider> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF14151E),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF232532)),
+        color: SpotiTheme.surface1,
+        borderRadius: BorderRadius.circular(SpotiTheme.cardRadius),
+        border: Border.all(color: SpotiTheme.stroke),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
+              color: Colors.black.withOpacity(0.45),
+              blurRadius: 14,
+              offset: const Offset(0, 6)),
         ],
       ),
       child: Column(
@@ -50,8 +50,10 @@ class _LoopRangeSliderState extends State<LoopRangeSlider> {
                   : liveProgress;
 
               final progressFraction = (progress / maxDuration).clamp(0.0, 1.0);
-              final startFraction = startA != null ? (startA / maxDuration).clamp(0.0, 1.0) : 0.0;
-              final endFraction = endB != null ? (endB / maxDuration).clamp(0.0, 1.0) : 1.0;
+              final startFraction =
+                  startA != null ? (startA / maxDuration).clamp(0.0, 1.0) : 0.0;
+              final endFraction =
+                  endB != null ? (endB / maxDuration).clamp(0.0, 1.0) : 1.0;
 
               return Column(
                 children: [
@@ -62,7 +64,8 @@ class _LoopRangeSliderState extends State<LoopRangeSlider> {
                       return GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTapDown: (details) {
-                          final tapFraction = (details.localPosition.dx / width).clamp(0.0, 1.0);
+                          final tapFraction = (details.localPosition.dx / width)
+                              .clamp(0.0, 1.0);
                           final targetMs = (tapFraction * maxDuration).toInt();
                           engine.seek(targetMs);
                         },
@@ -70,37 +73,40 @@ class _LoopRangeSliderState extends State<LoopRangeSlider> {
                           if (_isDraggingA || _isDraggingB) return;
                           setState(() {
                             _isScrubbing = true;
-                            _scrubFraction = (details.localPosition.dx / width).clamp(0.0, 1.0);
+                            _scrubFraction = (details.localPosition.dx / width)
+                                .clamp(0.0, 1.0);
                           });
                         },
                         onHorizontalDragUpdate: (details) {
                           if (_isDraggingA || _isDraggingB) return;
                           setState(() {
-                            _scrubFraction = (details.localPosition.dx / width).clamp(0.0, 1.0);
+                            _scrubFraction = (details.localPosition.dx / width)
+                                .clamp(0.0, 1.0);
                           });
                         },
                         onHorizontalDragEnd: (details) {
                           if (_isDraggingA || _isDraggingB) return;
-                          final targetMs = (_scrubFraction * maxDuration).toInt();
+                          final targetMs =
+                              (_scrubFraction * maxDuration).toInt();
                           setState(() {
                             _isScrubbing = false;
                           });
                           engine.seek(targetMs);
                         },
                         child: Container(
-                          height: 44,
+                          height: 46,
                           alignment: Alignment.center,
                           child: Stack(
                             clipBehavior: Clip.none,
                             children: [
-                              // Base Track Background
+                              // Base Track
                               Center(
                                 child: Container(
-                                  height: 6,
+                                  height: 8,
                                   width: width,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF232532),
-                                    borderRadius: BorderRadius.circular(4),
+                                    color: SpotiTheme.surface3,
+                                    borderRadius: BorderRadius.circular(99),
                                   ),
                                 ),
                               ),
@@ -110,91 +116,126 @@ class _LoopRangeSliderState extends State<LoopRangeSlider> {
                                 left: 0,
                                 top: 19,
                                 child: Container(
-                                  height: 6,
-                                  width: (progressFraction * width).clamp(0.0, width),
+                                  height: 8,
+                                  width: (progressFraction * width)
+                                      .clamp(0.0, width),
                                   decoration: BoxDecoration(
                                     gradient: const LinearGradient(
-                                      colors: [Color(0xFF1DB954), Color(0xFF00E676)],
+                                      colors: [
+                                        SpotiTheme.greenDeep,
+                                        SpotiTheme.green
+                                      ],
                                     ),
-                                    borderRadius: BorderRadius.circular(4),
+                                    borderRadius: BorderRadius.circular(99),
                                   ),
                                 ),
                               ),
 
-                              // Loop Region Highlight Zone
-                              if (startA != null && endB != null && endB > startA)
+                              // Loop Region Highlight
+                              if (startA != null &&
+                                  endB != null &&
+                                  endB > startA)
                                 Positioned(
                                   left: startFraction * width,
-                                  top: 17,
+                                  top: 14,
                                   child: Container(
-                                    height: 10,
-                                    width: ((endFraction - startFraction) * width).clamp(2.0, width),
+                                    height: 18,
+                                    width:
+                                        ((endFraction - startFraction) * width)
+                                            .clamp(2.0, width),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF1DB954).withOpacity(0.35),
-                                      borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(
-                                        color: const Color(0xFF1DB954).withOpacity(0.6),
-                                        width: 1,
+                                      gradient: const LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Color(0x0F1ED760),
+                                          Color(0x241ED760)
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: const Border.fromBorderSide(
+                                        BorderSide(color: Color(0x2E1ED760)),
                                       ),
                                     ),
                                   ),
                                 ),
 
-                              // Marker A Pin (Neon Emerald)
+                              // Marker A Pin
                               if (startA != null)
                                 Positioned(
-                                  left: (startFraction * width - 9).clamp(0.0, width - 18),
-                                  top: 10,
+                                  left: (startFraction * width - 9)
+                                      .clamp(0.0, width - 18),
+                                  top: 11,
                                   child: GestureDetector(
                                     behavior: HitTestBehavior.opaque,
-                                    onHorizontalDragStart: (_) => _isDraggingA = true,
+                                    onHorizontalDragStart: (_) =>
+                                        _isDraggingA = true,
                                     onHorizontalDragUpdate: (details) {
-                                      final newFraction = ((startFraction * width + details.delta.dx) / width).clamp(0.0, endFraction - 0.01);
-                                      engine.setPointA((newFraction * maxDuration).toInt());
+                                      final newFraction =
+                                          ((startFraction * width +
+                                                      details.delta.dx) /
+                                                  width)
+                                              .clamp(0.0, endFraction - 0.01);
+                                      engine.setPointA(
+                                          (newFraction * maxDuration).toInt());
                                     },
-                                    onHorizontalDragEnd: (_) => _isDraggingA = false,
-                                    child: _buildMarkerPill('A', const Color(0xFF00E676)),
+                                    onHorizontalDragEnd: (_) =>
+                                        _isDraggingA = false,
+                                    child: _buildMarkerPill(
+                                        'A', SpotiTheme.pointA),
                                   ),
                                 ),
 
-                              // Marker B Pin (Coral Red)
+                              // Marker B Pin
                               if (endB != null)
                                 Positioned(
-                                  left: (endFraction * width - 9).clamp(0.0, width - 18),
-                                  top: 10,
+                                  left: (endFraction * width - 9)
+                                      .clamp(0.0, width - 18),
+                                  top: 11,
                                   child: GestureDetector(
                                     behavior: HitTestBehavior.opaque,
-                                    onHorizontalDragStart: (_) => _isDraggingB = true,
+                                    onHorizontalDragStart: (_) =>
+                                        _isDraggingB = true,
                                     onHorizontalDragUpdate: (details) {
-                                      final newFraction = ((endFraction * width + details.delta.dx) / width).clamp(startFraction + 0.01, 1.0);
-                                      engine.setPointB((newFraction * maxDuration).toInt());
+                                      final newFraction =
+                                          ((endFraction * width +
+                                                      details.delta.dx) /
+                                                  width)
+                                              .clamp(startFraction + 0.01, 1.0);
+                                      engine.setPointB(
+                                          (newFraction * maxDuration).toInt());
                                     },
-                                    onHorizontalDragEnd: (_) => _isDraggingB = false,
-                                    child: _buildMarkerPill('B', const Color(0xFFFF5252)),
+                                    onHorizontalDragEnd: (_) =>
+                                        _isDraggingB = false,
+                                    child: _buildMarkerPill(
+                                        'B', SpotiTheme.pointB),
                                   ),
                                 ),
 
-                              // Current Playhead Needle (Glowing White Dot)
+                              // Playhead Needle
                               Positioned(
-                                left: (progressFraction * width - 7).clamp(0.0, width - 14),
-                                top: 15,
+                                left: (progressFraction * width - 6)
+                                    .clamp(0.0, width - 12),
+                                top: 17,
                                 child: IgnorePointer(
                                   child: Container(
-                                    width: 14,
-                                    height: 14,
+                                    width: 12,
+                                    height: 12,
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       shape: BoxShape.circle,
                                       boxShadow: [
+                                        // outer focus ring
                                         BoxShadow(
-                                          color: Colors.white.withOpacity(0.8),
-                                          blurRadius: 8,
-                                          spreadRadius: 1,
+                                          color: Colors.white.withOpacity(0.18),
+                                          blurRadius: 0,
+                                          spreadRadius: 3,
                                         ),
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.6),
-                                          blurRadius: 4,
-                                          offset: const Offset(0, 2),
+                                        // drop shadow
+                                        const BoxShadow(
+                                          color: Colors.black54,
+                                          blurRadius: 5,
+                                          offset: Offset(0, 2),
                                         ),
                                       ],
                                     ),
@@ -208,52 +249,54 @@ class _LoopRangeSliderState extends State<LoopRangeSlider> {
                     },
                   ),
 
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
 
-                  // Clean 3-Column Time Labels Row
+                  // Time Labels Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Current Time
                       Text(
                         LoopEngine.formatTime(progress),
                         style: const TextStyle(
-                          fontSize: 13.5,
+                          fontSize: 13,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
                           fontFamily: 'monospace',
                         ),
                       ),
 
-                      // Loop Duration Badge (Center)
+                      // Loop Duration Badge
                       if (startA != null && endB != null && endB > startA)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 9, vertical: 3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1DB954).withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF1DB954).withOpacity(0.3)),
+                            color: SpotiTheme.greenTint,
+                            borderRadius: BorderRadius.circular(999),
+                            border: const Border.fromBorderSide(
+                              BorderSide(color: SpotiTheme.greenStroke),
+                            ),
                           ),
                           child: Text(
-                            'Loop: ${LoopEngine.formatTime(endB - startA)}',
+                            'loop ${LoopEngine.formatTime(endB - startA)}',
                             style: const TextStyle(
-                              fontSize: 11.5,
+                              fontSize: 10.5,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF00E676),
+                              color: SpotiTheme.green,
                               fontFamily: 'monospace',
+                              letterSpacing: 0.4,
                             ),
                           ),
                         )
                       else
                         const SizedBox.shrink(),
 
-                      // Total Duration
                       Text(
                         LoopEngine.formatTime(duration),
                         style: const TextStyle(
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF888894),
+                          color: SpotiTheme.faint,
                           fontFamily: 'monospace',
                         ),
                       ),
@@ -266,16 +309,20 @@ class _LoopRangeSliderState extends State<LoopRangeSlider> {
 
           const SizedBox(height: 14),
 
-          // Quick Micro-Seek Jump Buttons (Evenly Spread)
+          // Quick Micro-Seek Chips
           Row(
             children: [
-              _buildQuickSeekBtn('-5s', () => engine.seek(engine.liveProgressMs - 5000)),
-              const SizedBox(width: 8),
-              _buildQuickSeekBtn('-1s', () => engine.seek(engine.liveProgressMs - 1000)),
-              const SizedBox(width: 8),
-              _buildQuickSeekBtn('+1s', () => engine.seek(engine.liveProgressMs + 1000)),
-              const SizedBox(width: 8),
-              _buildQuickSeekBtn('+5s', () => engine.seek(engine.liveProgressMs + 5000)),
+              _buildQuickSeekBtn(
+                  '−5s', () => engine.seek(engine.liveProgressMs - 5000)),
+              const SizedBox(width: 7),
+              _buildQuickSeekBtn(
+                  '−1s', () => engine.seek(engine.liveProgressMs - 1000)),
+              const SizedBox(width: 7),
+              _buildQuickSeekBtn(
+                  '+1s', () => engine.seek(engine.liveProgressMs + 1000)),
+              const SizedBox(width: 7),
+              _buildQuickSeekBtn(
+                  '+5s', () => engine.seek(engine.liveProgressMs + 5000)),
             ],
           ),
         ],
@@ -291,20 +338,21 @@ class _LoopRangeSliderState extends State<LoopRangeSlider> {
           onTap: onPressed,
           borderRadius: BorderRadius.circular(10),
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 7),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: const Color(0xFF1B1D28),
+              color: SpotiTheme.surface2,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF2B2E3E)),
+              border: Border.all(color: SpotiTheme.stroke),
             ),
             child: Text(
               label,
               style: const TextStyle(
-                fontSize: 12,
+                fontSize: 11.5,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFFC0C0D0),
+                color: Color(0xFFC4CBD8),
                 fontFamily: 'monospace',
+                letterSpacing: 0.3,
               ),
             ),
           ),
@@ -319,15 +367,15 @@ class _LoopRangeSliderState extends State<LoopRangeSlider> {
       height: 24,
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(6),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.6),
-            blurRadius: 8,
+            color: color.withOpacity(0.55),
+            blurRadius: 10,
             spreadRadius: 1,
           ),
           const BoxShadow(
-            color: Colors.black45,
+            color: Colors.black38,
             blurRadius: 4,
             offset: Offset(0, 2),
           ),
@@ -337,7 +385,7 @@ class _LoopRangeSliderState extends State<LoopRangeSlider> {
         child: Text(
           label,
           style: const TextStyle(
-            color: Colors.black,
+            color: SpotiTheme.onGreen,
             fontWeight: FontWeight.w900,
             fontSize: 11,
           ),
