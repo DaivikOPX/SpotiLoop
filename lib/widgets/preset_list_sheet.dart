@@ -57,7 +57,7 @@ class _PresetListSheetState extends State<PresetListSheet> {
                       if (mounted) _refreshPresets();
                     });
                   },
-                  selectedColor: const Color(0xFF1DB954).withValues(alpha: 0.25),
+                  selectedColor: const Color(0xFF1DB954).withOpacity(0.25),
                   checkmarkColor: const Color(0xFF1DB954),
                   label: Text(
                     label,
@@ -323,7 +323,7 @@ class _PresetListSheetState extends State<PresetListSheet> {
                               height: 22,
                               decoration: BoxDecoration(
                                 color: _sortMode == 'manual'
-                                    ? const Color(0xFF1DB954).withValues(alpha: 0.18)
+                                    ? const Color(0xFF1DB954).withOpacity(0.18)
                                     : Colors.transparent,
                                 borderRadius: BorderRadius.circular(6),
                               ),
@@ -343,7 +343,7 @@ class _PresetListSheetState extends State<PresetListSheet> {
                             height: 40,
                             decoration: BoxDecoration(
                               color: isMatchingCurrent
-                                  ? const Color(0xFF1DB954).withValues(alpha: 0.2)
+                                  ? const Color(0xFF1DB954).withOpacity(0.2)
                                   : const Color(0xFF2C2E3A),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
