@@ -78,6 +78,7 @@ void main() {
         startMs: 10000,
         endMs: 12000,
         createdAt: DateTime.utc(2024, 1, 1),
+        sortOrder: 0,
       );
       final decoded = LoopPreset.decodeList(LoopPreset.encodeList([preset]));
       expect(decoded, hasLength(1));

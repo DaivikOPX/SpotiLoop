@@ -230,6 +230,28 @@ class SpotifyApiService {
     }
   }
 
+  /// Fetches the connected Spotify account's id + display name. Used to key
+  /// saved presets to the account and to show "saved for: <name>".
+  Future<SpotifyUser?> getCurrentUser() async {
+    try {
+      final headers = await _getHeaders();
+      final res = await http.get(
+        Uri.parse('https://api.spotify.com/v1/me'),
+        headers: headers,
+      );
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        return SpotifyUser(
+          id: data['id'] as String? ?? '',
+          displayName: data['display_name'] as String? ?? '',
+        );
+      }
+    } catch (e) {
+      debugPrint('SpotifyApiService getCurrentUser error: $e');
+    }
+    return null;
+  }
+
   /// Set playback volume (0 - 100)
   Future<bool> setVolume(int percent) async {
     try {

@@ -9,6 +9,7 @@ class LoopPreset {
   final int startMs;
   final int endMs;
   final DateTime createdAt;
+  final int sortOrder;
 
   LoopPreset({
     required this.id,
@@ -19,7 +20,30 @@ class LoopPreset {
     required this.startMs,
     required this.endMs,
     required this.createdAt,
+    required this.sortOrder,
   });
+
+  LoopPreset copyWith({
+    String? id,
+    String? trackId,
+    String? trackTitle,
+    String? trackArtist,
+    String? name,
+    int? startMs,
+    int? endMs,
+    DateTime? createdAt,
+    int? sortOrder,
+  }) => LoopPreset(
+        id: id ?? this.id,
+        trackId: trackId ?? this.trackId,
+        trackTitle: trackTitle ?? this.trackTitle,
+        trackArtist: trackArtist ?? this.trackArtist,
+        name: name ?? this.name,
+        startMs: startMs ?? this.startMs,
+        endMs: endMs ?? this.endMs,
+        createdAt: createdAt ?? this.createdAt,
+        sortOrder: sortOrder ?? this.sortOrder,
+      );
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -30,17 +54,19 @@ class LoopPreset {
         'startMs': startMs,
         'endMs': endMs,
         'createdAt': createdAt.toIso8601String(),
+        'sortOrder': sortOrder,
       };
 
   factory LoopPreset.fromJson(Map<String, dynamic> json) => LoopPreset(
         id: json['id'] as String,
         trackId: json['trackId'] as String,
-        trackTitle: json['trackTitle'] as String? ?? 'Unknown Title',
-        trackArtist: json['trackArtist'] as String? ?? 'Unknown Artist',
-        name: json['name'] as String? ?? 'Custom Loop',
-        startMs: json['startMs'] as int,
-        endMs: json['endMs'] as int,
+        trackTitle: (json['trackTitle'] as String?) ?? 'Unknown Title',
+        trackArtist: (json['trackArtist'] as String?) ?? 'Unknown Artist',
+        name: (json['name'] as String?) ?? 'Custom Loop',
+        startMs: (json['startMs'] as int?) ?? 0,
+        endMs: (json['endMs'] as int?) ?? 0,
         createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+        sortOrder: (json['sortOrder'] as int?) ?? 0,
       );
 
   static String encodeList(List<LoopPreset> list) =>

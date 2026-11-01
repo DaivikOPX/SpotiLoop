@@ -1,3 +1,17 @@
+class SpotifyUser {
+  final String id;
+  final String displayName;
+
+  const SpotifyUser({required this.id, required this.displayName});
+
+  Map<String, dynamic> toJson() => {'id': id, 'display_name': displayName};
+
+  factory SpotifyUser.fromJson(Map<String, dynamic> json) => SpotifyUser(
+        id: json['id'] as String? ?? '',
+        displayName: json['display_name'] as String? ?? '',
+      );
+}
+
 class SpotifyTrack {
   final String id;
   final String title;
