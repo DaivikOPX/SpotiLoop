@@ -10,6 +10,8 @@ import 'foreground_task_service.dart';
 class LoopEngine extends ChangeNotifier {
   final SpotifyApiService _apiService;
   final StorageService _storage;
+  String? _userId;
+  String? _userName;
 
   SpotifyTrack? _currentTrack;
   int? _startMarkerMs; // Point A
@@ -45,6 +47,13 @@ class LoopEngine extends ChangeNotifier {
   bool get isLoopValid => _startMarkerMs != null && _endMarkerMs != null && _startMarkerMs! < _endMarkerMs!;
   int get loopDurationMs => isLoopValid ? (_endMarkerMs! - _startMarkerMs!) : 0;
 
+  String? get userId => _userId;
+  String? get userName => _userName;
+  String _presetSortMode = 'recency';
+  List<LoopPreset> get presets => _storage.getPresetsSorted(_presetSortMode);
+  String get presetSortMode => _presetSortMode;
+  set presetSortMode(String value) => _presetSortMode = value;
+
   Future<void> setVolume(int percent) async {
     _volumePercent = percent.clamp(0, 100);
     notifyListeners();
@@ -72,13 +81,13 @@ class LoopEngine extends ChangeNotifier {
     };
 
     ForegroundTaskService.onBackgroundProgressResync = (pos) {
-      // Background service re-anchored its clock after a CPU wake-up; mirror it
-      // so the dial shows Spotify's true position instead of a frozen estimate.
       _currentProgressMs = pos;
       _lastProgressSync = DateTime.now();
       progressNotifier.value = pos;
       notifyListeners();
     };
+
+    _ensureUserId();
   }
 
   void _startTimers() {
@@ -365,10 +374,23 @@ class LoopEngine extends ChangeNotifier {
   }
 
   // Preset passthroughs (used by PresetListSheet)
+  Future<void> _ensureUserId() async {
+    if (_userId != null) return;
+    final user = await _apiService.getCurrentUser();
+    if (user == null) return;
+    _userId = user.id;
+    _userName = user.displayName;
+    await _storage.setUserId(user.id);
+    notifyListeners();
+  }
+
   Future<void> saveCurrentAsPreset(String name) async {
     final track = _currentTrack;
     if (track == null) {
       throw StateError('No Spotify track loaded yet');
+    }
+    if (_userId == null) {
+      await _ensureUserId();
     }
     final preset = LoopPreset(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -379,9 +401,11 @@ class LoopEngine extends ChangeNotifier {
       startMs: _startMarkerMs ?? 0,
       endMs: _endMarkerMs ?? (_startMarkerMs ?? 0) + 1000,
       createdAt: DateTime.now(),
+      sortOrder: 0,
     );
-    await _storage.savePreset(preset);
+    await _storage.savePresetAtTop(preset);
     _syncLoopTask();
+    notifyListeners();
   }
 
   void applyPreset(LoopPreset preset) {
@@ -389,6 +413,27 @@ class LoopEngine extends ChangeNotifier {
     _endMarkerMs = preset.endMs;
     _loopCount = 0;
     _syncLoopTask();
+    notifyListeners();
+  }
+
+  Future<void> setPresetSortMode(String mode) async {
+    await _storage.setPresetSortMode(mode);
+    notifyListeners();
+  }
+
+  Future<void> editPresetName(LoopPreset preset, String newName) async {
+    final updated = preset.copyWith(name: newName);
+    await _storage.updatePreset(updated);
+    notifyListeners();
+  }
+
+  Future<void> reorderPresets(List<LoopPreset> reordered) async {
+    await _storage.reorderPresets(reordered);
+    notifyListeners();
+  }
+
+  Future<void> deletePreset(String presetId) async {
+    await _storage.deletePreset(presetId);
     notifyListeners();
   }
 

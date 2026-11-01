@@ -6,6 +6,7 @@ import '../services/foreground_task_service.dart';
 import '../widgets/track_header.dart';
 import '../widgets/loop_range_slider.dart';
 import '../widgets/marker_controls.dart';
+import '../widgets/preset_list_sheet.dart';
 
 class HomeScreen extends StatelessWidget {
   final LoopEngine engine;
@@ -59,9 +60,13 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-            actions: isAuth
+            ),              actions: isAuth
                 ? [
+                    IconButton(
+                      icon: const Icon(Icons.bookmark_rounded, color: Color(0xFF1DB954), size: 20),
+                      tooltip: 'Saved Loop Presets',
+                      onPressed: () => _openPresets(context),
+                    ),
                     IconButton(
                       icon: const Icon(Icons.logout_rounded, color: Colors.white60, size: 20),
                       tooltip: 'Disconnect Spotify',
@@ -105,6 +110,10 @@ class HomeScreen extends StatelessWidget {
 
                         // 5. Clean Floating Transport Console
                         _buildPlaybackControls(context),
+                        const SizedBox(height: 10),
+
+                        // 6. Saved Loop Presets entry card
+                        _buildPresetsEntryCard(context),
                       ],
                     ),
                   ),
@@ -505,6 +514,134 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openPresets(BuildContext context) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF181818),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => SizedBox(
+        height: MediaQuery.sizeOf(context).height * 0.7,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: PresetListSheet(engine: engine),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPresetsEntryCard(BuildContext context) {
+    final canSaveCurrent = engine.currentTrack != null &&
+        engine.startMarkerMs != null &&
+        engine.endMarkerMs != null;
+    final sortLabel = {
+      'recency': 'recently saved',
+      'nameAsc': 'A → Z',
+      'nameDesc': 'Z → A',
+      'trackAsc': 'track name',
+      'manual': 'custom order',
+    }[engine.presetSortMode] ?? '';
+
+    return GestureDetector(
+      onTap: () => _openPresets(context),
+      behavior: HitTestBehavior.translucent,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+        decoration: BoxDecoration(
+          color: const Color(0xFF14151E),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: const Color(0xFF232532),
+            width: 1.0,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.35),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1DB954).withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.bookmark_rounded,
+                color: Color(0xFF1DB954),
+                size: 16,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Saved Loop Presets',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Row(
+                    children: [
+                      Text(
+                        '${engine.presets.length} saved',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF9E9EA8),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: engine.presetSortMode == 'manual'
+                              ? const Color(0xFF1DB954)
+                              : Colors.transparent,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        engine.presetSortMode == 'manual'
+                            ? 'custom order'
+                            : engine.presetSortMode == 'recency'
+                                ? 'recently saved'
+                                : engine.presetSortMode == 'nameAsc'
+                                    ? 'A → Z'
+                                    : engine.presetSortMode == 'nameDesc'
+                                        ? 'Z → A'
+                                        : 'track name',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF9E9EA8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Color(0xFF9E9EA8),
+              size: 20,
             ),
           ],
         ),
