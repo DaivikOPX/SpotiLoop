@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/loop_preset.dart';
 import '../services/loop_engine.dart';
+import '../ui_theme.dart';
 
 class PresetListSheet extends StatefulWidget {
   final LoopEngine engine;
@@ -38,7 +39,11 @@ class _PresetListSheetState extends State<PresetListSheet> {
       'trackAsc': 'Track Name',
     };
     final sortedModes = modes.entries.toList()
-      ..sort((a, b) => a.key == _sortMode ? -1 : a.key == _sortMode ? 1 : 0);
+      ..sort((a, b) => a.key == _sortMode
+          ? -1
+          : a.key == _sortMode
+              ? 1
+              : 0);
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -57,24 +62,31 @@ class _PresetListSheetState extends State<PresetListSheet> {
                       if (mounted) _refreshPresets();
                     });
                   },
-                  selectedColor: const Color(0xFF1DB954).withOpacity(0.25),
-                  checkmarkColor: const Color(0xFF1DB954),
+                  selectedColor: SpotiTheme.greenTint,
+                  checkmarkColor: SpotiTheme.green,
+                  backgroundColor: SpotiTheme.surface2,
+                  side: BorderSide(
+                    color:
+                        isActive ? SpotiTheme.greenStroke : SpotiTheme.stroke,
+                  ),
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  showCheckmark: false,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999)),
                   label: Text(
                     label,
                     style: TextStyle(
-                      fontSize: 12.5,
-                      color: isActive ? const Color(0xFF1DB954) : Colors.white70,
-                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                      fontSize: 11.5,
+                      color: isActive ? SpotiTheme.green : SpotiTheme.muted,
+                      fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
                     ),
                   ),
                   avatar: isActive && _sortMode == 'manual'
-                      ? const Icon(Icons.drag_handle, size: 15, color: Color(0xFF1DB954))
+                      ? const Icon(Icons.drag_handle_rounded,
+                          size: 13, color: SpotiTheme.green)
                       : null,
-                  side: BorderSide(
-                    color: isActive ? const Color(0xFF1DB954) : Colors.white24,
-                    width: 1,
-                  ),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 ),
               );
             }),
@@ -88,27 +100,45 @@ class _PresetListSheetState extends State<PresetListSheet> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF222222),
-        title: const Text('Save Loop Preset', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF0D1017),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: SpotiTheme.stroke),
+        ),
+        title: const Text('Save Loop Preset',
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${widget.engine.currentTrack?.title ?? 'Unknown Track'} (${LoopEngine.formatTime(widget.engine.startMarkerMs ?? 0)} - ${LoopEngine.formatTime(widget.engine.endMarkerMs ?? 0)})',
-              style: const TextStyle(fontSize: 13, color: Colors.white70),
+              '${widget.engine.currentTrack?.title ?? 'Unknown Track'} · ${LoopEngine.formatTime(widget.engine.startMarkerMs ?? 0)} – ${LoopEngine.formatTime(widget.engine.endMarkerMs ?? 0)}',
+              style: const TextStyle(fontSize: 12, color: SpotiTheme.muted),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _nameController,
               autofocus: true,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                hintText: 'Preset Name (e.g. Guitar Solo, Chorus)',
-                hintStyle: TextStyle(color: Colors.white38),
+              style: const TextStyle(color: Colors.white, fontSize: 13.5),
+              decoration: InputDecoration(
+                hintText: 'Preset name (e.g. Guitar Solo, Chorus)',
+                hintStyle:
+                    const TextStyle(color: SpotiTheme.faint, fontSize: 12),
                 filled: true,
-                fillColor: Color(0xFF181818),
-                border: OutlineInputBorder(),
+                fillColor: const Color(0xFF050608),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(SpotiTheme.insetRadius),
+                  borderSide: const BorderSide(color: SpotiTheme.stroke),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(SpotiTheme.insetRadius),
+                  borderSide: const BorderSide(
+                      color: SpotiTheme.greenStroke, width: 1.5),
+                ),
               ),
             ),
           ],
@@ -116,7 +146,9 @@ class _PresetListSheetState extends State<PresetListSheet> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            style: TextButton.styleFrom(foregroundColor: SpotiTheme.muted),
+            child: const Text('Cancel',
+                style: TextStyle(fontWeight: FontWeight.w700)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -127,10 +159,14 @@ class _PresetListSheetState extends State<PresetListSheet> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1DB954),
-              foregroundColor: Colors.black,
+              backgroundColor: SpotiTheme.green,
+              foregroundColor: SpotiTheme.onGreen,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999)),
             ),
-            child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text('Save',
+                style: TextStyle(fontWeight: FontWeight.w800)),
           ),
         ],
       ),
@@ -142,36 +178,57 @@ class _PresetListSheetState extends State<PresetListSheet> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF222222),
-        title: const Text('Edit Preset Name', style: TextStyle(color: Colors.white)),
-        content: SizedBox(
-          width: 280,
-          child: TextField(
-            controller: _nameController,
-            autofocus: true,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-            decoration: const InputDecoration(
-              hintText: 'Preset Name',
-              hintStyle: TextStyle(color: Colors.white38),
-              filled: true,
-              fillColor: Color(0xFF181818),
-              border: OutlineInputBorder(),
+        backgroundColor: const Color(0xFF0D1017),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: SpotiTheme.stroke),
+        ),
+        title: const Text('Edit Preset Name',
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2)),
+        content: TextField(
+          controller: _nameController,
+          autofocus: true,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: 'Preset name',
+            hintStyle: const TextStyle(color: SpotiTheme.faint, fontSize: 12),
+            filled: true,
+            fillColor: const Color(0xFF050608),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(SpotiTheme.insetRadius),
+              borderSide: const BorderSide(color: SpotiTheme.stroke),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(SpotiTheme.insetRadius),
+              borderSide:
+                  const BorderSide(color: SpotiTheme.greenStroke, width: 1.5),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            style: TextButton.styleFrom(foregroundColor: SpotiTheme.muted),
+            child: const Text('Cancel',
+                style: TextStyle(fontWeight: FontWeight.w700)),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, _nameController.text.trim()),
+            onPressed: () =>
+                Navigator.pop(context, _nameController.text.trim()),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1DB954),
-              foregroundColor: Colors.black,
+              backgroundColor: SpotiTheme.green,
+              foregroundColor: SpotiTheme.onGreen,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999)),
             ),
-            child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text('Save',
+                style: TextStyle(fontWeight: FontWeight.w800)),
           ),
         ],
       ),
@@ -190,290 +247,446 @@ class _PresetListSheetState extends State<PresetListSheet> {
         widget.engine.endMarkerMs != null;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       decoration: const BoxDecoration(
-        color: Color(0xFF181818),
+        color: Color(0xFF0C0F15),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.bookmark_rounded, size: 18, color: Color(0xFF1DB954)),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Saved Loop Presets',
-                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                      ],
-                    ),
-                    if (widget.engine.userName != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          'Saved for: ${widget.engine.userName}',
-                          style: const TextStyle(fontSize: 11, color: Color(0xFF9E9EA8)),
-                        ),
-                      ),
-                  ],
-                ),
+          // Drag handle
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 10),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: SpotiTheme.surface3,
+                borderRadius: BorderRadius.circular(99),
               ),
-              if (canSaveCurrent)
-                ElevatedButton.icon(
-                  onPressed: _promptSaveCurrent,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1DB954),
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  ),
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Save Current', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5)),
-                ),
-            ],
+            ),
           ),
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.bookmark_rounded,
+                              size: 17, color: SpotiTheme.green),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Saved Loop Presets',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.3,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: SpotiTheme.greenTint,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              engineCountText,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: SpotiTheme.green,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (widget.engine.userName != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 5),
+                          child: Text(
+                            'Saved for ${widget.engine.userName}',
+                            style: const TextStyle(
+                                fontSize: 11, color: SpotiTheme.faint),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (canSaveCurrent)
+                  ElevatedButton.icon(
+                    onPressed: _promptSaveCurrent,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: SpotiTheme.green,
+                      foregroundColor: SpotiTheme.onGreen,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 13, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999)),
+                      overlayColor: Colors.white.withOpacity(0.08),
+                    ),
+                    icon: const Icon(Icons.add_rounded, size: 16),
+                    label: const Text('Save Current',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w800, fontSize: 11)),
+                  ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, thickness: 1, color: SpotiTheme.stroke),
           const SizedBox(height: 12),
           // Sort bar
           _sortChips(),
           const SizedBox(height: 12),
           // List
-          if (_presets.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 36),
-              child: Column(
-                children: [
-                  Icon(
-                    _sortMode == 'manual' ? Icons.drag_indicator_rounded : Icons.bookmark_border_rounded,
-                    size: 44,
-                    color: Colors.white24,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _sortMode == 'manual'
-                        ? 'No presets yet — drag to arrange'
-                        : 'No saved loops yet',
-                    style: const TextStyle(color: Colors.white54, fontSize: 14),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Set Point A & B on any song and tap Save Current',
-                    style: const TextStyle(color: Colors.white38, fontSize: 12),
-                  ),
-                ],
-              ),
-            )
-          else
-            ReorderableListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _presets.length,
-              onReorder: (oldIndex, newIndex) {
-                if (_sortMode != 'manual') {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Switch to Custom Order, then drag to arrange'),
-                      behavior: SnackBarBehavior.floating,
-                      backgroundColor: Color(0xFF14151E),
-                      duration: Duration(milliseconds: 1800),
-                    ),
-                  );
-                  return;
-                }
-                if (newIndex > oldIndex) newIndex--;
-                setState(() {
-                  final item = _presets.removeAt(oldIndex);
-                  _presets.insert(newIndex, item);
-                });
-              },
-              itemBuilder: (context, index) {
-                final preset = _presets[index];
-                final isMatchingCurrent =
-                    currentTrackId != null && preset.trackId == currentTrackId;
-
-                return Card(
-                  key: ValueKey(preset.id),
-                  elevation: 0,
-                  margin: EdgeInsets.zero,
-                  color: const Color(0xFF20212A),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  child: InkWell(
-                    onTap: () {
-                      widget.engine.applyPreset(preset);
-                      if (context.mounted) Navigator.pop(context);
+          Expanded(
+            child: _presets.isEmpty
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _sortMode == 'manual'
+                            ? Icons.drag_indicator_rounded
+                            : Icons.bookmark_border_rounded,
+                        size: 44,
+                        color: SpotiTheme.surface3,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _sortMode == 'manual'
+                            ? 'Nothing to arrange yet'
+                            : 'No saved loops yet',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      const Text(
+                        'Set Point A & B on any song, then tap Save Current',
+                        style:
+                            TextStyle(color: SpotiTheme.faint, fontSize: 11.5),
+                      ),
+                    ],
+                  )
+                : ReorderableListView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 2, 20, 16),
+                    itemCount: _presets.length,
+                    onReorder: (oldIndex, newIndex) {
+                      if (_sortMode != 'manual') {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Switch to Custom Order, then drag to arrange'),
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: Color(0xFF10141B),
+                            duration: Duration(milliseconds: 1800),
+                          ),
+                        );
+                        return;
+                      }
+                      if (newIndex > oldIndex) newIndex--;
+                      setState(() {
+                        final item = _presets.removeAt(oldIndex);
+                        _presets.insert(newIndex, item);
+                      });
+                      widget.engine.reorderPresets(List.of(_presets));
                     },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      child: Row(
-                        children: [
-                          // Manual-drag handle
-                          ReorderableDragStartListener(
-                            index: index,
-                            child: Container(
-                              width: 22,
-                              height: 22,
-                              decoration: BoxDecoration(
-                                color: _sortMode == 'manual'
-                                    ? const Color(0xFF1DB954).withOpacity(0.18)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: _sortMode == 'manual'
-                                  ? const Icon(
-                                      Icons.drag_indicator_rounded,
-                                      size: 14,
-                                      color: Color(0xFF1DB954),
-                                    )
-                                  : null,
-                            ),
+                    proxyDecorator: (child, index, animation) {
+                      return AnimatedBuilder(
+                        animation: animation,
+                        builder: (context, _) {
+                          final t = Curves.easeOut.transform(animation.value);
+                          return Transform(
+                            transform: Matrix4.identity()
+                              ..translate(0.0, 2.0 * t, 0.0)
+                              ..scale(1.0 + 0.02 * t, 1.0 + 0.02 * t, 1.0),
+                            child: child,
+                          );
+                        },
+                      );
+                    },
+                    itemBuilder: (context, index) {
+                      final preset = _presets[index];
+                      final isMatchingCurrent = currentTrackId != null &&
+                          preset.trackId == currentTrackId;
+
+                      return Container(
+                        key: ValueKey(preset.id),
+                        margin: const EdgeInsets.only(bottom: 7),
+                        decoration: BoxDecoration(
+                          color: SpotiTheme.surface1,
+                          borderRadius:
+                              BorderRadius.circular(SpotiTheme.insetRadius + 1),
+                          border: Border.all(
+                            color: isMatchingCurrent
+                                ? SpotiTheme.greenStroke
+                                : SpotiTheme.stroke,
                           ),
-                          const SizedBox(width: 10),
-                          // Thumbnail / icon
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: isMatchingCurrent
-                                  ? const Color(0xFF1DB954).withOpacity(0.2)
-                                  : const Color(0xFF2C2E3A),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: (_sortMode == 'manual' && preset.sortOrder == index)
-                                    ? const Color(0xFF1DB954)
-                                    : Colors.transparent,
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                preset.name.isNotEmpty ? preset.name.substring(0, 1).toUpperCase() : '?',
-                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white70),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          // Name + range + track
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                        ),
+                        child: InkWell(
+                          onTap: () {
+                            widget.engine.applyPreset(preset);
+                            if (context.mounted) Navigator.pop(context);
+                          },
+                          borderRadius:
+                              BorderRadius.circular(SpotiTheme.insetRadius + 1),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 10),
+                            child: Row(
                               children: [
-                                Text(
-                                  preset.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
+                                // Manual-drag handle
+                                ReorderableDragStartListener(
+                                  index: index,
+                                  child: Container(
+                                    width: 24,
+                                    height: 28,
+                                    decoration: BoxDecoration(
+                                      color: _sortMode == 'manual'
+                                          ? SpotiTheme.surface3
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(7),
+                                    ),
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.drag_indicator_rounded,
+                                        size: 14,
+                                        color: _sortMode == 'manual'
+                                            ? SpotiTheme.green
+                                            : Colors.transparent,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '${LoopEngine.formatTime(preset.startMs)} → ${LoopEngine.formatTime(preset.endMs)}',
-                                  style: const TextStyle(fontSize: 11.5, color: Color(0xFF9E9EA8)),
-                                ),
-                                Text(
-                                  preset.trackTitle,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 10.5,
-                                    color: isMatchingCurrent ? const Color(0xFF1DB954) : Colors.white38,
-                                    fontWeight: isMatchingCurrent ? FontWeight.w600 : FontWeight.w400,
+                                // Preset index dot
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 26,
+                                        height: 26,
+                                        decoration: BoxDecoration(
+                                          color: SpotiTheme.greenTint,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            '${(preset.sortOrder + 1).toString()}',
+                                            style: const TextStyle(
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.w800,
+                                              color: SpotiTheme.green,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 11),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              preset.name,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w800,
+                                                letterSpacing: -0.2,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              '${LoopEngine.formatTime(preset.startMs)} – ${LoopEngine.formatTime(preset.endMs)} · ${preset.trackTitle}',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 10.5,
+                                                color: isMatchingCurrent
+                                                    ? SpotiTheme.green
+                                                    : SpotiTheme.muted,
+                                                fontWeight: isMatchingCurrent
+                                                    ? FontWeight.w700
+                                                    : FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
+                                ),
+                                const SizedBox(width: 4),
+                                // Actions
+                                PopupMenuButton<String>(
+                                  icon: const Icon(Icons.more_vert_rounded,
+                                      color: SpotiTheme.faint, size: 19),
+                                  tooltip: 'Preset options',
+                                  color: const Color(0xFF0D1017),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    side: const BorderSide(
+                                        color: SpotiTheme.stroke),
+                                  ),
+                                  onSelected: (value) async {
+                                    switch (value) {
+                                      case 'apply':
+                                        widget.engine.applyPreset(preset);
+                                        if (context.mounted)
+                                          Navigator.pop(context);
+                                        break;
+                                      case 'rename':
+                                        await _renamePreset(context, preset);
+                                        break;
+                                      case 'delete':
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            backgroundColor:
+                                                const Color(0xFF0D1017),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                              side: const BorderSide(
+                                                  color: SpotiTheme.stroke),
+                                            ),
+                                            title: const Text('Delete preset?',
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 15.5,
+                                                    fontWeight:
+                                                        FontWeight.w800)),
+                                            content: Text(
+                                              'Remove "${preset.name}"?',
+                                              style: const TextStyle(
+                                                  color: SpotiTheme.muted,
+                                                  fontSize: 13),
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx, false),
+                                                style: TextButton.styleFrom(
+                                                    foregroundColor:
+                                                        SpotiTheme.muted),
+                                                child: const Text('Cancel',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w700)),
+                                              ),
+                                              ElevatedButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx, true),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      SpotiTheme.pointB,
+                                                  foregroundColor: Colors.white,
+                                                  elevation: 0,
+                                                  shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              999)),
+                                                ),
+                                                child: const Text('Delete',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w800)),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm == true &&
+                                            context.mounted) {
+                                          await widget.engine
+                                              .deletePreset(preset.id);
+                                          _refreshPresets();
+                                        }
+                                        break;
+                                    }
+                                  },
+                                  itemBuilder: (_) => [
+                                    const PopupMenuItem(
+                                      value: 'apply',
+                                      height: 40,
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.play_circle_fill_rounded,
+                                              color: SpotiTheme.green,
+                                              size: 17),
+                                          SizedBox(width: 10),
+                                          Text('Apply & jump',
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 12.5)),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'rename',
+                                      height: 40,
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.edit_rounded,
+                                              color: SpotiTheme.muted,
+                                              size: 17),
+                                          SizedBox(width: 10),
+                                          Text('Rename',
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 12.5)),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'delete',
+                                      height: 40,
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.delete_outline_rounded,
+                                              color: SpotiTheme.pointB,
+                                              size: 17),
+                                          SizedBox(width: 10),
+                                          Text('Delete',
+                                              style: TextStyle(
+                                                  color: SpotiTheme.pointB,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 12.5)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
                           ),
-                          // Actions
-                          PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF9E9EA8), size: 20),
-                            tooltip: 'Preset options',
-                            color: const Color(0xFF222222),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            onSelected: (value) async {
-                              switch (value) {
-                                case 'rename':
-                                  await _renamePreset(context, preset);
-                                  break;
-                                case 'apply':
-                                  widget.engine.applyPreset(preset);
-                                  if (context.mounted) Navigator.pop(context);
-                                  break;
-                                case 'delete':
-                                  final confirm = await showDialog<bool>(
-                                    context: context,
-                                    builder: (ctx) => AlertDialog(
-                                      backgroundColor: const Color(0xFF222222),
-                                      title: const Text('Delete preset?', style: TextStyle(color: Colors.white)),
-                                      content: Text(
-                                        'Remove "${preset.name}"?',
-                                        style: const TextStyle(color: Colors.white70, fontSize: 13),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(ctx, false),
-                                          child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
-                                        ),
-                                        ElevatedButton(
-                                          onPressed: () => Navigator.pop(ctx, true),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFFE53935),
-                                            foregroundColor: Colors.white,
-                                          ),
-                                          child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                  if (confirm == true && context.mounted) {
-                                    await widget.engine.deletePreset(preset.id);
-                                    _refreshPresets();
-                                  }
-                                  break;
-                              }
-                            },
-                            itemBuilder: (_) => const [
-                              PopupMenuItem(value: 'apply', child: Row(
-                                children: [
-                                  Icon(Icons.play_circle_filled_rounded, color: Color(0xFF1DB954), size: 18),
-                                  SizedBox(width: 10),
-                                  Text('Apply & Jump', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12.5)),
-                                ],
-                              )),
-                              PopupMenuItem(value: 'rename', child: Row(
-                                children: [
-                                  Icon(Icons.edit_rounded, color: Color(0xFF9E9EA8), size: 18),
-                                  SizedBox(width: 10),
-                                  Text('Rename', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12.5)),
-                                ],
-                              )),
-                              PopupMenuItem(value: 'delete', child: Row(
-                                children: [
-                                  Icon(Icons.delete_outline_rounded, color: Color(0xFFFF5252), size: 18),
-                                  SizedBox(width: 10),
-                                  Text('Delete', style: TextStyle(color: Color(0xFFFF5252), fontWeight: FontWeight.w600, fontSize: 12.5)),
-                                ],
-                              )),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
+          ),
         ],
       ),
     );
+  }
+
+  String get engineCountText {
+    final n = widget.engine.presets.length;
+    return '$n';
   }
 }

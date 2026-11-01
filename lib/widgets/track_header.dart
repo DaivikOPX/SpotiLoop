@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/spotify_track.dart';
+import '../ui_theme.dart';
 
 class TrackHeader extends StatelessWidget {
   final SpotifyTrack? track;
@@ -15,67 +16,83 @@ class TrackHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     if (track == null) {
       return Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          color: const Color(0xFF14151E),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFF232532)),
+          color: SpotiTheme.surface1,
+          borderRadius: BorderRadius.circular(SpotiTheme.cardRadius),
+          border: Border.all(color: SpotiTheme.stroke),
         ),
         child: Column(
           children: [
-            const Icon(Icons.music_off_rounded, size: 40, color: Colors.white38),
+            const Icon(Icons.music_note_rounded,
+                size: 34, color: SpotiTheme.faint),
             const SizedBox(height: 10),
             const Text(
-              'Waiting for Spotify Playback',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
+              'Waiting for Spotify playback',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 4),
             const Text(
-              'Play any song in your Spotify app, then tap sync',
+              'Play any song in your Spotify app, then sync',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12.5, color: Colors.white54),
+              style: TextStyle(fontSize: 12, color: SpotiTheme.muted),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: onRefresh,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1DB954),
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                backgroundColor: SpotiTheme.green,
+                foregroundColor: SpotiTheme.onGreen,
+                elevation: 0,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                overlayColor: Colors.white.withOpacity(0.08),
               ),
-              icon: const Icon(Icons.sync_rounded, size: 18),
-              label: const Text('Sync Spotify', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+              icon: const Icon(Icons.sync_rounded, size: 17),
+              label: const Text(
+                'Sync Spotify',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5),
+              ),
             ),
           ],
         ),
       );
     }
 
+    final isPlaying = track!.isPlaying;
+    final deviceColor = isPlaying ? SpotiTheme.green : SpotiTheme.muted;
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: const Color(0xFF14151E),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF232532)),
+        color: SpotiTheme.surface1,
+        borderRadius: BorderRadius.circular(SpotiTheme.cardRadius),
+        border: Border.all(color: SpotiTheme.stroke),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
+              color: Colors.black.withOpacity(0.45),
+              blurRadius: 14,
+              offset: const Offset(0, 6)),
         ],
       ),
       child: Row(
         children: [
           // Album Art
           ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             child: track!.albumArtUrl.isNotEmpty
                 ? Image.network(
                     track!.albumArtUrl,
-                    width: 58,
-                    height: 58,
+                    width: 64,
+                    height: 64,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => _buildPlaceholder(),
                   )
@@ -94,8 +111,8 @@ class TrackHeader extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 15.5,
                     fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
                     color: Colors.white,
-                    letterSpacing: -0.2,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -104,33 +121,42 @@ class TrackHeader extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF9E9EA8),
+                    fontSize: 12.5,
+                    color: SpotiTheme.muted,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 7),
                 Row(
                   children: [
                     Container(
                       width: 7,
                       height: 7,
                       decoration: BoxDecoration(
-                        color: track!.isPlaying ? const Color(0xFF1DB954) : Colors.amber,
+                        color: isPlaying
+                            ? SpotiTheme.green
+                            : const Color(0xFFB7942F),
                         shape: BoxShape.circle,
+                        boxShadow: isPlaying
+                            ? [
+                                BoxShadow(
+                                    color: SpotiTheme.green.withOpacity(0.5),
+                                    blurRadius: 6)
+                              ]
+                            : null,
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 7),
                     Expanded(
                       child: Text(
                         track!.deviceName != null
-                            ? '${track!.isPlaying ? "Playing on" : "Paused on"} ${track!.deviceName}'
-                            : (track!.isPlaying ? 'Spotify Connect Ready' : 'Paused'),
+                            ? '${isPlaying ? "Playing on" : "Paused on"} ${track!.deviceName}'
+                            : (isPlaying ? 'Spotify Connect ready' : 'Paused'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 11.5,
-                          color: track!.isPlaying ? const Color(0xFF1DB954) : Colors.white60,
+                          fontSize: 11,
+                          color: deviceColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -140,11 +166,21 @@ class TrackHeader extends StatelessWidget {
               ],
             ),
           ),
-          // Sync Button
-          IconButton(
-            onPressed: onRefresh,
-            tooltip: 'Sync with Spotify',
-            icon: const Icon(Icons.sync_rounded, color: Colors.white60, size: 22),
+          // Sync button
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: SpotiTheme.surface2,
+              shape: BoxShape.circle,
+              border: Border.all(color: SpotiTheme.stroke),
+            ),
+            child: IconButton(
+              onPressed: onRefresh,
+              tooltip: 'Sync with Spotify',
+              icon: const Icon(Icons.sync_rounded,
+                  color: SpotiTheme.muted, size: 18),
+            ),
           ),
         ],
       ),
@@ -153,10 +189,11 @@ class TrackHeader extends StatelessWidget {
 
   Widget _buildPlaceholder() {
     return Container(
-      width: 58,
-      height: 58,
-      color: const Color(0xFF1E202B),
-      child: const Icon(Icons.music_note_rounded, size: 28, color: Colors.white38),
+      width: 64,
+      height: 64,
+      color: SpotiTheme.surface3,
+      child: const Icon(Icons.music_note_rounded,
+          size: 26, color: SpotiTheme.faint),
     );
   }
 }

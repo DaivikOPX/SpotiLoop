@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/loop_engine.dart';
+import '../ui_theme.dart';
 
 class MarkerControls extends StatefulWidget {
   final LoopEngine engine;
@@ -55,7 +56,7 @@ class _MarkerControlsState extends State<MarkerControls> {
   @override
   void didUpdateWidget(covariant MarkerControls oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     // Only update controller text if user is NOT actively typing inside the text field
     if (!_focusNodeA.hasFocus) {
       if (widget.engine.startMarkerMs != null) {
@@ -96,7 +97,8 @@ class _MarkerControlsState extends State<MarkerControls> {
   }
 
   int? _parseTimeToMs(String text) {
-    var cleaned = text.trim().replaceAll(' ', '').replaceAll(RegExp(r'[\.:,\s]+$'), '');
+    var cleaned =
+        text.trim().replaceAll(' ', '').replaceAll(RegExp(r'[\.:,\s]+$'), '');
     if (cleaned.isEmpty) return null;
 
     if (cleaned.contains(':')) {
@@ -124,7 +126,11 @@ class _MarkerControlsState extends State<MarkerControls> {
       } else if (dotParts.length == 2) {
         final part0 = double.tryParse(dotParts[0]);
         final part1 = double.tryParse(dotParts[1]);
-        if (dotParts[1].length == 2 && part1 != null && part1 < 60 && part0 != null && part0 < 60) {
+        if (dotParts[1].length == 2 &&
+            part1 != null &&
+            part1 < 60 &&
+            part0 != null &&
+            part0 < 60) {
           return ((part0 * 60 + part1) * 1000).round();
         } else {
           final totalSec = double.tryParse(cleaned);
@@ -142,7 +148,8 @@ class _MarkerControlsState extends State<MarkerControls> {
 
   @override
   Widget build(BuildContext context) {
-    final hasMarkers = widget.engine.startMarkerMs != null || widget.engine.endMarkerMs != null;
+    final hasMarkers = widget.engine.startMarkerMs != null ||
+        widget.engine.endMarkerMs != null;
 
     return Column(
       children: [
@@ -152,7 +159,8 @@ class _MarkerControlsState extends State<MarkerControls> {
             Expanded(
               child: _buildMarkerCard(
                 title: 'Point A',
-                color: const Color(0xFF00E676),
+                subtitle: 'loop start',
+                color: SpotiTheme.pointA,
                 controller: _controllerA,
                 focusNode: _focusNodeA,
                 hintText: '00:00.0',
@@ -179,14 +187,18 @@ class _MarkerControlsState extends State<MarkerControls> {
                 onSetCurrent: () {
                   widget.engine.setPointAToCurrent();
                   if (widget.engine.startMarkerMs != null) {
-                    _controllerA.text = LoopEngine.formatTime(widget.engine.startMarkerMs!);
+                    _controllerA.text =
+                        LoopEngine.formatTime(widget.engine.startMarkerMs!);
                   }
                 },
-                onJump: widget.engine.startMarkerMs != null ? () => widget.engine.jumpToA() : null,
+                onJump: widget.engine.startMarkerMs != null
+                    ? () => widget.engine.jumpToA()
+                    : null,
                 onNudge: (ms) {
                   widget.engine.nudgeA(ms);
                   if (widget.engine.startMarkerMs != null) {
-                    _controllerA.text = LoopEngine.formatTime(widget.engine.startMarkerMs!);
+                    _controllerA.text =
+                        LoopEngine.formatTime(widget.engine.startMarkerMs!);
                   }
                 },
               ),
@@ -196,7 +208,8 @@ class _MarkerControlsState extends State<MarkerControls> {
             Expanded(
               child: _buildMarkerCard(
                 title: 'Point B',
-                color: const Color(0xFFFF5252),
+                subtitle: 'loop end',
+                color: SpotiTheme.pointB,
                 controller: _controllerB,
                 focusNode: _focusNodeB,
                 hintText: '00:00.0',
@@ -223,23 +236,26 @@ class _MarkerControlsState extends State<MarkerControls> {
                 onSetCurrent: () {
                   widget.engine.setPointBToCurrent();
                   if (widget.engine.endMarkerMs != null) {
-                    _controllerB.text = LoopEngine.formatTime(widget.engine.endMarkerMs!);
+                    _controllerB.text =
+                        LoopEngine.formatTime(widget.engine.endMarkerMs!);
                   }
                 },
-                onJump: widget.engine.endMarkerMs != null ? () => widget.engine.jumpToB() : null,
+                onJump: widget.engine.endMarkerMs != null
+                    ? () => widget.engine.jumpToB()
+                    : null,
                 onNudge: (ms) {
                   widget.engine.nudgeB(ms);
                   if (widget.engine.endMarkerMs != null) {
-                    _controllerB.text = LoopEngine.formatTime(widget.engine.endMarkerMs!);
+                    _controllerB.text =
+                        LoopEngine.formatTime(widget.engine.endMarkerMs!);
                   }
                 },
               ),
             ),
           ],
         ),
-
         if (hasMarkers) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           Center(
             child: TextButton.icon(
               onPressed: () {
@@ -250,13 +266,14 @@ class _MarkerControlsState extends State<MarkerControls> {
                 _controllerB.text = '';
               },
               style: TextButton.styleFrom(
-                foregroundColor: Colors.white54,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                foregroundColor: SpotiTheme.faint,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               ),
-              icon: const Icon(Icons.close_rounded, size: 15),
+              icon: const Icon(Icons.close_rounded, size: 14),
               label: const Text(
                 'Clear A-B Markers',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -267,6 +284,7 @@ class _MarkerControlsState extends State<MarkerControls> {
 
   Widget _buildMarkerCard({
     required String title,
+    required String subtitle,
     required Color color,
     required TextEditingController controller,
     required FocusNode focusNode,
@@ -278,144 +296,178 @@ class _MarkerControlsState extends State<MarkerControls> {
     required Function(int ms) onNudge,
   }) {
     return Container(
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF14151E),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF232532)),
+        color: SpotiTheme.surface1,
+        borderRadius: BorderRadius.circular(SpotiTheme.cardRadius),
+        border: Border.all(color: SpotiTheme.stroke),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
+              color: Colors.black.withOpacity(0.45),
+              blurRadius: 14,
+              offset: const Offset(0, 6)),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header Row with Title & Jump Button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(SpotiTheme.cardRadius),
+        child: Stack(
+          children: [
+            // Top accent hairline
+            Positioned(
+              top: 0,
+              left: 22,
+              right: 0,
+              child: Container(
+                height: 3,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [color.withOpacity(0.8), color.withOpacity(0.0)],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(13),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Header: label + jump
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.6,
+                              color: color,
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            subtitle.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.4,
+                              color: SpotiTheme.faint,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (onJump != null)
+                        InkWell(
+                          onTap: onJump,
+                          borderRadius: BorderRadius.circular(999),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 9, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: SpotiTheme.surface2,
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(color: SpotiTheme.stroke),
+                            ),
+                            child: Text(
+                              'Jump →',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: SpotiTheme.muted,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 9),
+
+                  // Digital Time Display Box
                   Container(
-                    width: 7,
-                    height: 7,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
+                      color: const Color(0xFF050608),
+                      borderRadius:
+                          BorderRadius.circular(SpotiTheme.insetRadius),
+                      border: Border.all(color: SpotiTheme.stroke),
+                    ),
+                    child: TextField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      textAlign: TextAlign.center,
+                      keyboardType: TextInputType.text,
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        fontFamily: 'monospace',
+                        color: color,
+                        letterSpacing: 0.5,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: hintText,
+                        hintStyle: const TextStyle(
+                          color: SpotiTheme.faint,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      ),
+                      onChanged: onChanged,
+                      onSubmitted: onSubmitted,
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: color,
+                  const SizedBox(height: 9),
+
+                  // Set Current Button
+                  ElevatedButton(
+                    onPressed: onSetCurrent,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color.withOpacity(0.12),
+                      foregroundColor: color,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(SpotiTheme.insetRadius),
+                        side: BorderSide(color: color.withOpacity(0.4)),
+                      ),
+                      overlayColor: color.withOpacity(0.1),
                     ),
+                    child: const Text(
+                      'Set Current',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 11.5),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Micro-Nudge Grid (2x2)
+                  Row(
+                    children: [
+                      _buildNudgeBtn('−1.0s', () => onNudge(-1000)),
+                      const SizedBox(width: 5),
+                      _buildNudgeBtn('+1.0s', () => onNudge(1000)),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  Row(
+                    children: [
+                      _buildNudgeBtn('−0.1s', () => onNudge(-100)),
+                      const SizedBox(width: 5),
+                      _buildNudgeBtn('+0.1s', () => onNudge(100)),
+                    ],
                   ),
                 ],
               ),
-              if (onJump != null)
-                InkWell(
-                  onTap: onJump,
-                  borderRadius: BorderRadius.circular(6),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                    child: const Text(
-                      'Jump ➔',
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // Digital Time Display Box (Can be cleared freely)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0C0D13),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF232532)),
             ),
-            child: TextField(
-              controller: controller,
-              focusNode: focusNode,
-              textAlign: TextAlign.center,
-              keyboardType: TextInputType.text,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                fontFamily: 'monospace',
-                color: color,
-                letterSpacing: 0.5,
-              ),
-              decoration: InputDecoration(
-                hintText: hintText,
-                hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 7),
-              ),
-              onChanged: onChanged,
-              onSubmitted: onSubmitted,
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // Set Current Button
-          ElevatedButton.icon(
-            onPressed: onSetCurrent,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: color.withOpacity(0.14),
-              foregroundColor: color,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-                side: BorderSide(color: color.withOpacity(0.35)),
-              ),
-            ),
-            icon: const Icon(Icons.touch_app_rounded, size: 15),
-            label: const Text(
-              'Set Current',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // Clean Micro-Nudge Grid (2x2 Matrix with large touch targets and no text wrapping)
-          Row(
-            children: [
-              _buildNudgeBtn('-1.0s', () => onNudge(-1000)),
-              const SizedBox(width: 5),
-              _buildNudgeBtn('+1.0s', () => onNudge(1000)),
-            ],
-          ),
-          const SizedBox(height: 5),
-          Row(
-            children: [
-              _buildNudgeBtn('-0.1s', () => onNudge(-100)),
-              const SizedBox(width: 5),
-              _buildNudgeBtn('+0.1s', () => onNudge(100)),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -428,12 +480,12 @@ class _MarkerControlsState extends State<MarkerControls> {
           onTap: onTap,
           borderRadius: BorderRadius.circular(8),
           child: Container(
-            height: 28,
+            height: 30,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: const Color(0xFF1C1E2B),
+              color: SpotiTheme.surface2,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFF2B2E3E)),
+              border: Border.all(color: SpotiTheme.stroke),
             ),
             child: FittedBox(
               fit: BoxFit.scaleDown,
@@ -446,7 +498,7 @@ class _MarkerControlsState extends State<MarkerControls> {
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFFD0D0E0),
+                    color: Color(0xFFC4CBD8),
                     fontFamily: 'monospace',
                   ),
                 ),
