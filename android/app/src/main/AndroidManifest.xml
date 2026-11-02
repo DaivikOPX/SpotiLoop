@@ -4,6 +4,16 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
+    <!-- Screen-off looping: foreground service that keeps the loop ticker alive -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
+    <!-- Status bar notification for the active-loop service (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- CPU wake lock so timers keep firing while the screen is off -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <!-- Required for ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS (Doze exemption) -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+
     <application
         android:label="SpotiLoop"
         android:name="${applicationName}"
@@ -39,6 +49,13 @@
             </intent-filter>
         </activity>
         
+        <!-- flutter_foreground_task service: required declaration (name must not change) -->
+        <service
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
+            android:foregroundServiceType="dataSync"
+            android:stopWithTask="true"
+            android:exported="false" />
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
