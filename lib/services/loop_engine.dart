@@ -44,7 +44,10 @@ class LoopEngine extends ChangeNotifier {
   int get durationMs => _currentTrack?.durationMs ?? 0;
   int get volumePercent => _volumePercent;
 
-  bool get isLoopValid => _startMarkerMs != null && _endMarkerMs != null && _startMarkerMs! < _endMarkerMs!;
+  bool get isLoopValid =>
+      _startMarkerMs != null &&
+      _endMarkerMs != null &&
+      _startMarkerMs! < _endMarkerMs!;
   int get loopDurationMs => isLoopValid ? (_endMarkerMs! - _startMarkerMs!) : 0;
 
   String? get userId => _userId;
@@ -76,7 +79,8 @@ class LoopEngine extends ChangeNotifier {
       _currentProgressMs = pos;
       _lastProgressSync = DateTime.now();
       progressNotifier.value = pos;
-      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1800));
+      _seekLockoutUntil =
+          DateTime.now().add(const Duration(milliseconds: 1800));
       notifyListeners();
     };
 
@@ -87,15 +91,31 @@ class LoopEngine extends ChangeNotifier {
       notifyListeners();
     };
 
+    // Authoritative loop state from the background task (queried on resume, so
+    // the counter chip reflects loops that ran while the screen was off).
+    ForegroundTaskService.onBackgroundStateReceived = (count, pos, isLooping) {
+      _loopCount = count;
+      _currentProgressMs = pos;
+      _lastProgressSync = DateTime.now();
+      progressNotifier.value = pos;
+      if (!isLooping && _isLoopActive) {
+        _isLoopActive = false;
+        WakelockPlus.disable().catchError((_) {});
+      }
+      notifyListeners();
+    };
+
     _ensureUserId();
   }
 
   void _startTimers() {
     // 35ms High-precision loop tick (~30 FPS) for UI responsiveness
-    _precisionTimer = Timer.periodic(const Duration(milliseconds: 35), (_) => _onPrecisionTick());
+    _precisionTimer = Timer.periodic(
+        const Duration(milliseconds: 35), (_) => _onPrecisionTick());
 
     // 1.5s Background Spotify Connect sync
-    _apiSyncTimer = Timer.periodic(const Duration(milliseconds: 1500), (_) => syncWithSpotify());
+    _apiSyncTimer = Timer.periodic(
+        const Duration(milliseconds: 1500), (_) => syncWithSpotify());
 
     // Initial sync
     syncWithSpotify();
@@ -144,7 +164,8 @@ class LoopEngine extends ChangeNotifier {
       // Playback was paused (e.g. another app such as Instagram Reels or YouTube
       // Shorts stole audio focus). Tell the background task so it HOLDS position
       // instead of blindly firing loop seeks against a player that is not moving.
-      ForegroundTaskService.syncProgressToTask(_currentProgressMs, isPlaying: false);
+      ForegroundTaskService.syncProgressToTask(_currentProgressMs,
+          isPlaying: false);
     } else if (_isLoopActive) {
       // Loop active & playing: forward our clock so the background task stays
       // aligned — this also covers the moment playback RESUMES after the
@@ -169,7 +190,8 @@ class LoopEngine extends ChangeNotifier {
     if (!_isLoopActive) return;
     final token = await _apiService.getAccessToken();
     final title = _currentTrack?.title ?? 'Music';
-    final offset = _storage.getSeekOffsetMs() > 0 ? _storage.getSeekOffsetMs() : 120;
+    final offset =
+        _storage.getSeekOffsetMs() > 0 ? _storage.getSeekOffsetMs() : 120;
 
     if (start) {
       await ForegroundTaskService.startLoopTask(
@@ -217,12 +239,18 @@ class LoopEngine extends ChangeNotifier {
     final estimated = _currentProgressMs + elapsed;
     final maxDuration = _currentTrack!.durationMs;
 
-    final currentPos = (maxDuration > 0 && estimated > maxDuration) ? maxDuration : estimated;
+    final currentPos =
+        (maxDuration > 0 && estimated > maxDuration) ? maxDuration : estimated;
     progressNotifier.value = currentPos;
 
     // On Web (where ForegroundService is absent), handle loop dispatch directly
-    if (kIsWeb && _isLoopActive && _startMarkerMs != null && _endMarkerMs != null && _endMarkerMs! > _startMarkerMs!) {
-      final offset = _storage.getSeekOffsetMs() > 0 ? _storage.getSeekOffsetMs() : 120;
+    if (kIsWeb &&
+        _isLoopActive &&
+        _startMarkerMs != null &&
+        _endMarkerMs != null &&
+        _endMarkerMs! > _startMarkerMs!) {
+      final offset =
+          _storage.getSeekOffsetMs() > 0 ? _storage.getSeekOffsetMs() : 120;
       final triggerPoint = _endMarkerMs! - offset;
 
       if (currentPos >= triggerPoint && now.isAfter(_seekLockoutUntil)) {
@@ -247,14 +275,17 @@ class LoopEngine extends ChangeNotifier {
     final elapsed = DateTime.now().difference(_lastProgressSync).inMilliseconds;
     final estimated = _currentProgressMs + elapsed;
     final maxDuration = _currentTrack?.durationMs ?? 0;
-    return (maxDuration > 0 && estimated > maxDuration) ? maxDuration : estimated;
+    return (maxDuration > 0 && estimated > maxDuration)
+        ? maxDuration
+        : estimated;
   }
 
   // Marker Controls
   void setPointAToCurrent() {
     final pos = liveProgressMs;
     if (_endMarkerMs != null && pos >= _endMarkerMs!) {
-      _startMarkerMs = (_endMarkerMs! - 1000).clamp(0, durationMs > 0 ? durationMs : 3600000);
+      _startMarkerMs = (_endMarkerMs! - 1000)
+          .clamp(0, durationMs > 0 ? durationMs : 3600000);
     } else {
       _startMarkerMs = pos;
     }
@@ -265,7 +296,8 @@ class LoopEngine extends ChangeNotifier {
   void setPointBToCurrent() {
     final pos = liveProgressMs;
     if (_startMarkerMs != null && pos <= _startMarkerMs!) {
-      _endMarkerMs = (_startMarkerMs! + 1000).clamp(0, durationMs > 0 ? durationMs : 3600000);
+      _endMarkerMs = (_startMarkerMs! + 1000)
+          .clamp(0, durationMs > 0 ? durationMs : 3600000);
     } else {
       _endMarkerMs = pos;
     }
@@ -301,7 +333,9 @@ class LoopEngine extends ChangeNotifier {
       _startMarkerMs = liveProgressMs;
     }
     final target = _startMarkerMs! + deltaMs;
-    final max = (_endMarkerMs != null) ? _endMarkerMs! - 100 : (durationMs > 0 ? durationMs : 3600000);
+    final max = (_endMarkerMs != null)
+        ? _endMarkerMs! - 100
+        : (durationMs > 0 ? durationMs : 3600000);
     _startMarkerMs = target.clamp(0, max > 0 ? max : 3600000);
     _syncLoopTask();
     notifyListeners();
@@ -324,7 +358,8 @@ class LoopEngine extends ChangeNotifier {
       _currentProgressMs = _startMarkerMs!;
       _lastProgressSync = DateTime.now();
       progressNotifier.value = _startMarkerMs!;
-      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1800));
+      _seekLockoutUntil =
+          DateTime.now().add(const Duration(milliseconds: 1800));
       _apiService.seekTo(_startMarkerMs!);
       _syncLoopTask();
       notifyListeners();
@@ -336,7 +371,8 @@ class LoopEngine extends ChangeNotifier {
       _currentProgressMs = _endMarkerMs!;
       _lastProgressSync = DateTime.now();
       progressNotifier.value = _endMarkerMs!;
-      _seekLockoutUntil = DateTime.now().add(const Duration(milliseconds: 1800));
+      _seekLockoutUntil =
+          DateTime.now().add(const Duration(milliseconds: 1800));
       _apiService.seekTo(_endMarkerMs!);
       _syncLoopTask();
       notifyListeners();
@@ -350,13 +386,15 @@ class LoopEngine extends ChangeNotifier {
     if (_endMarkerMs == null) {
       _endMarkerMs = durationMs > 0 ? durationMs : 30000;
     }
-    
+
     if (!_isLoopActive) {
       _activateLooping();
       // Only seek to Point A if we are currently BEFORE Point A or AFTER Point B
       // If song is ALREADY playing inside the loop range, do not interrupt or pause!
       final currentPos = liveProgressMs;
-      if (_startMarkerMs != null && (currentPos < _startMarkerMs! || (_endMarkerMs != null && currentPos >= _endMarkerMs!))) {
+      if (_startMarkerMs != null &&
+          (currentPos < _startMarkerMs! ||
+              (_endMarkerMs != null && currentPos >= _endMarkerMs!))) {
         jumpToA();
       }
     } else {

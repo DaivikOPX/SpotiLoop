@@ -28,6 +28,16 @@ void main() async {
     }
   });
 
+  // Keep the loop counter truthful after a screen-off run: the UI isolate is
+  // frozen while the phone sleeps, so on resume pull the authoritative count
+  // and position straight from the background task isolate.
+  AppLifecycleListener(
+    onResume: () {
+      ForegroundTaskService.queryTaskState();
+      loopEngine.syncWithSpotify();
+    },
+  );
+
   runApp(SpotiLoopApp(
     storage: storage,
     authService: authService,

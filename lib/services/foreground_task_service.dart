@@ -39,11 +39,15 @@ class SpotiLoopTaskHandler extends TaskHandler {
   void _startTicker() {
     _ticker?.cancel();
     // 40ms high-precision ticker inside background service isolate (~25 ticks/sec)
-    _ticker = Timer.periodic(const Duration(milliseconds: 40), (_) => _checkProgressTick());
+    _ticker = Timer.periodic(
+        const Duration(milliseconds: 40), (_) => _checkProgressTick());
   }
 
   void _checkProgressTick() {
-    if (!_isLooping || _startMs == null || _endMs == null || _endMs! <= _startMs!) return;
+    if (!_isLooping ||
+        _startMs == null ||
+        _endMs == null ||
+        _endMs! <= _startMs!) return;
     // Spotify paused (another app took audio focus): hold the frozen position
     // and do not trigger any seek until playback resumes.
     if (!_isPlayingOnDevice) return;
@@ -74,8 +78,10 @@ class SpotiLoopTaskHandler extends TaskHandler {
   }
 
   void _triggerLoopSeek() {
-    if (!_isLooping || _startMs == null || _endMs == null || _endMs! <= _startMs!) return;
-
+    if (!_isLooping ||
+        _startMs == null ||
+        _endMs == null ||
+        _endMs! <= _startMs!) return;
 
     final now = DateTime.now();
     _lastSeekDispatched = now;
@@ -107,7 +113,8 @@ class SpotiLoopTaskHandler extends TaskHandler {
     if (_accessToken == null || _accessToken!.isEmpty) return;
     try {
       _client ??= http.Client();
-      final uri = Uri.parse('https://api.spotify.com/v1/me/player/seek?position_ms=$positionMs');
+      final uri = Uri.parse(
+          'https://api.spotify.com/v1/me/player/seek?position_ms=$positionMs');
       final res = await _client!.put(
         uri,
         headers: {
@@ -115,7 +122,8 @@ class SpotiLoopTaskHandler extends TaskHandler {
           'Content-Length': '0',
         },
       ).timeout(const Duration(milliseconds: 2500));
-      debugPrint('Background seek ($positionMs ms) -> Status: ${res.statusCode}');
+      debugPrint(
+          'Background seek ($positionMs ms) -> Status: ${res.statusCode}');
     } catch (e) {
       debugPrint('Background seek network error: $e');
     }
@@ -125,16 +133,15 @@ class SpotiLoopTaskHandler extends TaskHandler {
     if (_accessToken == null || _accessToken!.isEmpty) return;
     try {
       _client ??= http.Client();
-      final res = await _client!
-          .get(
-            Uri.parse('https://api.spotify.com/v1/me/player'),
-            headers: {'Authorization': 'Bearer $_accessToken'},
-          )
-          .timeout(const Duration(milliseconds: 2500));
+      final res = await _client!.get(
+        Uri.parse('https://api.spotify.com/v1/me/player'),
+        headers: {'Authorization': 'Bearer $_accessToken'},
+      ).timeout(const Duration(milliseconds: 2500));
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body);
         final progress = (body['progress_ms'] as int?) ?? _currentPos;
-        _isPlayingOnDevice = (body['is_playing'] as bool?) ?? _isPlayingOnDevice;
+        _isPlayingOnDevice =
+            (body['is_playing'] as bool?) ?? _isPlayingOnDevice;
         _currentPos = progress;
         _lastSyncTime = DateTime.now();
         // Keep the UI dial truthful after a wake-up too.
@@ -167,19 +174,34 @@ class SpotiLoopTaskHandler extends TaskHandler {
         _currentPos = (data['currentProgressMs'] as int?) ?? (_startMs ?? 0);
         _isPlayingOnDevice = (data['isPlaying'] as bool?) ?? true;
         _lastSyncTime = DateTime.now();
-        _isLooping = true;      } else if (action == 'sync_progress') {
+        _isLooping = true;
+      } else if (action == 'sync_progress') {
         final now = DateTime.now();
         _isPlayingOnDevice = (data['isPlaying'] as bool?) ?? _isPlayingOnDevice;
         // While paused, always trust the UI's frozen position so our clock goes
         // truly stale-proof during the interruption. While playing, keep the
         // existing post-seek guard so a fresh loop clock isn't clobbered.
-        if (now.difference(_lastSeekDispatched).inMilliseconds > 1800 || !_isPlayingOnDevice) {
+        if (now.difference(_lastSeekDispatched).inMilliseconds > 1800 ||
+            !_isPlayingOnDevice) {
           _currentPos = (data['currentProgressMs'] as int?) ?? _currentPos;
           _lastSyncTime = now;
         }
       } else if (action == 'stop_loop') {
         _isLooping = false;
         _ticker?.cancel();
+      } else if (action == 'query_state') {
+        // Authoritative state for the UI after a screen-off run: the main
+        // isolate was frozen, so it may have missed per-loop notifications.
+        final now = DateTime.now();
+        final livePos = (!_isLooping || !_isPlayingOnDevice)
+            ? _currentPos
+            : _currentPos + now.difference(_lastSyncTime).inMilliseconds;
+        FlutterForegroundTask.sendDataToMain({
+          'action': 'bg_state',
+          'loopCount': _loopCount,
+          'pos': livePos,
+          'isLooping': _isLooping,
+        });
       }
     }
   }
@@ -217,6 +239,8 @@ class ForegroundTaskService {
   static void Function()? onStopLoopRequested;
   static void Function(int loopCount, int pos)? onBackgroundLoopTriggered;
   static void Function(int pos)? onBackgroundProgressResync;
+  static void Function(int loopCount, int pos, bool isLooping)?
+      onBackgroundStateReceived;
 
   static void initCommunicationPort() {
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
@@ -236,6 +260,12 @@ class ForegroundTaskService {
       } else if (data['action'] == 'bg_pos_resync') {
         final pos = data['pos'] as int? ?? 0;
         onBackgroundProgressResync?.call(pos);
+      } else if (data['action'] == 'bg_state') {
+        onBackgroundStateReceived?.call(
+          data['loopCount'] as int? ?? 0,
+          data['pos'] as int? ?? 0,
+          data['isLooping'] as bool? ?? false,
+        );
       }
     }
   }
@@ -245,14 +275,16 @@ class ForegroundTaskService {
 
     try {
       // 1. Request Notification Permission on Android 13+
-      final notificationPermission = await FlutterForegroundTask.checkNotificationPermission();
+      final notificationPermission =
+          await FlutterForegroundTask.checkNotificationPermission();
       if (notificationPermission != NotificationPermission.granted) {
         await FlutterForegroundTask.requestNotificationPermission();
       }
 
       // 2. Request Battery Optimization Exemption
       if (Platform.isAndroid) {
-        final isIgnoring = await FlutterForegroundTask.isIgnoringBatteryOptimizations;
+        final isIgnoring =
+            await FlutterForegroundTask.isIgnoringBatteryOptimizations;
         if (!isIgnoring) {
           await FlutterForegroundTask.requestIgnoreBatteryOptimization();
         }
@@ -263,7 +295,8 @@ class ForegroundTaskService {
         androidNotificationOptions: AndroidNotificationOptions(
           channelId: 'spotiloop_looper_channel',
           channelName: 'SpotiLoop Active Playback',
-          channelDescription: 'Keeps audio looper active when screen is locked or in background.',
+          channelDescription:
+              'Keeps audio looper active when screen is locked or in background.',
           channelImportance: NotificationChannelImportance.DEFAULT,
           priority: NotificationPriority.DEFAULT,
           onlyAlertOnce: true,
@@ -274,7 +307,8 @@ class ForegroundTaskService {
           playSound: false,
         ),
         foregroundTaskOptions: ForegroundTaskOptions(
-          eventAction: ForegroundTaskEventAction.repeat(1000), // 1s native OS pulse
+          eventAction:
+              ForegroundTaskEventAction.repeat(1000), // 1s native OS pulse
           autoRunOnBoot: false,
           autoRunOnMyPackageReplaced: false,
           allowWakeLock: true,
@@ -310,7 +344,8 @@ class ForegroundTaskService {
   static Future<bool> ensureBatteryOptimizationExemption() async {
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return true;
     try {
-      final isIgnoring = await FlutterForegroundTask.isIgnoringBatteryOptimizations;
+      final isIgnoring =
+          await FlutterForegroundTask.isIgnoringBatteryOptimizations;
       if (!isIgnoring) {
         await FlutterForegroundTask.requestIgnoreBatteryOptimization();
         return await FlutterForegroundTask.isIgnoringBatteryOptimizations;
@@ -397,7 +432,21 @@ class ForegroundTaskService {
     }
   }
 
-  static void syncProgressToTask(int currentProgressMs, {bool isPlaying = true}) {
+  /// Pulls the authoritative loop count/position out of the background task
+  /// isolate. Called when the app returns to the foreground, because a UI
+  /// isolate that was frozen with the screen off may have missed per-loop
+  /// notifications and would otherwise show a stale counter.
+  static void queryTaskState() {
+    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return;
+    try {
+      FlutterForegroundTask.sendDataToTask({'action': 'query_state'});
+    } catch (e) {
+      debugPrint('Query task state error: $e');
+    }
+  }
+
+  static void syncProgressToTask(int currentProgressMs,
+      {bool isPlaying = true}) {
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return;
     try {
       FlutterForegroundTask.sendDataToTask({

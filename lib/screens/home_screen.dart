@@ -74,6 +74,44 @@ class HomeScreen extends StatelessWidget {
             ),
             actions: [
               if (isAuth) ...[
+                if (engine.isLoopActive || engine.loopCount > 0)
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: SpotiTheme.greenTint,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: SpotiTheme.greenStroke),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.repeat_rounded,
+                            size: 13,
+                            color: engine.isLoopActive
+                                ? SpotiTheme.green
+                                : SpotiTheme.faint,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${engine.loopCount}×',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              fontFamily: 'monospace',
+                              letterSpacing: 0.2,
+                              color: engine.isLoopActive
+                                  ? SpotiTheme.green
+                                  : SpotiTheme.faint,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 IconButton(
                   icon: const Icon(Icons.bookmark_rounded,
                       color: SpotiTheme.green, size: 21),
