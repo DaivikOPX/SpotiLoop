@@ -402,204 +402,211 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildConnectPrompt(BuildContext context) {
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            // 1. Hero identity
-            Column(
-              children: [
-                Container(
-                  width: 84,
-                  height: 84,
-                  decoration: BoxDecoration(
-                    color: SpotiTheme.greenTint,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0x331ED760)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: SpotiTheme.green.withOpacity(0.22),
-                        blurRadius: 40,
-                        spreadRadius: 6,
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight - 20),
+            child: IntrinsicHeight(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // 1. Hero identity
+                  Column(
+                    children: [
+                      Container(
+                        width: 76,
+                        height: 76,
+                        decoration: BoxDecoration(
+                          color: SpotiTheme.greenTint,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0x331ED760)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: SpotiTheme.green.withOpacity(0.22),
+                              blurRadius: 40,
+                              spreadRadius: 6,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.all_inclusive_rounded,
+                          size: 40,
+                          color: SpotiTheme.green,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 11, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: SpotiTheme.greenTint,
+                          border: Border.all(color: SpotiTheme.greenStroke),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: const Text(
+                          'PRECISION AUDIO LOOPER',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.6,
+                            color: SpotiTheme.green,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      const Text(
+                        'Master Any Song With\nSub-Second Looping',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.7,
+                          height: 1.18,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Loop guitar solos, drum fills, vocal runs, and dance cues with millisecond accuracy.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: SpotiTheme.muted,
+                          height: 1.5,
+                        ),
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.all_inclusive_rounded,
-                    size: 44,
-                    color: SpotiTheme.green,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 11, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: SpotiTheme.greenTint,
-                    border: Border.all(color: SpotiTheme.greenStroke),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: const Text(
-                    'PRECISION AUDIO LOOPER',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.6,
-                      color: SpotiTheme.green,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                const Text(
-                  'Master Any Song With\nSub-Second Looping',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -1.0,
-                    height: 1.15,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Loop guitar solos, drum fills, vocal runs, and dance cues with millisecond accuracy.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: SpotiTheme.muted,
-                    height: 1.5,
-                  ),
-                ),
-              ],
-            ),
 
-            // 2. Feature chips (2x2)
-            Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildBentoFeature(
-                        icon: Icons.tune_rounded,
-                        title: 'Sub-Second',
-                        desc: '±0.1s & ±1.0s nudges',
+                  // 2. Feature chips (2x2)
+                  Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildBentoFeature(
+                              icon: Icons.tune_rounded,
+                              title: 'Sub-Second',
+                              desc: '±0.1s · ±1.0s nudges',
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildBentoFeature(
+                              icon: Icons.bolt_rounded,
+                              title: 'Zero Drift',
+                              desc: 'Locked local clock',
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _buildBentoFeature(
-                        icon: Icons.bolt_rounded,
-                        title: 'Zero Drift',
-                        desc: 'Locked local clock',
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildBentoFeature(
+                              icon: Icons.screen_lock_portrait_rounded,
+                              title: 'Screen-Off',
+                              desc: 'Runs in background',
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildBentoFeature(
+                              icon: Icons.devices_rounded,
+                              title: 'All Devices',
+                              desc: 'Spotify Connect sync',
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildBentoFeature(
-                        icon: Icons.screen_lock_portrait_rounded,
-                        title: 'Screen-Off',
-                        desc: 'Runs in background',
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _buildBentoFeature(
-                        icon: Icons.devices_rounded,
-                        title: 'All Devices',
-                        desc: 'Spotify Connect sync',
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-
-            // 3. Authorize action
-            Column(
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton.icon(
-                    onPressed: () => authService.startLogin(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: SpotiTheme.green,
-                      foregroundColor: SpotiTheme.onGreen,
-                      elevation: 0,
-                      shadowColor: Colors.transparent,
-                      overlayColor: Colors.white.withOpacity(0.08),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                    icon: const Icon(Icons.login_rounded, size: 19),
-                    label: const Text(
-                      'Authorize with Spotify',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 12),
-                if (authService.authError != null) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: const Color(0x14FF5252),
-                      borderRadius:
-                          BorderRadius.circular(SpotiTheme.insetRadius),
-                      border: Border.all(color: const Color(0x66FF5252)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline_rounded,
-                            color: SpotiTheme.pointB, size: 17),
-                        const SizedBox(width: 9),
-                        Expanded(
-                          child: Text(
-                            authService.authError!,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFFFF8A80),
-                              fontWeight: FontWeight.w600,
+
+                  // 3. Authorize action
+                  Column(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton.icon(
+                          onPressed: () => authService.startLogin(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: SpotiTheme.green,
+                            foregroundColor: SpotiTheme.onGreen,
+                            elevation: 0,
+                            shadowColor: Colors.transparent,
+                            overlayColor: Colors.white.withOpacity(0.08),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                          icon: const Icon(Icons.login_rounded, size: 19),
+                          label: const Text(
+                            'Authorize with Spotify',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.2,
                             ),
                           ),
                         ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (authService.authError != null) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0x14FF5252),
+                            borderRadius:
+                                BorderRadius.circular(SpotiTheme.insetRadius),
+                            border: Border.all(color: const Color(0x66FF5252)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline_rounded,
+                                  color: SpotiTheme.pointB, size: 17),
+                              const SizedBox(width: 9),
+                              Expanded(
+                                child: Text(
+                                  authService.authError!,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFFFF8A80),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
                       ],
-                    ),
+                      if (authService.isAuthenticating) ...[
+                        const LinearProgressIndicator(
+                          color: SpotiTheme.green,
+                          backgroundColor: SpotiTheme.surface2,
+                          borderRadius: BorderRadius.all(Radius.circular(2)),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      const Text(
+                        'Secured with Spotify OAuth 2.0 PKCE · No credentials stored',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: SpotiTheme.faint,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
                 ],
-                if (authService.isAuthenticating) ...[
-                  const LinearProgressIndicator(
-                    color: SpotiTheme.green,
-                    backgroundColor: SpotiTheme.surface2,
-                    borderRadius: BorderRadius.all(Radius.circular(2)),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-                const Text(
-                  'Secured with Spotify OAuth 2.0 PKCE · No credentials stored',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 10,
-                      color: SpotiTheme.faint,
-                      fontWeight: FontWeight.w600),
-                ),
-              ],
+              ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -713,17 +720,19 @@ class HomeScreen extends StatelessWidget {
     required String desc,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 13),
       decoration: BoxDecoration(
         color: SpotiTheme.surface1,
         borderRadius: BorderRadius.circular(SpotiTheme.insetRadius + 2),
         border: Border.all(color: SpotiTheme.stroke),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 30,
-            height: 30,
+            width: 28,
+            height: 28,
             decoration: BoxDecoration(
               color: SpotiTheme.greenTint,
               borderRadius: BorderRadius.circular(9),
@@ -731,32 +740,28 @@ class HomeScreen extends StatelessWidget {
             ),
             child: Icon(icon, size: 14, color: SpotiTheme.green),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.2,
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  desc,
-                  style: const TextStyle(
-                    fontSize: 10.5,
-                    color: SpotiTheme.muted,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+          const SizedBox(height: 10),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.2,
+              color: Colors.white,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 3),
+          Text(
+            desc,
+            style: const TextStyle(
+              fontSize: 11,
+              height: 1.3,
+              color: SpotiTheme.muted,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
