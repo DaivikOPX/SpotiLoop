@@ -33,16 +33,6 @@
         <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
     </svg>`;
 
-    const ICON_PIN_A = `<svg viewBox="0 0 16 16" width="14" height="14" fill="#1DB954">
-        <circle cx="8" cy="8" r="7" stroke="#ffffff" stroke-width="2"/>
-        <text x="8" y="11" font-size="8" font-weight="900" text-anchor="middle" fill="#ffffff" font-family="monospace">A</text>
-    </svg>`;
-
-    const ICON_PIN_B = `<svg viewBox="0 0 16 16" width="14" height="14" fill="#F43F5E">
-        <circle cx="8" cy="8" r="7" stroke="#ffffff" stroke-width="2"/>
-        <text x="8" y="11" font-size="8" font-weight="900" text-anchor="middle" fill="#ffffff" font-family="monospace">B</text>
-    </svg>`;
-
     // Format milliseconds to mm:ss.s
     function formatTime(ms) {
         if (ms == null || isNaN(ms)) return '--:--.-';
@@ -200,10 +190,31 @@
         const style = document.createElement('style');
         style.id = 'spotiloop-styles';
         style.innerHTML = `
-            /* Playbar Button Active Glow */
-            .spotiloop-btn-active {
+            /* Custom Playbar Button */
+            .spotiloop-playbar-btn {
+                background: transparent;
+                border: none;
+                color: #B3B3B3;
+                width: 32px;
+                height: 32px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: color 0.15s ease, transform 0.15s ease, filter 0.15s ease;
+                border-radius: 50%;
+                margin: 0 4px;
+                padding: 0;
+            }
+
+            .spotiloop-playbar-btn:hover {
+                color: #FFFFFF;
+                transform: scale(1.1);
+            }
+
+            .spotiloop-playbar-btn.spotiloop-btn-active {
                 color: #1DB954 !important;
-                filter: drop-shadow(0 0 6px rgba(29, 185, 84, 0.75)) !important;
+                filter: drop-shadow(0 0 8px rgba(29, 185, 84, 0.85)) !important;
             }
 
             /* Timeline Scrubber Markers */
@@ -211,7 +222,7 @@
                 position: absolute;
                 inset: 0;
                 pointer-events: none;
-                z-index: 10;
+                z-index: 20;
             }
 
             .spotiloop-highlight-zone {
@@ -236,7 +247,7 @@
                 transform: translate(-50%, -50%);
                 cursor: grab;
                 pointer-events: auto;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.8);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.85);
                 transition: transform 0.1s ease, filter 0.1s ease;
                 display: flex;
                 align-items: center;
@@ -246,7 +257,7 @@
                 color: #ffffff;
                 font-family: monospace;
                 user-select: none;
-                z-index: 15;
+                z-index: 25;
             }
 
             .spotiloop-pin:hover {
@@ -273,7 +284,7 @@
             #spotiloop-flyout {
                 position: fixed;
                 bottom: 95px;
-                right: 50px;
+                right: 60px;
                 width: 320px;
                 background: #12131A;
                 border: 1px solid #232534;
@@ -543,19 +554,24 @@
     // 4. TIMELINE MARKERS & INTERACTION (SCRUBBER BAR)
     // ========================================================================
     function setupTimelineScrubber() {
-        // Query the playback progress bar container
+        // Find the playback progress bar container with comprehensive fallbacks
         const progressContainer = document.querySelector(
-            '.playback-bar, [data-testid="playback-progressbar"], .playback-progressbar-isInteractive, .x-progressBar-progressBar, [data-testid="progress-bar"]'
+            '.playback-bar, [data-testid="playback-progressbar"], [class*="playback-bar"], [class*="playbackBar"], [data-testid="progress-bar"]'
         );
 
         if (!progressContainer) return;
 
-        let timelineOverlay = progressContainer.querySelector('.spotiloop-timeline-container');
+        // Find the actual track inside the progress bar container
+        const track = progressContainer.querySelector(
+            '[data-testid="progress-bar"], [class*="progress-bar"], .x-progressBar-progressBar, .x-progressBar-sliderArea'
+        ) || progressContainer;
+
+        let timelineOverlay = track.querySelector('.spotiloop-timeline-container');
         if (!timelineOverlay) {
             timelineOverlay = document.createElement('div');
             timelineOverlay.className = 'spotiloop-timeline-container';
-            progressContainer.style.position = 'relative';
-            progressContainer.appendChild(timelineOverlay);
+            track.style.position = 'relative';
+            track.appendChild(timelineOverlay);
 
             timelineOverlay.innerHTML = `
                 <div class="spotiloop-highlight-zone" id="spotiloop-zone" style="display: none;"></div>
@@ -566,8 +582,8 @@
             const pinA = timelineOverlay.querySelector('#spotiloop-pin-a');
             const pinB = timelineOverlay.querySelector('#spotiloop-pin-b');
 
-            attachPinDrag(pinA, 'A', progressContainer);
-            attachPinDrag(pinB, 'B', progressContainer);
+            attachPinDrag(pinA, 'A', track);
+            attachPinDrag(pinB, 'B', track);
 
             pinA.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -849,7 +865,7 @@
         window.addEventListener('click', (e) => {
             if (!state.flyoutOpen) return;
             const flyoutEl = document.getElementById('spotiloop-flyout');
-            const buttonEl = playbarButton?.element;
+            const buttonEl = playbarButton?.element || document.getElementById('spotiloop-custom-btn');
             if (flyoutEl && !flyoutEl.contains(e.target) && buttonEl && !buttonEl.contains(e.target)) {
                 closeFlyout();
             }
@@ -877,7 +893,7 @@
 
     function positionFlyout() {
         const flyout = document.getElementById('spotiloop-flyout');
-        const btn = playbarButton?.element;
+        const btn = playbarButton?.element || document.getElementById('spotiloop-custom-btn');
         if (!flyout || !btn) return;
 
         const rect = btn.getBoundingClientRect();
@@ -1036,19 +1052,19 @@
     }
 
     function updateAll() {
-        // Update Playbar button appearance
-        if (playbarButton && playbarButton.element) {
+        const btn = playbarButton?.element || document.getElementById('spotiloop-custom-btn');
+        if (btn) {
             if (state.enabled) {
-                playbarButton.element.classList.add('spotiloop-btn-active');
+                btn.classList.add('spotiloop-btn-active');
             } else {
-                playbarButton.element.classList.remove('spotiloop-btn-active');
+                btn.classList.remove('spotiloop-btn-active');
             }
 
             const tooltip = `SpotiLoop: ${state.enabled ? 'ACTIVE' : 'OFF'} [${formatTime(state.pointA)} ➔ ${formatTime(state.pointB)}]`;
-            if (playbarButton.tippy) {
+            if (playbarButton?.tippy) {
                 playbarButton.tippy.setContent(tooltip);
             } else {
-                playbarButton.element.setAttribute('title', tooltip);
+                btn.setAttribute('title', tooltip);
             }
         }
 
@@ -1056,38 +1072,73 @@
         updateFlyout();
     }
 
-    function setupPlaybarButton() {
-        if (playbarButton) return;
+    function ensurePlaybarButtonInDOM() {
+        let btn = playbarButton?.element || document.getElementById('spotiloop-custom-btn');
 
-        playbarButton = new Spicetify.Playbar.Button(
-            'SpotiLoop A-B Looper',
-            ICON_LOOP,
-            (btn) => {
-                // Left click -> toggle flyout panel
-                toggleFlyout();
-            },
-            false,
-            false,
-            true
-        );
+        if (!btn) {
+            btn = document.createElement('button');
+            btn.id = 'spotiloop-custom-btn';
+            btn.className = 'spotiloop-playbar-btn';
+            btn.innerHTML = ICON_LOOP;
+            btn.setAttribute('title', 'SpotiLoop A-B Looper');
 
-        if (playbarButton.element) {
-            // Right-click opens context menu
-            playbarButton.element.addEventListener('contextmenu', (e) => {
+            btn.addEventListener('click', (e) => {
+                if (e.altKey) {
+                    toggleLoop();
+                } else {
+                    toggleFlyout();
+                }
+            });
+
+            btn.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 closeFlyout();
                 openContextMenu(e.clientX, e.clientY);
             });
 
-            // Middle click toggles loop directly
-            playbarButton.element.addEventListener('auxclick', (e) => {
+            btn.addEventListener('auxclick', (e) => {
                 if (e.button === 1) {
                     e.preventDefault();
                     toggleLoop();
                 }
             });
         }
+
+        if (document.body.contains(btn)) return;
+
+        // Try placing right before lyrics button, or inside extraControls container
+        const lyricsBtn = document.querySelector(
+            'button[data-testid="lyrics-button"], button[aria-label*="lyrics" i], button[aria-label*="Lyrics" i], .main-nowPlayingBar-lyricsButton'
+        );
+
+        if (lyricsBtn && lyricsBtn.parentNode) {
+            lyricsBtn.parentNode.insertBefore(btn, lyricsBtn);
+            return;
+        }
+
+        const extraControls = document.querySelector(
+            '.main-nowPlayingBar-right > div, .main-nowPlayingBar-extraControls, [class*="nowPlayingBar-right"], [class*="extraControls"], footer [data-testid="now-playing-widget"]'
+        );
+
+        if (extraControls) {
+            extraControls.prepend(btn);
+        }
+    }
+
+    function setupPlaybarButton() {
+        try {
+            playbarButton = new Spicetify.Playbar.Button(
+                'SpotiLoop A-B Looper',
+                ICON_LOOP,
+                () => toggleFlyout(),
+                false,
+                false,
+                true
+            );
+        } catch (e) {}
+
+        ensurePlaybarButtonInDOM();
     }
 
     // ========================================================================
@@ -1157,14 +1208,16 @@
                 state.activeTrackUri = newUri;
                 loadTrackLoop(newUri);
                 setupTimelineScrubber();
+                ensurePlaybarButtonInDOM();
             }
         });
     }
 
-    // Observer to re-attach timeline pins if Spotify re-renders the now playing bar
+    // Observer to re-attach timeline pins and playbar button whenever Spotify navigates
     function observeDOM() {
         timelineObserver = new MutationObserver(() => {
             setupTimelineScrubber();
+            ensurePlaybarButtonInDOM();
         });
         const target = document.querySelector('.Root__now-playing-bar') || document.body;
         timelineObserver.observe(target, { childList: true, subtree: true });
