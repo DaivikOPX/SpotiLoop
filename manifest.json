@@ -1,0 +1,23 @@
+[
+  {
+    "name": "SpotiLoop",
+    "description": "High-precision Spotify A-B Looper with draggable timeline pins, micro-nudge controls, hotkeys, and 0ms latency.",
+    "preview": "spicetify-extension/preview.png",
+    "main": "spicetify-extension/spotiloop.js",
+    "readme": "spicetify-extension/README.md",
+    "authors": [
+      {
+        "name": "DaivikOPX",
+        "url": "https://github.com/DaivikOPX"
+      }
+    ],
+    "tags": [
+      "looper",
+      "audio",
+      "timeline",
+      "controls",
+      "repeat",
+      "practice"
+    ]
+  }
+]
