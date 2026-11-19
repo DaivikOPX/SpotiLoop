@@ -29,8 +29,8 @@
     let playbarButton = null;
 
     // Minimal Vector Icons
-    const ICON_LOOP = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-        <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
+    const ICON_LOOP = `<svg role="img" height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M5.5 5H10v1.5l3.5-2-3.5-2V4H5.5C3 4 1 6 1 8.5c0 .6.1 1.2.4 1.8l.9-.5C2.1 9.4 2 9 2 8.5 2 6.6 3.6 5 5.5 5zm9.1 1.7l-.9.5c.2.4.3.8.3 1.3 0 1.9-1.6 3.5-3.5 3.5H6v-1.5l-3.5 2 3.5 2V13h4.5C13 13 15 11 15 8.5c0-.6-.1-1.2-.4-1.8z"/>
     </svg>`;
 
     const ICON_SET = `<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
@@ -203,31 +203,69 @@
         const style = document.createElement('style');
         style.id = 'spotiloop-styles';
         style.innerHTML = `
-            /* Playbar Button Active Glow */
-            .spotiloop-playbar-btn {
-                background: transparent;
-                border: none;
-                color: #A7A7A7;
-                width: 32px;
-                height: 32px;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                transition: color 0.15s ease, transform 0.15s ease, filter 0.15s ease;
-                border-radius: 50%;
-                margin: 0 4px;
-                padding: 0;
+            /* Playbar Looper Button - Pixel-Perfect Centering & Spotify Encore Styling */
+            .spotiloop-playbar-btn,
+            button.main-genericButton-button.spotiloop-playbar-btn,
+            button.main-genericButton-button[data-spotiloop="true"],
+            #spotiloop-custom-btn {
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 32px !important;
+                height: 32px !important;
+                min-width: 32px !important;
+                min-height: 32px !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: none !important;
+                background: transparent !important;
+                color: var(--spice-subtext, #a7a7a7) !important;
+                cursor: pointer !important;
+                position: relative !important;
+                box-sizing: border-box !important;
+                vertical-align: middle !important;
+                transition: color 0.15s ease, transform 0.15s ease, filter 0.15s ease !important;
             }
 
-            .spotiloop-playbar-btn:hover {
-                color: #FFFFFF;
-                transform: scale(1.08);
+            .spotiloop-playbar-btn:hover,
+            button.main-genericButton-button[data-spotiloop="true"]:hover,
+            #spotiloop-custom-btn:hover {
+                color: var(--spice-text, #ffffff) !important;
+                transform: scale(1.08) !important;
             }
 
-            .spotiloop-playbar-btn.spotiloop-btn-active {
-                color: #1DB954 !important;
-                filter: drop-shadow(0 0 6px rgba(29, 185, 84, 0.75)) !important;
+            .spotiloop-playbar-btn.spotiloop-btn-active,
+            button.main-genericButton-button[data-spotiloop="true"].main-genericButton-buttonActive,
+            #spotiloop-custom-btn.spotiloop-btn-active {
+                color: var(--spice-button, #1db954) !important;
+                filter: drop-shadow(0 0 6px rgba(29, 185, 84, 0.65)) !important;
+            }
+
+            /* Force perfect geometric centering on span wrapper and SVG */
+            .spotiloop-playbar-btn > span,
+            button.main-genericButton-button[data-spotiloop="true"] > span,
+            #spotiloop-custom-btn > span {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 16px !important;
+                height: 16px !important;
+                line-height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .spotiloop-playbar-btn svg,
+            button.main-genericButton-button[data-spotiloop="true"] svg,
+            #spotiloop-custom-btn svg {
+                display: block !important;
+                width: 16px !important;
+                height: 16px !important;
+                min-width: 16px !important;
+                min-height: 16px !important;
+                margin: 0 auto !important;
+                padding: 0 !important;
+                vertical-align: middle !important;
             }
 
             /* Timeline Scrubber Markers */
@@ -1071,8 +1109,10 @@
         if (btn) {
             if (state.enabled) {
                 btn.classList.add('spotiloop-btn-active');
+                if (playbarButton) playbarButton.active = true;
             } else {
                 btn.classList.remove('spotiloop-btn-active');
+                if (playbarButton) playbarButton.active = false;
             }
 
             const tooltip = `SpotiLoop: ${state.enabled ? 'ACTIVE' : 'OFF'} [${formatTime(state.pointA)} ➔ ${formatTime(state.pointB)}]`;
@@ -1093,8 +1133,9 @@
         if (!btn) {
             btn = document.createElement('button');
             btn.id = 'spotiloop-custom-btn';
-            btn.className = 'spotiloop-playbar-btn';
-            btn.innerHTML = ICON_LOOP;
+            btn.className = 'spotiloop-playbar-btn main-genericButton-button';
+            btn.setAttribute('data-spotiloop', 'true');
+            btn.innerHTML = `<span class="Wrapper-sm-only Wrapper-small-only">${ICON_LOOP}</span>`;
             btn.setAttribute('title', 'SpotiLoop A-B Looper');
 
             btn.addEventListener('click', (e) => {
@@ -1120,24 +1161,21 @@
             });
         }
 
-        if (document.body.contains(btn)) return;
+        // Tag with attribute and class for reliable CSS centering
+        btn.setAttribute('data-spotiloop', 'true');
+        btn.classList.add('spotiloop-playbar-btn');
 
-        // Try placing right before lyrics button, or inside extraControls container
-        const lyricsBtn = document.querySelector(
-            'button[data-testid="lyrics-button"], button[aria-label*="lyrics" i], button[aria-label*="Lyrics" i], .main-nowPlayingBar-lyricsButton'
-        );
-
-        if (lyricsBtn && lyricsBtn.parentNode) {
-            lyricsBtn.parentNode.insertBefore(btn, lyricsBtn);
-            return;
-        }
-
+        // Target the right-side extra controls flex container
         const extraControls = document.querySelector(
-            '.main-nowPlayingBar-right > div, .main-nowPlayingBar-extraControls, [class*="nowPlayingBar-right"], [class*="extraControls"], footer [data-testid="now-playing-widget"]'
+            '.main-nowPlayingBar-extraControls, .main-nowPlayingBar-right > div, [class*="nowPlayingBar-right"] [class*="extraControls"], .main-nowPlayingBar-right'
         );
 
         if (extraControls) {
-            extraControls.prepend(btn);
+            // Position on the leftmost side of the extra controls cluster (ahead of lyrics, queue, volume)
+            // It automatically shifts dynamically with any added/removed extension icons
+            if (extraControls.firstElementChild !== btn) {
+                extraControls.prepend(btn);
+            }
         }
     }
 
@@ -1145,12 +1183,31 @@
         try {
             playbarButton = new Spicetify.Playbar.Button(
                 'SpotiLoop A-B Looper',
-                ICON_LOOP,
+                'repeat',
                 () => toggleFlyout(),
                 false,
                 false,
                 true
             );
+
+            if (playbarButton?.element) {
+                playbarButton.element.setAttribute('data-spotiloop', 'true');
+                playbarButton.element.classList.add('spotiloop-playbar-btn');
+
+                playbarButton.element.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    closeFlyout();
+                    openContextMenu(e.clientX, e.clientY);
+                });
+
+                playbarButton.element.addEventListener('auxclick', (e) => {
+                    if (e.button === 1) {
+                        e.preventDefault();
+                        toggleLoop();
+                    }
+                });
+            }
         } catch (e) {}
 
         ensurePlaybarButtonInDOM();
