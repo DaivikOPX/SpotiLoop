@@ -11,6 +11,7 @@
 
   [![Web Studio](https://img.shields.io/badge/🌐_Web_Studio-Live_App-1DB954?style=for-the-badge&logo=spotify&logoColor=white)](https://daivikopx.github.io/SpotiLoop/)
   [![Android Release](https://img.shields.io/badge/📱_Android_APK-v1.0.0_Download-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/Spoti-Loop.apk)
+  [![Spicetify Extension](https://img.shields.io/badge/🎧_Spicetify-Desktop_Looper-1ED760?style=for-the-badge&logo=spotify&logoColor=white)](https://github.com/DaivikOPX/SpotiLoop/tree/main/spicetify-extension)
   [![Build Status](https://img.shields.io/github/actions/workflow/status/DaivikOPX/SpotiLoop/build-apk.yml?branch=main&style=for-the-badge&label=Build%20Status&logo=github)](https://github.com/DaivikOPX/SpotiLoop/actions)
   [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
@@ -24,6 +25,7 @@
 | :--- | :--- | :--- |
 | **🌐 Web Studio** | **[daivikopx.github.io/SpotiLoop](https://daivikopx.github.io/SpotiLoop/)** | Instant zero-install web app. Works in any browser on PC, Mac, iPad, or Chromebook. |
 | **📱 Android App** | **[Download Spoti-Loop.apk (v1.0.0)](https://github.com/DaivikOPX/SpotiLoop/releases/download/v1.0.0/Spoti-Loop.apk)** | Native Android build with background service and notification bar controls. |
+| **🎧 Spicetify Extension** | **[Spicetify Marketplace / Code](spicetify-extension/)** | Native Spotify desktop extension with timeline pins, 0ms latency, and hotkeys. |
 
 ---
 
