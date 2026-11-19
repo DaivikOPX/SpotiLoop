@@ -9,6 +9,11 @@
         return;
     }
 
+    // Clean up any previous running instance to avoid duplicates
+    if (window.__SPOTILOOP_CLEANUP__) {
+        try { window.__SPOTILOOP_CLEANUP__(); } catch (e) {}
+    }
+
     // ========================================================================
     // 1. STATE & STORAGE
     // ========================================================================
@@ -28,12 +33,12 @@
     let timelineObserver = null;
     let playbarButton = null;
 
-    // Minimal Vector Icons
+        // Minimal Vector Icons (Native 16x16 Spotify Encore Geometry)
     const ICON_LOOP = `<svg role="img" height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
         <path d="M5.5 5H10v1.5l3.5-2-3.5-2V4H5.5C3 4 1 6 1 8.5c0 .6.1 1.2.4 1.8l.9-.5C2.1 9.4 2 9 2 8.5 2 6.6 3.6 5 5.5 5zm9.1 1.7l-.9.5c.2.4.3.8.3 1.3 0 1.9-1.6 3.5-3.5 3.5H6v-1.5l-3.5 2 3.5 2V13h4.5C13 13 15 11 15 8.5c0-.6-.1-1.2-.4-1.8z"/>
     </svg>`;
 
-    const ICON_SET = `<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+    const ICON_SET = `<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
         <circle cx="8" cy="8" r="6"/>
         <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
         <line x1="8" y1="0.5" x2="8" y2="3"/>
@@ -42,7 +47,7 @@
         <line x1="13" y1="8" x2="15.5" y2="8"/>
     </svg>`;
 
-    const ICON_JUMP = `<svg viewBox="0 0 16 16" width="11" height="11" fill="currentColor">
+    const ICON_JUMP = `<svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor">
         <polygon points="4,2.5 13.5,8 4,13.5"/>
     </svg>`;
 
@@ -198,16 +203,16 @@
     // ========================================================================
     // 3. MINIMALIST FROSTED GLASS STYLING
     // ========================================================================
-    function injectStyles() {
+        function injectStyles() {
         if (document.getElementById('spotiloop-styles')) return;
         const style = document.createElement('style');
         style.id = 'spotiloop-styles';
         style.innerHTML = `
-            /* Playbar Looper Button - Pixel-Perfect Centering & Spotify Encore Styling */
-            .spotiloop-playbar-btn,
-            button.main-genericButton-button.spotiloop-playbar-btn,
-            button.main-genericButton-button[data-spotiloop="true"],
-            #spotiloop-custom-btn {
+            /* ================================================================
+               1. PLAYBAR LOOPER BUTTON (Exact 16px Centered Spotify Encore Style)
+               ================================================================ */
+            #spotiloop-playbar-btn,
+            .spotiloop-playbar-btn {
                 display: inline-flex !important;
                 align-items: center !important;
                 justify-content: center !important;
@@ -216,7 +221,7 @@
                 min-width: 32px !important;
                 min-height: 32px !important;
                 padding: 0 !important;
-                margin: 0 !important;
+                margin: 0 2px !important;
                 border: none !important;
                 background: transparent !important;
                 color: var(--spice-subtext, #a7a7a7) !important;
@@ -224,27 +229,39 @@
                 position: relative !important;
                 box-sizing: border-box !important;
                 vertical-align: middle !important;
+                line-height: 0 !important;
                 transition: color 0.15s ease, transform 0.15s ease, filter 0.15s ease !important;
             }
 
-            .spotiloop-playbar-btn:hover,
-            button.main-genericButton-button[data-spotiloop="true"]:hover,
-            #spotiloop-custom-btn:hover {
+            #spotiloop-playbar-btn:hover,
+            .spotiloop-playbar-btn:hover {
                 color: var(--spice-text, #ffffff) !important;
                 transform: scale(1.08) !important;
             }
 
-            .spotiloop-playbar-btn.spotiloop-btn-active,
-            button.main-genericButton-button[data-spotiloop="true"].main-genericButton-buttonActive,
-            #spotiloop-custom-btn.spotiloop-btn-active {
+            #spotiloop-playbar-btn.spotiloop-btn-active,
+            .spotiloop-playbar-btn.spotiloop-btn-active {
                 color: var(--spice-button, #1db954) !important;
                 filter: drop-shadow(0 0 6px rgba(29, 185, 84, 0.65)) !important;
             }
 
-            /* Force perfect geometric centering on span wrapper and SVG */
-            .spotiloop-playbar-btn > span,
-            button.main-genericButton-button[data-spotiloop="true"] > span,
-            #spotiloop-custom-btn > span {
+            /* Spotify Active Indicator Dot */
+            #spotiloop-playbar-btn.spotiloop-btn-active:after,
+            .spotiloop-playbar-btn.spotiloop-btn-active:after {
+                content: "" !important;
+                background-color: var(--spice-button, #1db954) !important;
+                border-radius: 50% !important;
+                width: 4px !important;
+                height: 4px !important;
+                display: block !important;
+                position: absolute !important;
+                bottom: 1px !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+            }
+
+            #spotiloop-playbar-btn > span,
+            .spotiloop-playbar-btn > span {
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
@@ -255,9 +272,8 @@
                 padding: 0 !important;
             }
 
-            .spotiloop-playbar-btn svg,
-            button.main-genericButton-button[data-spotiloop="true"] svg,
-            #spotiloop-custom-btn svg {
+            #spotiloop-playbar-btn svg,
+            .spotiloop-playbar-btn svg {
                 display: block !important;
                 width: 16px !important;
                 height: 16px !important;
@@ -268,7 +284,9 @@
                 vertical-align: middle !important;
             }
 
-            /* Timeline Scrubber Markers */
+            /* ================================================================
+               2. TIMELINE SCRUBBER HIGHLIGHT & PINS
+               ================================================================ */
             .spotiloop-timeline-container {
                 position: absolute;
                 inset: 0;
@@ -298,7 +316,7 @@
                 transform: translate(-50%, -50%);
                 cursor: grab;
                 pointer-events: auto;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+                box-shadow: 0 2px 6px rgba(0,0,0,0.8);
                 transition: transform 0.1s ease;
                 display: flex;
                 align-items: center;
@@ -329,17 +347,18 @@
                 border: 2px solid #ffffff;
             }
 
-            /* Sleek Frosted Glass Flyout */
+            /* ================================================================
+               3. AMOLED BLACK (#000000) MINIMALIST FLYOUT
+               ================================================================ */
             #spotiloop-flyout {
                 position: fixed;
                 bottom: 92px;
                 right: 50px;
-                width: 250px;
-                background: rgba(22, 22, 26, 0.92);
-                border: 1px solid rgba(255, 255, 255, 0.09);
+                width: 280px;
+                background: #000000 !important;
+                border: 1px solid rgba(255, 255, 255, 0.14) !important;
                 border-radius: 14px;
-                box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(0,0,0,0.3);
-                backdrop-filter: blur(28px) saturate(190%);
+                box-shadow: 0 20px 48px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.05);
                 color: #ffffff;
                 padding: 12px 14px;
                 font-family: var(--encore-body-font-stack, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
@@ -347,6 +366,12 @@
                 display: none;
                 animation: spotiloop-fade 0.18s cubic-bezier(0.16, 1, 0.3, 1);
                 user-select: none;
+                box-sizing: border-box !important;
+                overflow: hidden !important;
+            }
+
+            #spotiloop-flyout * {
+                box-sizing: border-box !important;
             }
 
             @keyframes spotiloop-fade {
@@ -366,10 +391,10 @@
                 display: flex;
                 align-items: center;
                 gap: 7px;
-                font-size: 12.5px;
+                font-size: 13px;
                 font-weight: 700;
                 letter-spacing: -0.2px;
-                color: #E6E6E6;
+                color: #FFFFFF;
             }
 
             .spotiloop-header-right {
@@ -382,9 +407,10 @@
                 font-size: 10px;
                 font-weight: 700;
                 color: #1DB954;
-                background: rgba(29, 185, 84, 0.12);
-                padding: 1px 6px;
+                background: rgba(29, 185, 84, 0.15);
+                padding: 1px 7px;
                 border-radius: 8px;
+                border: 1px solid rgba(29, 185, 84, 0.2);
             }
 
             /* Toggle Switch */
@@ -392,7 +418,7 @@
                 position: relative;
                 width: 32px;
                 height: 18px;
-                background: #333339;
+                background: #242424 !important;
                 border-radius: 10px;
                 cursor: pointer;
                 transition: background 0.2s ease, box-shadow 0.2s ease;
@@ -408,42 +434,46 @@
                 background: #ffffff;
                 border-radius: 50%;
                 transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-                box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+                box-shadow: 0 1px 3px rgba(0,0,0,0.5);
             }
 
             .spotiloop-toggle-switch.active {
-                background: #1DB954;
-                box-shadow: 0 0 10px rgba(29, 185, 84, 0.45);
+                background: #1DB954 !important;
+                box-shadow: 0 0 10px rgba(29, 185, 84, 0.5) !important;
             }
 
             .spotiloop-toggle-switch.active::after {
                 transform: translateX(14px);
             }
 
-            /* Marker Section */
+            /* AMOLED Section Box */
             .spotiloop-section {
-                background: rgba(255, 255, 255, 0.035);
+                background: #0c0c0c !important;
                 border-radius: 10px;
-                padding: 8px 10px;
+                padding: 9px 10px;
                 margin-bottom: 8px;
-                border: 1px solid rgba(255, 255, 255, 0.04);
-                transition: background 0.15s ease;
+                border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                transition: background 0.15s ease, border-color 0.15s ease;
+                overflow: hidden !important;
             }
 
             .spotiloop-section:hover {
-                background: rgba(255, 255, 255, 0.055);
+                background: #141414 !important;
+                border-color: rgba(255, 255, 255, 0.15) !important;
             }
 
+            /* Content Row (Dot + Time Input + Actions) */
             .spotiloop-row {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 8px;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                width: 100% !important;
+                gap: 6px !important;
             }
 
             .spotiloop-dot-label {
-                width: 17px;
-                height: 17px;
+                width: 18px;
+                height: 18px;
                 border-radius: 50%;
                 display: flex;
                 align-items: center;
@@ -462,141 +492,156 @@
                 background: #F43F5E;
             }
 
-            /* Clean Modern Time Display */
+            /* Compact Non-Overflowing Time Input */
             .spotiloop-time-input {
-                flex: 1;
-                background: transparent;
-                border: none;
-                color: #FFFFFF;
-                font-size: 15px;
-                font-weight: 700;
-                letter-spacing: 0.3px;
-                outline: none;
-                padding: 0;
-                margin: 0;
-                font-family: inherit;
+                width: 80px !important;
+                min-width: 0 !important;
+                flex: none !important;
+                background: rgba(255, 255, 255, 0.04) !important;
+                border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                border-radius: 6px !important;
+                color: #FFFFFF !important;
+                font-size: 13.5px !important;
+                font-weight: 700 !important;
+                letter-spacing: 0.5px !important;
+                outline: none !important;
+                padding: 2px 5px !important;
+                margin: 0 !important;
+                text-align: center !important;
+                font-family: inherit !important;
+                transition: border-color 0.15s ease, background 0.15s ease !important;
             }
 
+            .spotiloop-time-input:focus {
+                border-color: #1DB954 !important;
+                background: rgba(255, 255, 255, 0.08) !important;
+            }
+
+            /* Contained Action Icons */
             .spotiloop-action-icons {
-                display: flex;
-                align-items: center;
-                gap: 4px;
+                display: flex !important;
+                align-items: center !important;
+                gap: 4px !important;
+                flex-shrink: 0 !important;
             }
 
             .spotiloop-icon-btn {
-                background: rgba(255, 255, 255, 0.06);
-                border: none;
-                color: #B3B3B3;
-                width: 24px;
-                height: 24px;
-                border-radius: 6px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                transition: all 0.15s ease;
-                padding: 0;
+                background: rgba(255, 255, 255, 0.07) !important;
+                border: 1px solid rgba(255, 255, 255, 0.06) !important;
+                color: #B3B3B3 !important;
+                width: 26px !important;
+                height: 26px !important;
+                border-radius: 6px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                cursor: pointer !important;
+                transition: all 0.15s ease !important;
+                padding: 0 !important;
             }
 
             .spotiloop-icon-btn:hover {
-                background: rgba(255, 255, 255, 0.14);
-                color: #FFFFFF;
-                transform: scale(1.05);
+                background: rgba(255, 255, 255, 0.18) !important;
+                color: #FFFFFF !important;
+                transform: scale(1.05) !important;
             }
 
-            /* Minimalist Nudge Bar */
+            /* Nudge Bar */
             .spotiloop-nudge-bar {
-                display: flex;
-                align-items: center;
-                gap: 3px;
-                margin-top: 6px;
-                padding-top: 6px;
-                border-top: 1px solid rgba(255, 255, 255, 0.04);
+                display: flex !important;
+                align-items: center !important;
+                gap: 4px !important;
+                margin-top: 7px !important;
+                padding-top: 6px !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
             }
 
             .spotiloop-nudge-pill {
-                flex: 1;
-                background: rgba(255, 255, 255, 0.04);
-                border: none;
-                color: #929298;
-                padding: 2.5px 0;
-                border-radius: 5px;
-                font-size: 9.5px;
-                font-weight: 600;
-                cursor: pointer;
-                text-align: center;
-                transition: all 0.15s ease;
+                flex: 1 !important;
+                background: #181818 !important;
+                border: 1px solid rgba(255, 255, 255, 0.07) !important;
+                color: #929298 !important;
+                padding: 3px 0 !important;
+                border-radius: 5px !important;
+                font-size: 9.5px !important;
+                font-weight: 600 !important;
+                cursor: pointer !important;
+                text-align: center !important;
+                transition: all 0.15s ease !important;
             }
 
             .spotiloop-nudge-pill:hover {
-                background: rgba(255, 255, 255, 0.12);
-                color: #FFFFFF;
+                background: #282828 !important;
+                color: #FFFFFF !important;
+                border-color: rgba(255, 255, 255, 0.18) !important;
             }
 
             /* Footer */
             .spotiloop-footer {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                margin-top: 8px;
-                padding-top: 4px;
-                font-size: 10px;
-                color: #6A6A74;
-            }
-
-            .spotiloop-hint {
-                letter-spacing: 0.1px;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                margin-top: 8px !important;
+                padding-top: 4px !important;
+                font-size: 10px !important;
+                color: #6A6A74 !important;
             }
 
             .spotiloop-clear-btn {
-                background: transparent;
-                border: none;
-                color: #8E8E98;
-                font-size: 10.5px;
-                font-weight: 600;
-                cursor: pointer;
-                padding: 2px 4px;
-                border-radius: 4px;
-                transition: color 0.15s ease;
+                background: transparent !important;
+                border: none !important;
+                color: #8E8E98 !important;
+                font-size: 10.5px !important;
+                font-weight: 600 !important;
+                cursor: pointer !important;
+                padding: 2px 4px !important;
+                transition: color 0.15s ease !important;
             }
 
             .spotiloop-clear-btn:hover {
-                color: #F43F5E;
+                color: #F43F5E !important;
             }
 
-            /* Context Menu Dropdown */
+            /* ================================================================
+               4. AMOLED BLACK CONTEXT MENU
+               ================================================================ */
             #spotiloop-context-menu {
                 position: fixed;
-                background: rgba(24, 24, 28, 0.95);
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 8px;
-                box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
-                backdrop-filter: blur(20px);
-                padding: 4px;
-                min-width: 175px;
-                z-index: 1000000;
+                width: 170px;
+                background: #000000 !important;
+                border: 1px solid rgba(255, 255, 255, 0.14) !important;
+                border-radius: 10px;
+                box-shadow: 0 16px 36px rgba(0, 0, 0, 0.95);
+                padding: 6px;
+                z-index: 9999999;
                 display: none;
+                color: #ffffff;
+                font-size: 12px;
+                font-weight: 600;
+                user-select: none;
+                box-sizing: border-box !important;
+            }
+
+            #spotiloop-context-menu * {
+                box-sizing: border-box !important;
             }
 
             .spotiloop-context-item {
                 padding: 7px 10px;
-                font-size: 12px;
-                font-weight: 500;
-                color: #D4D4D8;
-                border-radius: 5px;
+                border-radius: 6px;
                 cursor: pointer;
-                transition: background 0.15s ease, color 0.15s ease;
+                transition: background 0.1s ease, color 0.1s ease;
             }
 
             .spotiloop-context-item:hover {
-                background: rgba(255, 255, 255, 0.08);
-                color: #FFFFFF;
+                background: #1a1a1a !important;
+                color: #1DB954 !important;
             }
 
             .spotiloop-context-divider {
                 height: 1px;
-                background: rgba(255, 255, 255, 0.06);
-                margin: 3px 0;
+                background: rgba(255, 255, 255, 0.08);
+                margin: 4px 0;
             }
         `;
         document.head.appendChild(style);
@@ -918,7 +963,7 @@
         window.addEventListener('click', (e) => {
             if (!state.flyoutOpen) return;
             const flyoutEl = document.getElementById('spotiloop-flyout');
-            const buttonEl = playbarButton?.element || document.getElementById('spotiloop-custom-btn');
+            const buttonEl = document.getElementById('spotiloop-playbar-btn');
             if (flyoutEl && !flyoutEl.contains(e.target) && buttonEl && !buttonEl.contains(e.target)) {
                 closeFlyout();
             }
@@ -946,7 +991,7 @@
 
     function positionFlyout() {
         const flyout = document.getElementById('spotiloop-flyout');
-        const btn = playbarButton?.element || document.getElementById('spotiloop-custom-btn');
+        const btn = document.getElementById('spotiloop-playbar-btn');
         if (!flyout || !btn) return;
 
         const rect = btn.getBoundingClientRect();
@@ -1078,6 +1123,7 @@
     }
 
     // ========================================================================
+        // ========================================================================
     // 7. PLAYBAR BUTTON & ACTIONS
     // ========================================================================
     function toggleLoop() {
@@ -1105,22 +1151,16 @@
     }
 
     function updateAll() {
-        const btn = playbarButton?.element || document.getElementById('spotiloop-custom-btn');
+        const btn = document.getElementById('spotiloop-playbar-btn');
         if (btn) {
             if (state.enabled) {
                 btn.classList.add('spotiloop-btn-active');
-                if (playbarButton) playbarButton.active = true;
             } else {
                 btn.classList.remove('spotiloop-btn-active');
-                if (playbarButton) playbarButton.active = false;
             }
 
             const tooltip = `SpotiLoop: ${state.enabled ? 'ACTIVE' : 'OFF'} [${formatTime(state.pointA)} ➔ ${formatTime(state.pointB)}]`;
-            if (playbarButton?.tippy) {
-                playbarButton.tippy.setContent(tooltip);
-            } else {
-                btn.setAttribute('title', tooltip);
-            }
+            btn.setAttribute('title', tooltip);
         }
 
         updateTimeline();
@@ -1128,15 +1168,19 @@
     }
 
     function ensurePlaybarButtonInDOM() {
-        let btn = playbarButton?.element || document.getElementById('spotiloop-custom-btn');
-
+        // Enforce strictly ONE button: purge any duplicates or leftovers from DOM
+        const allBtns = document.querySelectorAll('#spotiloop-playbar-btn, #spotiloop-custom-btn, [data-spotiloop="true"], button[aria-label*="SpotiLoop"], button[title*="SpotiLoop"]');
+        let btn = document.getElementById('spotiloop-playbar-btn');
+        allBtns.forEach(b => {
+            if (b !== btn) b.remove();
+        });
         if (!btn) {
             btn = document.createElement('button');
-            btn.id = 'spotiloop-custom-btn';
-            btn.className = 'spotiloop-playbar-btn main-genericButton-button';
+            btn.id = 'spotiloop-playbar-btn';
+            btn.className = 'main-genericButton-button spotiloop-playbar-btn';
             btn.setAttribute('data-spotiloop', 'true');
-            btn.innerHTML = `<span class="Wrapper-sm-only Wrapper-small-only">${ICON_LOOP}</span>`;
             btn.setAttribute('title', 'SpotiLoop A-B Looper');
+            btn.innerHTML = `<span class="Wrapper-sm-only Wrapper-small-only">${ICON_LOOP}</span>`;
 
             btn.addEventListener('click', (e) => {
                 if (e.altKey) {
@@ -1161,59 +1205,27 @@
             });
         }
 
-        // Tag with attribute and class for reliable CSS centering
-        btn.setAttribute('data-spotiloop', 'true');
-        btn.classList.add('spotiloop-playbar-btn');
+        // Ensure icon content matches latest 16x16 SVG
+        const span = btn.querySelector('span');
+        if (span && span.innerHTML !== ICON_LOOP) {
+            span.innerHTML = ICON_LOOP;
+        }
 
         // Target the right-side extra controls flex container
         const extraControls = document.querySelector(
             '.main-nowPlayingBar-extraControls, .main-nowPlayingBar-right > div, [class*="nowPlayingBar-right"] [class*="extraControls"], .main-nowPlayingBar-right'
         );
 
-        if (extraControls) {
-            // Position on the leftmost side of the extra controls cluster (ahead of lyrics, queue, volume)
-            // It automatically shifts dynamically with any added/removed extension icons
-            if (extraControls.firstElementChild !== btn) {
-                extraControls.prepend(btn);
-            }
+        if (extraControls && !extraControls.contains(btn)) {
+            // Position on the leftmost side of the extra controls cluster (ahead of karaoke and lyrics)
+            extraControls.prepend(btn);
         }
     }
 
     function setupPlaybarButton() {
-        try {
-            playbarButton = new Spicetify.Playbar.Button(
-                'SpotiLoop A-B Looper',
-                'repeat',
-                () => toggleFlyout(),
-                false,
-                false,
-                true
-            );
-
-            if (playbarButton?.element) {
-                playbarButton.element.setAttribute('data-spotiloop', 'true');
-                playbarButton.element.classList.add('spotiloop-playbar-btn');
-
-                playbarButton.element.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    closeFlyout();
-                    openContextMenu(e.clientX, e.clientY);
-                });
-
-                playbarButton.element.addEventListener('auxclick', (e) => {
-                    if (e.button === 1) {
-                        e.preventDefault();
-                        toggleLoop();
-                    }
-                });
-            }
-        } catch (e) {}
-
         ensurePlaybarButtonInDOM();
     }
 
-    // ========================================================================
     // 8. KEYBOARD SHORTCUTS
     // ========================================================================
     function setupKeyboardShortcuts() {
