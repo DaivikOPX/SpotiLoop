@@ -24,4 +24,5 @@ A-B section looper for Spotify Desktop via Spicetify.
 
 ## Author
 
-**[DaivikOPX](https://github.com/DaivikOPX)**
+- **Author**: [DaivikOPX](https://github.com/DaivikOPX)
+- **GitHub Repository**: [github.com/DaivikOPX/SpotiLoop](https://github.com/DaivikOPX/SpotiLoop)
