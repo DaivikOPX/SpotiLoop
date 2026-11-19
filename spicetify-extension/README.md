@@ -34,17 +34,9 @@ A high-performance, native-feel A-B Looper extension for the Spotify Desktop cli
 
 ---
 
-## 🚀 Installation via Spicetify Marketplace
+## 🛠 Manual Installation (CLI)
 
-1. Open **Spotify**.
-2. Click on the **Marketplace** icon in the sidebar or top bar.
-3. Search for **SpotiLoop**.
-4. Click **Install**.
-5. Restart or reload Spotify (`Ctrl + Shift + R`).
-
----
-
-## 🛠 Manual Installation
+For users installing directly without Marketplace:
 
 1. Copy `spotiloop.js` to your Spicetify Extensions directory:
    - **Windows**: `%appdata%\spicetify\Extensions\spotiloop.js`
